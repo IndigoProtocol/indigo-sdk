@@ -1,3 +1,5 @@
+import { AssetClass, CurrencySymbol } from "./generic";
+
 export interface SystemParams {
   versionRecordParams: VersionRecordParams;
   validatorHashes: ValidatorHashes;
@@ -29,7 +31,6 @@ export type ValidatorHashes = {
   cdpHash: string;
   cdpCreatorHash: string;
 };
-export type AssetClass = [CurrencySymbol, TokenName];
 export interface AddressCredential {
   tag: string;
   contents: PubKeyHash;
@@ -70,9 +71,6 @@ export interface StabilityPoolParams {
   accountToken: AssetClass;
   accountCreateFeeLovelaces: number;
   accountAdjustmentFeeLovelaces: number;
-}
-export interface CurrencySymbol {
-  unCurrencySymbol: string;
 }
 
 export interface ScriptReferences {
@@ -115,9 +113,6 @@ export interface Amount {
   getValue?:
     | ((CurrencySymbol | ((number)[] | null)[] | null)[] | null)[]
     | null;
-}
-export interface TokenName {
-  unTokenName: string;
 }
 export interface Address {
   addressStakingCredential?: null;
