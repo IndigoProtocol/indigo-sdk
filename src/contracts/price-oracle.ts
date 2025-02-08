@@ -5,7 +5,7 @@ export class PriceOracleContract {
     static decodePriceOracleDatum(datum: string): PriceOracleDatum {
         const oracleDatum = Data.from(datum) as any;
         if (oracleDatum.index != 0 || oracleDatum.fields.length !== 2 || oracleDatum.fields[0].index !== 0)
-            throw 'Invalid Oracle Datum provided.'
+            throw 'Invalid Price Oracle Datum provided.'
         
         return {
             price: oracleDatum.fields[0].fields[0],

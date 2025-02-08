@@ -65,6 +65,7 @@ export class CDPCreatorContract {
     hash: Credential,
     mintedAmount: bigint,
     collateralAmount: bigint,
+    currentTime: bigint,
   ): Data {
     if (hash.type !== 'Key') throw new Error('Cannot support script hash.');
 
@@ -72,6 +73,7 @@ export class CDPCreatorContract {
       hash.hash,
       BigInt(mintedAmount),
       BigInt(collateralAmount),
+      currentTime
     ]);
   }
 

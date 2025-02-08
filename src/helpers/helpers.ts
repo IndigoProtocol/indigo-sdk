@@ -2,7 +2,10 @@ import { SystemParams } from "../types";
 import * as fs from 'fs';
 
 export function calculateFeeFromPercentage(percent: bigint, amount: bigint): bigint {
-    return (amount * percent) / BigInt(100_000_000);
+    if (amount <= 0n) return 0n;
+    const a = (amount * percent / 1_000_000n)
+    const b = BigInt(100_000_000);
+    return (a * 1_000_000n) / b
 }
 
 export function loadSystemParamsFromFile(file: string): SystemParams {

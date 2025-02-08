@@ -1,4 +1,4 @@
-import { Credential, LucidEvolution, paymentCredentialOf, stakeCredentialOf, UTxO } from "@lucid-evolution/lucid";
+import { addAssets, Assets, Credential, LucidEvolution, paymentCredentialOf, Record, stakeCredentialOf, UTxO } from "@lucid-evolution/lucid";
 import { ScriptReference } from "../types";
 
 export async function addrDetails(lucid: LucidEvolution): Promise<[Credential, Credential | undefined]> {
@@ -14,6 +14,10 @@ export async function scriptRef(ref: ScriptReference, lucid: LucidEvolution): Pr
     if (utxos.length === 0)
         throw 'Unable to locate script ref.';
     return utxos[0];
+}
+
+export function balance(utxos: UTxO[]): Assets {
+    return utxos.reduce((acc, utxo) => addAssets(acc, utxo.assets), {});
 }
 
 export const getRandomElement = (arr: any[]) =>

@@ -21,28 +21,23 @@ export class CollectorContract {
     fee: bigint,
     lucid: LucidEvolution,
     params: SystemParams,
+    tx: TxBuilder,
     collectorRef?: OutRef,
-  ): Promise<TxBuilder> {
-    const collectorUtxo = collectorRef
+  ): Promise<void> {
+    const collectorUtxo: UTxO = collectorRef
       ? getRandomElement(await lucid.utxosByOutRef([collectorRef]))
-      : await lucid.utxosAt(
+      : getRandomElement(await lucid.utxosAt(
           CollectorContract.address(params.collectorParams, lucid),
-        );
+        ));
 
-    const collectorAddr = CollectorContract.address(
-      params.collectorParams,
-      lucid,
-    );
     const collectorScriptRefUtxo = await CollectorContract.scriptRef(
       params.scriptReferences,
       lucid,
     );
 
-    return lucid
-      .newTx()
-      .collectFrom([collectorUtxo], Data.to(new Constr(0, [])))
+    tx.collectFrom([collectorUtxo], Data.to(new Constr(0, [])))
       .pay.ToContract(
-        collectorAddr,
+        collectorUtxo.address,
         { kind: 'inline', value: Data.to(new Constr(0, [])) },
         {
           ...collectorUtxo.assets,

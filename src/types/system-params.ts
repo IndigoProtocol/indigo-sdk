@@ -35,6 +35,14 @@ export interface AddressCredential {
   tag: string;
   contents: PubKeyHash;
 }
+
+export interface ScriptCredential {
+  tag: string;
+  contents: {
+    tag:string;
+    contents:string;
+  };
+}
 export interface PubKeyHash {
   getPubKeyHash: string;
 }
@@ -42,9 +50,9 @@ export interface VersionRecordParams {
   upgradeToken: AssetClass;
 }
 export interface TreasuryParams {
-  versionRecordToken: AssetClass;
   upgradeToken: AssetClass;
-  treasuryUtxosStakeCredential?: any;
+  versionRecordToken: AssetClass;
+  treasuryUtxosStakeCredential?: ScriptCredential;
 }
 export interface StartTime {
   slot: number;

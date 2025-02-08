@@ -9,7 +9,7 @@ export class InterestOracleContract {
     static decodeInterestOracleDatum(datum: string): InterestOracleDatum {
         const oracleDatum = Data.from(datum) as any;
         if (oracleDatum.index != 0 || oracleDatum.fields.length !== 3 || oracleDatum.fields[1].index !== 0)
-            throw 'Invalid Oracle Datum provided.'
+            throw 'Invalid Interest Oracle Datum provided.'
         
         return {
             unitaryInterest: oracleDatum.fields[0],
@@ -33,7 +33,7 @@ export class InterestOracleContract {
     }
 
     static calculateUnitaryInterest(timePeriod: bigint, interestRate: bigint): bigint {
-        return (timePeriod * interestRate * unitaryInterestPrecision) / oneYear / decimalUnit;
+        return ((timePeriod * interestRate * unitaryInterestPrecision) / oneYear) / decimalUnit;
     }
 
     static calculateAccruedInterest(now: bigint, unitaryInterestSnapshot: bigint, mintedAmount: bigint, interestLastSettled: bigint, interestOracleDatum: InterestOracleDatum): bigint {
