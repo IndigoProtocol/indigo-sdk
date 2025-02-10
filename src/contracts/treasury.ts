@@ -12,9 +12,9 @@ import {
   validatorToAddress,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
-import { getRandomElement, scriptRef } from '../helpers';
-import { TreasuryParams, ScriptReferences, SystemParams } from '../types';
 import { _treasuryValidator } from '../scripts/treasury-validator';
+import { ScriptReferences, SystemParams, TreasuryParams } from '../types/system-params';
+import { getRandomElement, scriptRef } from '../helpers/lucid-utils';
 
 export class TreasuryContract {
   static async feeTx(
@@ -34,8 +34,6 @@ export class TreasuryContract {
       params.scriptReferences,
       lucid,
     );
-
-    console.log(TreasuryContract.address(params.treasuryParams, lucid), treasuryUtxo, treasuryUtxo.assets['lovelace'] + fee)
 
     tx.collectFrom([treasuryUtxo], Data.to(new Constr(4, [])))
       .pay.ToContract(

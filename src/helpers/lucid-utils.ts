@@ -1,5 +1,5 @@
 import { addAssets, Assets, Credential, LucidEvolution, paymentCredentialOf, Record, stakeCredentialOf, UTxO } from "@lucid-evolution/lucid";
-import { ScriptReference } from "../types";
+import { ScriptReference } from "../types/system-params";
 
 export async function addrDetails(lucid: LucidEvolution): Promise<[Credential, Credential | undefined]> {
   const addr = await lucid.wallet().address();

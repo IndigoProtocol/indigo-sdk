@@ -19,21 +19,18 @@ import {
   ScriptReferences,
   SystemParams,
 } from '../types/system-params';
-import {
-  addrDetails,
-  calculateFeeFromPercentage,
-  getRandomElement,
-  scriptRef,
-} from '../helpers';
 import { IAssetHelpers } from '../helpers/asset-helpers';
-import { AssetClass, CDP, CDPDatum, CDPFees } from '../types';
 import { PriceOracleContract } from './price-oracle';
 import { CDPCreatorContract } from './cdp-creator';
-import { _cdpValidator } from '../scripts';
 import { CollectorContract } from './collector';
 import { InterestOracleContract } from './interest-oracle';
 import { GovContract } from './gov';
 import { TreasuryContract } from './treasury';
+import { addrDetails, getRandomElement, scriptRef } from '../helpers/lucid-utils';
+import { AssetClass } from '../types/generic';
+import { calculateFeeFromPercentage } from '../helpers/helpers';
+import { CDP, CDPDatum, CDPFees } from '../types/indigo/cdp';
+import { _cdpValidator } from '../scripts/cdp-validator';
 
 export class CDPContract {
   static async openPosition(
@@ -614,7 +611,7 @@ export class CDPContract {
     const iassetToken =
       params.cdpParams.cdpAssetSymbol.unCurrencySymbol + fromText(cdpD.asset);
     const assetBurnValue = {} as Assets;
-    assetBurnValue[iassetToken] = -cdpD.mintedAmount;
+    assetBurnValue[iassetToken] = -BigInt(cdpD.mintedAmount);
     const cdpTokenBurnValue = {} as Assets;
     cdpTokenBurnValue[params.cdpParams.cdpAuthToken[0].unCurrencySymbol + fromText(params.cdpParams.cdpAuthToken[1].unTokenName)] = -1n;
     const cdpAuthTokenScriptRefUtxo = await CDPContract.cdpAuthTokenRef(

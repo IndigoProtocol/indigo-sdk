@@ -1,5 +1,5 @@
 import { Constr, Data } from "@lucid-evolution/lucid";
-import { PriceOracleDatum } from "../types";
+import { PriceOracleDatum } from "../types/indigo/price-oracle";
 
 export class PriceOracleContract {
     static decodePriceOracleDatum(datum: string): PriceOracleDatum {

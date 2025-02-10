@@ -11,9 +11,9 @@ import {
   validatorToAddress,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
-import { CdpCreatorParams, ScriptReferences } from '../types';
 import { _cdpCreatorValidator } from '../scripts/cdp-creator-validator';
-import { scriptRef } from '../helpers';
+import { CdpCreatorParams, ScriptReferences } from '../types/system-params';
+import { scriptRef } from '../helpers/lucid-utils';
 
 export class CDPCreatorContract {
   static address(params: CdpCreatorParams, lucid: LucidEvolution): Address {

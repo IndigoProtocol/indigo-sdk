@@ -1,5 +1,5 @@
-import { SystemParams } from "../types";
 import * as fs from 'fs';
+import { SystemParams } from '../types/system-params';
 
 export function calculateFeeFromPercentage(percent: bigint, amount: bigint): bigint {
     if (amount <= 0n) return 0n;

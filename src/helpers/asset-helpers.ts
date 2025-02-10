@@ -1,6 +1,7 @@
 import { fromText, LucidEvolution, OutRef, UTxO } from "@lucid-evolution/lucid";
-import { IAsset, SystemParams } from "../types";
-import { CDPContract } from "../contracts";
+import { CDPContract } from "../contracts/cdp";
+import { SystemParams } from "../types/system-params";
+import { IAsset } from "../types/indigo/cdp";
 
 export type IAssetOutput = { utxo: UTxO, datum: IAsset };
 

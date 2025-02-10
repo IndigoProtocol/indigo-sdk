@@ -12,9 +12,9 @@ import {
   validatorToAddress,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
-import { getRandomElement, scriptRef } from '../helpers';
-import { CollectorParams, ScriptReferences, SystemParams } from '../types';
 import { _collectorValidator } from '../scripts/collector-validator';
+import { CollectorParams, ScriptReferences, SystemParams } from '../types/system-params';
+import { getRandomElement, scriptRef } from '../helpers/lucid-utils';
 
 export class CollectorContract {
   static async feeTx(
