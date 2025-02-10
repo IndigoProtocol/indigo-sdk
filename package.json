@@ -1,8 +1,9 @@
 {
-    "name": "indigo-sdk",
+    "name": "@indigo-labs/indigo-sdk",
     "version": "0.1.0",
     "description": "Indigo SDK for interacting with Indigo endpoints via lucid-evolution",
     "main": "dist/index.js",
+    "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
     "scripts": {
         "build": "tsc",
