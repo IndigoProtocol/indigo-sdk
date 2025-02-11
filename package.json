@@ -1,13 +1,12 @@
 {
     "name": "@indigo-labs/indigo-sdk",
-    "version": "0.1.0",
+    "version": "0.1.2",
     "description": "Indigo SDK for interacting with Indigo endpoints via lucid-evolution",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "tsc",
-        "build-tsup": "tsup src/index.ts --format esm,cjs --dts --clean",
+        "build": "tsup src/index.ts --format esm,cjs --dts --clean",
         "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
