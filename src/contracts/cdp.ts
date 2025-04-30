@@ -680,7 +680,7 @@ export class CDPContract {
       const cdp = cdpDatum.fields[0].fields;
       return {
         type: 'CDP',
-        owner: cdp[0].fields[0],
+        owner: cdp[0].fields[0], // TODO: What if the cdp is frozen?
         asset: toText(cdp[1]),
         mintedAmount: cdp[2],
         fees:
@@ -781,6 +781,7 @@ export class CDPContract {
     throw 'Invalid CDP Datum provided';
   }
 
+  // TODO: Remove this (use `encodeCdpDatum` instead)
   static datum(
     hash: Credential,
     asset: string,
