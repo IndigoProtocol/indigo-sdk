@@ -1,13 +1,13 @@
 export interface OnChainDecimal {
-    getOnChainInt: bigint;
+  getOnChainInt: bigint;
 }
 
 export interface CurrencySymbol {
-    unCurrencySymbol: string;
+  unCurrencySymbol: string;
 }
 
 export interface TokenName {
-    unTokenName: string;
+  unTokenName: string;
 }
 
 export type AssetClass = [CurrencySymbol, TokenName];

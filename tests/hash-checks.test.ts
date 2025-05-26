@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { loadSystemParamsFromFile, loadSystemParamsFromUrl } from '../src/helpers/helpers';
 import { CDPCreatorContract } from '../src/contracts/cdp-creator';
 import { CDPContract, SystemParams } from '../src';

@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { InterestOracleContract } from "../src/contracts/interest-oracle";
 import { oneDay } from "../src/helpers/time-helpers";
 

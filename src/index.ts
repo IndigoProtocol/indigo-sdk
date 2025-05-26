@@ -1,10 +1,12 @@
 declare global {
-    interface BigInt {
-        toJSON(): Number;
-    }
+  interface BigInt {
+    toJSON(): Number;
+  }
 }
 
-BigInt.prototype.toJSON = function () { return this.toString() }
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
 
 export * from './contracts/cdp-creator';
 export * from './contracts/cdp';

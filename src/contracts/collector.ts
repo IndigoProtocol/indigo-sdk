@@ -13,7 +13,11 @@ import {
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
 import { _collectorValidator } from '../scripts/collector-validator';
-import { CollectorParams, ScriptReferences, SystemParams } from '../types/system-params';
+import {
+  CollectorParams,
+  ScriptReferences,
+  SystemParams,
+} from '../types/system-params';
 import { getRandomElement, scriptRef } from '../helpers/lucid-utils';
 
 export class CollectorContract {
@@ -26,9 +30,11 @@ export class CollectorContract {
   ): Promise<void> {
     const collectorUtxo: UTxO = collectorRef
       ? getRandomElement(await lucid.utxosByOutRef([collectorRef]))
-      : getRandomElement(await lucid.utxosAt(
-          CollectorContract.address(params.collectorParams, lucid),
-        ));
+      : getRandomElement(
+          await lucid.utxosAt(
+            CollectorContract.address(params.collectorParams, lucid),
+          ),
+        );
 
     const collectorScriptRefUtxo = await CollectorContract.scriptRef(
       params.scriptReferences,

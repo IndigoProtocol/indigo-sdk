@@ -1,4 +1,4 @@
-import { AssetClass, CurrencySymbol } from "./generic";
+import { AssetClass, CurrencySymbol } from './generic';
 
 export interface SystemParams {
   versionRecordParams: VersionRecordParams;
@@ -39,8 +39,8 @@ export interface AddressCredential {
 export interface ScriptCredential {
   tag: string;
   contents: {
-    tag:string;
-    contents:string;
+    tag: string;
+    contents: string;
   };
 }
 export interface PubKeyHash {
@@ -118,9 +118,7 @@ export interface AddressCredentialOrDatum {
   contents: string;
 }
 export interface Amount {
-  getValue?:
-    | ((CurrencySymbol | ((number)[] | null)[] | null)[] | null)[]
-    | null;
+  getValue?: ((CurrencySymbol | (number[] | null)[] | null)[] | null)[] | null;
 }
 export interface Address {
   addressStakingCredential?: null;
