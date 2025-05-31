@@ -18,7 +18,8 @@ import {
   ScriptReferences,
   SystemParams,
 } from '../types/system-params';
-import { getRandomElement, scriptRef } from '../helpers/lucid-utils';
+import { scriptRef } from '../helpers/lucid-utils';
+import { getRandomElement } from '../helpers/helpers';
 
 export class CollectorContract {
   static async feeTx(

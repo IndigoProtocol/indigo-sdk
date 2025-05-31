@@ -18,7 +18,8 @@ import {
   SystemParams,
   TreasuryParams,
 } from '../types/system-params';
-import { getRandomElement, scriptRef } from '../helpers/lucid-utils';
+import { scriptRef } from '../helpers/lucid-utils';
+import { getRandomElement } from '../helpers/helpers';
 
 export class TreasuryContract {
   static async feeTx(

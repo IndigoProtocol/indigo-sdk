@@ -31,6 +31,3 @@ export async function scriptRef(
 export function balance(utxos: UTxO[]): Assets {
   return utxos.reduce((acc, utxo) => addAssets(acc, utxo.assets), {});
 }
-
-export const getRandomElement = (arr: any[]) =>
-  arr.length ? arr[Math.floor(Math.random() * arr.length)] : undefined;

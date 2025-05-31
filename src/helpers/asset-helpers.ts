@@ -8,10 +8,24 @@ export type IAssetOutput = { utxo: UTxO; datum: IAsset };
 export class IAssetHelpers {
   static async findIAssetByRef(
     outRef: OutRef,
-    params: SystemParams,
     lucid: LucidEvolution,
   ): Promise<IAssetOutput> {
-    throw new Error('Not implemented');
+    return lucid
+      .utxosByOutRef([outRef])
+      .then((utxos) =>
+        utxos
+          .map((utxo) => {
+            if (!utxo.datum) return undefined;
+            const datum = CDPContract.decodeCdpDatum(utxo.datum);
+            if (datum.type !== 'IAsset') return undefined;
+            return { utxo, datum };
+          })
+          .find((utxo) => utxo !== undefined),
+      )
+      .then((result) => {
+        if (!result) throw 'Unable to locate IAsset by output reference.';
+        return result;
+      });
   }
 
   static async findIAssetByName(
