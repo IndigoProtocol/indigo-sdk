@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { InterestOracleContract } from '../src/contracts/interest-oracle';
 import { StakingContract } from '../src/contracts/staking';
 import { CDPContract, CDPDatum, PriceOracleContract } from '../src/index';

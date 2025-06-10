@@ -55,9 +55,7 @@ export class CDPCreatorContract {
     };
   }
 
-  static validatorHash(
-    params: CdpCreatorParams
-  ): string {
+  static validatorHash(params: CdpCreatorParams): string {
     return validatorToScriptHash(CDPCreatorContract.validator(params));
   }
 
@@ -73,7 +71,7 @@ export class CDPCreatorContract {
       hash.hash,
       BigInt(mintedAmount),
       BigInt(collateralAmount),
-      currentTime
+      currentTime,
     ]);
   }
 

@@ -13,8 +13,13 @@ import {
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
 import { _treasuryValidator } from '../scripts/treasury-validator';
-import { ScriptReferences, SystemParams, TreasuryParams } from '../types/system-params';
-import { getRandomElement, scriptRef } from '../helpers/lucid-utils';
+import {
+  ScriptReferences,
+  SystemParams,
+  TreasuryParams,
+} from '../types/system-params';
+import { scriptRef } from '../helpers/lucid-utils';
+import { getRandomElement } from '../helpers/helpers';
 
 export class TreasuryContract {
   static async feeTx(
@@ -26,9 +31,11 @@ export class TreasuryContract {
   ): Promise<void> {
     const treasuryUtxo: UTxO = treasuryRef
       ? getRandomElement(await lucid.utxosByOutRef([treasuryRef]))
-      : getRandomElement(await lucid.utxosAt(
-        TreasuryContract.address(params.treasuryParams, lucid),
-        ));
+      : getRandomElement(
+          await lucid.utxosAt(
+            TreasuryContract.address(params.treasuryParams, lucid),
+          ),
+        );
 
     const treasuryScriptRefUtxo = await TreasuryContract.scriptRef(
       params.scriptReferences,
@@ -61,14 +68,15 @@ export class TreasuryContract {
             params.versionRecordToken[0].unCurrencySymbol,
             fromText(params.versionRecordToken[1].unTokenName),
           ]),
-          params.treasuryUtxosStakeCredential ?
-            new Constr(0, [
-              new Constr(0, [
-              new Constr(1, [
-                params.treasuryUtxosStakeCredential.contents.contents,
+          params.treasuryUtxosStakeCredential
+            ? new Constr(0, [
+                new Constr(0, [
+                  new Constr(1, [
+                    params.treasuryUtxosStakeCredential.contents.contents,
+                  ]),
+                ]),
               ])
-            ])
-            ]) : new Constr(1, []),
+            : new Constr(1, []),
         ]),
       ]),
     };
@@ -83,7 +91,16 @@ export class TreasuryContract {
     if (!network) {
       throw new Error('Network configuration is undefined');
     }
-    return validatorToAddress(network, TreasuryContract.validator(params), params.treasuryUtxosStakeCredential ? { type: 'Script', hash: params.treasuryUtxosStakeCredential.contents.contents} : undefined);
+    return validatorToAddress(
+      network,
+      TreasuryContract.validator(params),
+      params.treasuryUtxosStakeCredential
+        ? {
+            type: 'Script',
+            hash: params.treasuryUtxosStakeCredential.contents.contents,
+          }
+        : undefined,
+    );
   }
 
   static async scriptRef(

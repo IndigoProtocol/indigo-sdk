@@ -4,6 +4,12 @@
 
 `indigo-sdk` is a TypeScript SDK designed to interact with Indigo endpoints for managing CDPs (Collateralized Debt Positions) by integrating the [lucid-evolution](https://github.com/Anastasia-Labs/lucid-evolution) library.
 
+## Installation
+
+```bash
+npm install @indigo-labs/indigo-sdk
+```
+
 ## Endpoints
 
 - **Open CDP**
@@ -14,8 +20,3 @@
 - **Burn against CDP**
 - **Pay CDP Interest**
 
-## Installation
-
-```bash
-npm install @indigo-labs/indigo-sdk
-```
