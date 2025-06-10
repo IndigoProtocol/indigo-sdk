@@ -1,4 +1,4 @@
-import { loadSystemParamsFromFile, loadSystemParamsFromUrl } from '../src/helpers';
+import { loadSystemParamsFromFile, loadSystemParamsFromUrl } from '../src/helpers/helpers';
 import { CDPCreatorContract } from '../src/contracts/cdp-creator';
 import { CDPContract, SystemParams } from '../src';
 import { CollectorContract } from '../src/contracts/collector';
