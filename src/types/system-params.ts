@@ -1,4 +1,14 @@
-import { AssetClass, CurrencySymbol } from "./generic";
+interface OnChainDecimal {
+  getOnChainInt: bigint;
+}
+
+interface CurrencySymbol {
+  unCurrencySymbol: string;
+}
+
+interface TokenName {
+  unTokenName: string;
+}
 
 export interface SystemParams {
   versionRecordParams: VersionRecordParams;

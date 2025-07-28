@@ -3,7 +3,6 @@ export * from './contracts/cdp';
 export * from './contracts/collector';
 export * from './contracts/gov';
 export * from './contracts/interest-oracle';
-export * from './contracts/price-oracle';
 export * from './contracts/treasury';
 export * from './helpers/asset-helpers';
 export * from './helpers/cdp-helpers';

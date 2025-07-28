@@ -1,7 +1,7 @@
-import { fromText, LucidEvolution, OutRef, UTxO } from "@lucid-evolution/lucid";
+import { Data, fromText, LucidEvolution, OutRef, UTxO } from "@lucid-evolution/lucid";
 import { CDPContract } from "../contracts/cdp";
 import { SystemParams } from "../types/system-params";
-import { IAsset } from "../types/indigo/cdp";
+import { CDPSchema, IAsset } from "../types/indigo/cdp";
 
 export type IAssetOutput = { utxo: UTxO, datum: IAsset };
 
@@ -16,10 +16,10 @@ export class IAssetHelpers {
             params.cdpParams.iAssetAuthToken[0].unCurrencySymbol + fromText(params.cdpParams.iAssetAuthToken[1].unTokenName),
         ).then(utxos => utxos.map(utxo => {
             if (!utxo.datum) return undefined;
-            const datum = CDPContract.decodeCdpDatum(utxo.datum);
-            if (datum.type !== 'IAsset') return undefined;
-            if (datum.name !== assetName) return undefined;
-            return { utxo, datum };
+            const datum = Data.from(utxo.datum, CDPSchema);
+            if (!('IAsset' in datum)) return undefined;
+            if (datum.IAsset.name !== assetName) return undefined;
+            return { utxo, datum: datum.IAsset };
         }).find(utxo => utxo !== undefined)).then(result => {
             if (!result) throw 'Unable to locate IAsset by name.';
             return result;

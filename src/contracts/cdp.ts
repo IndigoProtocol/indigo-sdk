@@ -20,7 +20,6 @@ import {
   SystemParams,
 } from '../types/system-params';
 import { IAssetHelpers } from '../helpers/asset-helpers';
-import { PriceOracleContract } from './price-oracle';
 import { CDPCreatorContract } from './cdp-creator';
 import { CollectorContract } from './collector';
 import { InterestOracleContract } from './interest-oracle';
@@ -29,8 +28,9 @@ import { TreasuryContract } from './treasury';
 import { addrDetails, getRandomElement, scriptRef } from '../helpers/lucid-utils';
 import { AssetClass } from '../types/generic';
 import { calculateFeeFromPercentage } from '../helpers/helpers';
-import { CDP, CDPDatum, CDPFees } from '../types/indigo/cdp';
+import { CDP } from '../types/indigo/cdp';
 import { _cdpValidator } from '../scripts/cdp-validator';
+import { PriceOracle } from '../types/indigo/price-oracle';
 
 export class CDPContract {
   static async openPosition(
@@ -52,7 +52,7 @@ export class CDPContract {
       : IAssetHelpers.findIAssetByName(asset, params, lucid));
 
     // Fail if delisted asset
-    if ('getOnChainPrice' in assetOut.datum.price)
+    if ('value' in assetOut.datum.price)
       return Promise.reject('Trying to open CDP against delisted asset');
 
     const oracleAsset = assetOut.datum.price as AssetClass;
@@ -545,7 +545,7 @@ export class CDPContract {
       .readFrom([iAsset.utxo, gov, cdpScriptRefUtxo])
       .addSignerKey(pkh.hash);
     if (!cdp.datum) throw 'Unable to find CDP Datum';
-    let cdpD = CDPContract.decodeCdpDatum(cdp.datum);
+    let cdpD = Data.from(cdp.datum, CDPDatum);
     if (!cdpD || cdpD.type !== 'CDP') throw 'Invalid CDP Datum';
 
     if (cdpD.fees.type !== 'ActiveCDPInterestTracking')
@@ -562,7 +562,7 @@ export class CDPContract {
 
     // Fail if delisted asset
     if (!oracleRefInput.datum) return Promise.reject('Invalid oracle input');
-    const od = PriceOracleContract.decodePriceOracleDatum(oracleRefInput.datum);
+    const od = Data.from(oracleRefInput.datum, PriceOracle);
     if (!od) return Promise.reject('Invalid oracle input');
 
     // TODO: Sanity check: oacle expiration
@@ -592,7 +592,7 @@ export class CDPContract {
     );
     const interestPayment = (interestPaymentAsset * od.price) / 1_000_000n;
     const interestCollectorPayment = calculateFeeFromPercentage(
-      iAsset.datum.interestCollectorPortionPercentage.getOnChainInt,
+      iAsset.datum.interestCollectorPortionPercentage.value,
       interestPayment,
     );
     const interestTreasuryPayment = interestPayment - interestCollectorPayment;
@@ -631,178 +631,6 @@ export class CDPContract {
     }
 
     return tx;
-  }
-
-  static decodeCdpDatum(datum: string): CDPDatum {
-    const cdpDatum = Data.from(datum) as any;
-    if (cdpDatum.index == 1 && cdpDatum.fields[0].index == 0) {
-      const iasset = cdpDatum.fields[0].fields;
-      return {
-        type: 'IAsset',
-        name: toText(iasset[0]),
-        price:
-          iasset[1].index === 0
-            ? { getOnChainInt: iasset[1].fields[0] }
-            : [
-                { unCurrencySymbol: iasset[1].fields[0].fields[0].fields[0] },
-                {
-                  unTokenName: toText(iasset[1].fields[0].fields[0].fields[1]),
-                },
-              ],
-        interestOracle: [
-          { unCurrencySymbol: iasset[2].fields[0] },
-          { unTokenName: toText(iasset[2].fields[1]) },
-        ],
-        redemptionRatioPercentage: { getOnChainInt: iasset[3].fields[0] },
-        maintenanceRatioPercentage: { getOnChainInt: iasset[4].fields[0] },
-        liquidationRatioPercentage: { getOnChainInt: iasset[5].fields[0] },
-        debtMintingFeePercentage: { getOnChainInt: iasset[6].fields[0] },
-        liquidationProcessingFeePercentage: {
-          getOnChainInt: iasset[7].fields[0],
-        },
-        stabilityPoolWithdrawalFeePercentage: {
-          getOnChainInt: iasset[8].fields[0],
-        },
-        redemptionReimbursementPercentage: {
-          getOnChainInt: iasset[9].fields[0],
-        },
-        redemptionProcessingFeePercentage: {
-          getOnChainInt: iasset[10].fields[0],
-        },
-        interestCollectorPortionPercentage: {
-          getOnChainInt: iasset[11].fields[0],
-        },
-        firstAsset: iasset[12].index === 1,
-        nextAsset:
-          iasset[13].index === 0 ? toText(iasset[13].fields[0]) : undefined,
-      };
-    } else if (cdpDatum.index == 0 && cdpDatum.fields[0].index == 0) {
-      const cdp = cdpDatum.fields[0].fields;
-      return {
-        type: 'CDP',
-        owner: cdp[0].fields[0],
-        asset: toText(cdp[1]),
-        mintedAmount: cdp[2],
-        fees:
-          cdp[3].index === 0
-            ? {
-                type: 'ActiveCDPInterestTracking',
-                last_settled: cdp[3].fields[0],
-                unitary_interest_snapshot: cdp[3].fields[1],
-              }
-            : {
-                type: 'FrozenCDPAccumulatedFees',
-                lovelaces_treasury: cdp[3].fields[0],
-                lovelaces_indy_stakers: cdp[3].fields[1],
-              },
-      };
-    }
-
-    throw 'Invalid CDP Datum provided';
-  }
-
-  static encodeCdpDatum(datum: CDPDatum): string {
-    if (datum.type === 'CDP') {
-      return Data.to(
-        new Constr(0, [
-          new Constr(0, [
-            datum.owner ? new Constr(0, [datum.owner]) : new Constr(1, []),
-            fromText(datum.asset),
-            BigInt(datum.mintedAmount),
-            datum.fees.type === 'ActiveCDPInterestTracking'
-              ? new Constr(0, [
-                  datum.fees.last_settled,
-                  datum.fees.unitary_interest_snapshot,
-                ])
-              : new Constr(1, [
-                  datum.fees.lovelaces_treasury,
-                  datum.fees.lovelaces_indy_stakers,
-                ]),
-          ]),
-        ]),
-      );
-    } else if (datum.type === 'IAsset') {
-      return Data.to(
-        new Constr(1, [
-          new Constr(0, [
-            fromText(datum.name),
-            'getOnChainInt' in datum.price
-              ? new Constr(0, [
-                  new Constr(0, [BigInt(datum.price.getOnChainInt)]),
-                ])
-              : new Constr(1, [
-                  new Constr(0, [
-                    new Constr(0, [
-                      datum.price[0].unCurrencySymbol,
-                      fromText(datum.price[1].unTokenName),
-                    ]),
-                  ]),
-                ]),
-            new Constr(0, [
-              datum.interestOracle[0].unCurrencySymbol,
-              fromText(datum.interestOracle[1].unTokenName),
-            ]),
-            new Constr(0, [
-              BigInt(datum.redemptionRatioPercentage.getOnChainInt),
-            ]),
-            new Constr(0, [
-              BigInt(datum.maintenanceRatioPercentage.getOnChainInt),
-            ]),
-            new Constr(0, [
-              BigInt(datum.liquidationRatioPercentage.getOnChainInt),
-            ]),
-            new Constr(0, [
-              BigInt(datum.debtMintingFeePercentage.getOnChainInt),
-            ]),
-            new Constr(0, [
-              BigInt(datum.liquidationProcessingFeePercentage.getOnChainInt),
-            ]),
-            new Constr(0, [
-              BigInt(datum.stabilityPoolWithdrawalFeePercentage.getOnChainInt),
-            ]),
-            new Constr(0, [
-              BigInt(datum.redemptionReimbursementPercentage.getOnChainInt),
-            ]),
-            new Constr(0, [
-              BigInt(datum.redemptionProcessingFeePercentage.getOnChainInt),
-            ]),
-            new Constr(0, [
-              BigInt(datum.interestCollectorPortionPercentage.getOnChainInt),
-            ]),
-            datum.firstAsset ? new Constr(1, []) : new Constr(0, []),
-            datum.nextAsset
-              ? new Constr(0, [fromText(datum.nextAsset)])
-              : new Constr(1, []),
-          ]),
-        ]),
-      );
-    }
-
-    throw 'Invalid CDP Datum provided';
-  }
-
-  static datum(
-    hash: Credential,
-    asset: string,
-    mintedAmount: bigint,
-    fees: CDPFees,
-  ): Constr<Data> {
-    return new Constr(0, [
-      new Constr(0, [
-        new Constr(0, [hash.hash]),
-        fromText(asset),
-        BigInt(mintedAmount),
-        fees.type === 'ActiveCDPInterestTracking'
-          ? new Constr(0, [
-              BigInt(fees.last_settled),
-              BigInt(fees.unitary_interest_snapshot),
-            ])
-          : new Constr(0, [
-              BigInt(fees.lovelaces_treasury),
-              BigInt(fees.lovelaces_indy_stakers),
-            ]),
-      ]),
-    ]);
   }
 
   static validator(params: CdpParams): SpendingValidator {
