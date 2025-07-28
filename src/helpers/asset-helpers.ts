@@ -1,9 +1,9 @@
 import { Data, fromText, LucidEvolution, OutRef, UTxO } from "@lucid-evolution/lucid";
 import { CDPContract } from "../contracts/cdp";
 import { SystemParams } from "../types/system-params";
-import { CDPSchema, IAsset } from "../types/indigo/cdp";
+import { CDPSchema, IAssetContent } from "../types/indigo/cdp";
 
-export type IAssetOutput = { utxo: UTxO, datum: IAsset };
+export type IAssetOutput = { utxo: UTxO, datum: IAssetContent };
 
 export class IAssetHelpers {
     static async findIAssetByRef(outRef: OutRef, params: SystemParams, lucid: LucidEvolution): Promise<IAssetOutput> {

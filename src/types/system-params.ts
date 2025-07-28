@@ -10,6 +10,8 @@ interface TokenName {
   unTokenName: string;
 }
 
+type AssetClass = [CurrencySymbol, TokenName];
+
 export interface SystemParams {
   versionRecordParams: VersionRecordParams;
   validatorHashes: ValidatorHashes;

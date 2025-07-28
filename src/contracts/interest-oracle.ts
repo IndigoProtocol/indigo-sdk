@@ -6,7 +6,7 @@ const decimalUnit = 1_000_000n;
 
 export class InterestOracleContract {
     static calculateUnitaryInterestSinceOracleLastUpdated(now: bigint, oracleDatum: InterestOracle): bigint {
-        return InterestOracleContract.calculateUnitaryInterest(now - oracleDatum.lastUpdated, oracleDatum.interestRate);
+        return InterestOracleContract.calculateUnitaryInterest(now - oracleDatum.lastUpdated, oracleDatum.interestRate.value);
     }
 
     static calculateUnitaryInterest(timePeriod: bigint, interestRate: bigint): bigint {
@@ -16,11 +16,11 @@ export class InterestOracleContract {
     static calculateAccruedInterest(now: bigint, unitaryInterestSnapshot: bigint, mintedAmount: bigint, interestLastSettled: bigint, interestOracleDatum: InterestOracle): bigint {
         if (interestOracleDatum.unitaryInterest >= unitaryInterestSnapshot) {
             const interestFromPreviousRates = ((interestOracleDatum.unitaryInterest - unitaryInterestSnapshot) * mintedAmount) / unitaryInterestPrecision;
-            const lastRateInterest = (((now - interestOracleDatum.lastUpdated) * interestOracleDatum.interestRate * mintedAmount) / oneYear) / decimalUnit;
+            const lastRateInterest = (((now - interestOracleDatum.lastUpdated) * interestOracleDatum.interestRate.value * mintedAmount) / oneYear) / decimalUnit;
 
             return interestFromPreviousRates + lastRateInterest;
         } else {
-            return (((now - interestLastSettled) * interestOracleDatum.interestRate * mintedAmount) / oneYear) / decimalUnit;
+            return (((now - interestLastSettled) * interestOracleDatum.interestRate.value * mintedAmount) / oneYear) / decimalUnit;
         }
     }
 }
