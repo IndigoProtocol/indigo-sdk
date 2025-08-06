@@ -13,7 +13,7 @@ export class IAssetHelpers {
     static async findIAssetByName(assetName: string, params: SystemParams, lucid: LucidEvolution): Promise<IAssetOutput> {
         return lucid.utxosAtWithUnit(
             CDPContract.address(params.cdpParams, lucid),
-            params.cdpParams.iAssetAuthToken[0].unCurrencySymbol + fromText(params.cdpParams.iAssetAuthToken[1].unTokenName),
+            params.cdpParams.iAssetAuthToken.symbol + fromText(params.cdpParams.iAssetAuthToken.name),
         ).then(utxos => utxos.map(utxo => {
             if (!utxo.datum) return undefined;
             const datum = CDPContract.decodeCdpDatum(utxo.datum);
