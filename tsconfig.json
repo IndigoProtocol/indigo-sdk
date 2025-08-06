@@ -2,6 +2,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "noImplicitAny": true,
+    "sourceMap": true,
     "module": "es2022",
     "target": "es2022",
     "lib": ["es2022", "DOM"],
@@ -27,9 +28,9 @@
   },
   "ts-node": {
     "compilerOptions": {
-      "module": "ES2022",
+      "module": "ES2022"
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "tests", "dist"],
+  "exclude": ["node_modules", "tests", "dist"]
 }
