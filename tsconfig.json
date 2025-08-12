@@ -1,36 +1,17 @@
 {
   "compilerOptions": {
     "outDir": "./dist",
-    "noImplicitAny": true,
     "sourceMap": true,
     "module": "es2022",
     "target": "es2022",
     "lib": ["es2022", "DOM"],
-    "allowJs": true,
-    "moduleResolution": "node",
-    "declaration": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": false,
-    "noImplicitThis": true,
-    "alwaysStrict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "moduleResolution": "node"
   },
   "ts-node": {
     "compilerOptions": {
       "module": "ES2022"
     }
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "tests", "dist"]
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
 }

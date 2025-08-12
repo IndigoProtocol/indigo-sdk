@@ -7,7 +7,18 @@ export default tseslint.config(
   },
   {
     files: ['**/*.ts'],
-    extends: [eslint.configs.recommended, tseslint.configs.recommended],
+    extends: [
+      eslint.configs.recommended,
+      tseslint.configs.recommendedTypeChecked,
+      {
+        languageOptions: {
+          parserOptions: {
+            projectService: true,
+            tsconfigRootDir: import.meta.dirname,
+          },
+        },
+      },
+    ],
     rules: {
       'no-use-before-define': 'error',
       '@typescript-eslint/no-unused-vars': [
@@ -16,6 +27,7 @@ export default tseslint.config(
           args: 'all',
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
         },
       ],
     },
