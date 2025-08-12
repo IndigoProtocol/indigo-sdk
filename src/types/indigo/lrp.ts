@@ -9,6 +9,7 @@ export const LRPParamsSchema = Data.Object({
   minRedemptionLovelacesAmt: Data.Integer(),
 });
 export type LRPParams = Data.Static<typeof LRPParamsSchema>;
+const LRPParams = LRPParamsSchema as unknown as LRPParams;
 
 export const LRPDatumSchema = Data.Object({
   owner: Data.Bytes(),
@@ -46,4 +47,8 @@ export function serialiseLrpDatum(datum: LRPDatum): Datum {
 
 export function serialiseLrpRedeemer(redeemer: LRPRedeemer): Redeemer {
   return Data.to<LRPRedeemer>(redeemer, LRPRedeemer);
+}
+
+export function castLrpParams(params: LRPParams): Data {
+  return Data.castTo(params, LRPParams);
 }

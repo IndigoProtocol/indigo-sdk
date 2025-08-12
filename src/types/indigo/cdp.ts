@@ -27,6 +27,7 @@ export const CDPContentSchema = Data.Object({
 });
 
 export const IAssetContentSchema = Data.Object({
+  /** Use the HEX encoding */
   assetName: Data.Bytes(),
   price: Data.Enum([
     Data.Object({ Delisted: OnChainDecimalSchema }),
@@ -65,4 +66,8 @@ export function parseIAssetDatum(datum: Datum): IAssetContent {
     .otherwise(() => {
       throw new Error('Expected an IAsset datum.');
     });
+}
+
+export function serialiseIAssetDatum(iassetDatum: IAssetContent): Datum {
+  return Data.to<CDPDatum>({ IAsset: iassetDatum }, CDPDatum);
 }
