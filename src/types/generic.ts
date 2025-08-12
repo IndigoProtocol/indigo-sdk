@@ -17,7 +17,7 @@ export function mkMaybeSchema<T extends TypeBox.TSchema>(
 
 export const AssetClassSchema = Data.Object({
   currencySymbol: Data.Bytes(),
-  /** Use standard UTF8 encoding (i.e. not the HEX encoding). */
+  /** Use the HEX encoding */
   tokenName: Data.Bytes(),
 });
 export type AssetClass = Data.Static<typeof AssetClassSchema>;
