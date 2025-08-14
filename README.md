@@ -10,6 +10,15 @@
 npm install @indigo-labs/indigo-sdk
 ```
 
+## Running Tests
+
+There are currently a few unit tests available for datums, hash checks, and interest calculations.
+
+Instructions:
+1. Clone this repository
+2. Run `npm install`
+3. Run `npm run test`
+
 ## Endpoints
 
 - **Open CDP**

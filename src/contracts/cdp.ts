@@ -140,7 +140,7 @@ export class CDPContract {
 
     const debtMintingFee = calculateFeeFromPercentage(
       BigInt(assetOut.datum.debtMintingFeePercentage.getOnChainInt),
-      mintedAmount * oracleDatum.price,
+      (mintedAmount * oracleDatum.price) / 1_000_000n,
     );
 
     // Oracle timestamp - 20s (length of a slot)
@@ -439,7 +439,7 @@ export class CDPContract {
     if (mintAmount > 0) {
       fee += calculateFeeFromPercentage(
         iAsset.datum.debtMintingFeePercentage.getOnChainInt,
-        mintAmount * od.price,
+        (mintAmount * od.price) / 1_000_000n,
       );
     }
 
