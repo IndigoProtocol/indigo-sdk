@@ -13,8 +13,13 @@ import {
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
 import { _collectorValidator } from '../scripts/collector-validator';
-import { CollectorParams, ScriptReferences, SystemParams } from '../types/system-params';
-import { getRandomElement, scriptRef } from '../helpers/lucid-utils';
+import {
+  CollectorParams,
+  ScriptReferences,
+  SystemParams,
+} from '../types/system-params';
+import { scriptRef } from '../helpers/lucid-utils';
+import { getRandomElement } from '../helpers/helpers';
 
 export class CollectorContract {
   static async feeTx(
@@ -26,9 +31,11 @@ export class CollectorContract {
   ): Promise<void> {
     const collectorUtxo: UTxO = collectorRef
       ? getRandomElement(await lucid.utxosByOutRef([collectorRef]))
-      : getRandomElement(await lucid.utxosAt(
-          CollectorContract.address(params.collectorParams, lucid),
-        ));
+      : getRandomElement(
+          await lucid.utxosAt(
+            CollectorContract.address(params.collectorParams, lucid),
+          ),
+        );
 
     const collectorScriptRefUtxo = await CollectorContract.scriptRef(
       params.scriptReferences,

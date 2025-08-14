@@ -1,4 +1,4 @@
 export type PriceOracleDatum = {
-    price: bigint;
-    expiration: bigint;
+  price: bigint;
+  expiration: bigint;
 };
