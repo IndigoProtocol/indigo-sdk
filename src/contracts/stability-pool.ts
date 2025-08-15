@@ -1,11 +1,38 @@
-import { applyParamsToScript, Constr, fromText, LucidEvolution, TxBuilder, validatorToScriptHash, SpendingValidator, Data, validatorToAddress, Address, UTxO } from '@lucid-evolution/lucid';
-import { StabilityPoolDatum } from '../types/indigo/stability-pool';
-import { ScriptReferences, StabilityPoolParams, SystemParams } from '../types/system-params';
+import {
+  applyParamsToScript,
+  Constr,
+  fromText,
+  LucidEvolution,
+  TxBuilder,
+  validatorToScriptHash,
+  SpendingValidator,
+  Data,
+  validatorToAddress,
+  Address,
+  UTxO,
+} from '@lucid-evolution/lucid';
+import {
+  EpochToScaleToSum,
+  mkSPInteger,
+  parseAccountDatum,
+  parseStabilityPoolDatum,
+  serialiseStabilityPoolDatum,
+  serialiseStabilityPoolRedeemer,
+  spDiv,
+  spMul,
+  StabilityPoolDatum,
+  StabilityPoolRedeemer,
+  StabilityPoolSnapshot,
+} from '../types/indigo/stability-pool';
+import {
+  ScriptReferences,
+  StabilityPoolParams,
+  SystemParams,
+} from '../types/system-params';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import { _stabilityPoolValidator } from '../scripts/stability-pool-validator';
 
 export class StabilityPoolContract {
-
   static async createAccount(
     asset: string,
     amount: bigint,
@@ -13,7 +40,10 @@ export class StabilityPoolContract {
     lucid: LucidEvolution,
   ): Promise<TxBuilder> {
     const [pkh, _skh] = await addrDetails(lucid);
-    const minLovelaces = BigInt(params.stabilityPoolParams.accountCreateFeeLovelaces + params.stabilityPoolParams.requestCollateralLovelaces);
+    const minLovelaces = BigInt(
+      params.stabilityPoolParams.accountCreateFeeLovelaces +
+        params.stabilityPoolParams.requestCollateralLovelaces,
+    );
     const datum: StabilityPoolDatum = {
       Account: {
         content: {
@@ -27,20 +57,22 @@ export class StabilityPoolContract {
             scale: 0n,
           },
           request: {
-            Create: {}
+            Create: {},
           },
-        }
-      }
-    }
+        },
+      },
+    };
 
-    return lucid.newTx()
+    return lucid
+      .newTx()
       .pay.ToContract(
         StabilityPoolContract.address(params.stabilityPoolParams, lucid),
-        { kind: 'inline', value: StabilityPoolContract.encodeDatum(datum) },
-        { 
+        { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
+        {
           lovelace: minLovelaces,
-          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol + fromText(asset)]: amount,
-        }
+          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
+          fromText(asset)]: amount,
+        },
       )
       .addSignerKey(pkh.hash);
   }
@@ -56,12 +88,11 @@ export class StabilityPoolContract {
     const myAddress = await lucid.wallet().address();
 
     if (!accountUtxo.datum) throw 'Account UTXO datum is invalid';
-    const currentAccountDatum = StabilityPoolContract.decodeDatum(accountUtxo.datum);
-    if (!('Account' in currentAccountDatum)) throw 'Account UTXO datum is not an account';
-    if (currentAccountDatum.Account.content.owner !== myAddress) throw 'Account UTXO datum is not owned by the current address';
-    if (currentAccountDatum.Account.content.asset !== fromText(asset)) throw 'Account UTXO datum is not for the specified asset';
-
-
+    const currentAccountDatum = parseAccountDatum(accountUtxo.datum);
+    if (currentAccountDatum.owner !== myAddress)
+      throw 'Account UTXO datum is not owned by the current address';
+    if (currentAccountDatum.asset !== fromText(asset))
+      throw 'Account UTXO datum is not for the specified asset';
 
     const datum: StabilityPoolDatum = {
       Account: {
@@ -76,31 +107,165 @@ export class StabilityPoolContract {
             scale: 0n,
           },
           request: {
-            Create: {}
+            Create: {},
           },
-        }
-      }
-    }
+        },
+      },
+    };
 
-    return lucid.newTx()
+    return lucid
+      .newTx()
       .pay.ToContract(
         StabilityPoolContract.address(params.stabilityPoolParams, lucid),
-        { kind: 'inline', value: StabilityPoolContract.encodeDatum(datum) },
-        { 
+        { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
+        {
           lovelace: accountUtxo.assets.lovelace,
-          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol + fromText(asset)]: amount,
-        }
+          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
+          fromText(asset)]: amount,
+        },
       )
       .addSignerKey(pkh.hash);
   }
 
+  static async processRequest(
+    asset: string,
+    stabilityPoolUtxo: UTxO,
+    accountUtxo: UTxO,
+    govUtxo: UTxO,
+    iAssetUtxo: UTxO,
+    newSnapshotUtxo: UTxO | undefined,
+    params: SystemParams,
+    lucid: LucidEvolution,
+  ): Promise<TxBuilder> {
+    const redeemer: StabilityPoolRedeemer = {
+      ProcessRequest: {
+        requestRef: {
+          txHash: { hash: accountUtxo.txHash },
+          outputIndex: BigInt(accountUtxo.outputIndex),
+        },
+      },
+    };
+    const stabilityPoolScriptRef = await StabilityPoolContract.scriptRef(
+      params.scriptReferences,
+      lucid,
+    );
 
-  static decodeDatum(datum: string): StabilityPoolDatum {
-    return Data.from(datum, StabilityPoolDatum);
-  }
+    const accountDatum = parseAccountDatum(accountUtxo.datum);
+    const stabilityPoolDatum = parseStabilityPoolDatum(stabilityPoolUtxo.datum);
 
-  static encodeDatum(datum: StabilityPoolDatum): string {
-    return Data.to(datum, StabilityPoolDatum);
+    const tx = lucid
+      .newTx()
+      .collectFrom(
+        [stabilityPoolUtxo],
+        serialiseStabilityPoolRedeemer(redeemer),
+      )
+      .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+      .readFrom([iAssetUtxo, govUtxo, stabilityPoolScriptRef]);
+
+    if ('Create' in accountDatum.request) {
+      const accountToken =
+        await StabilityPoolContract.stabilityPoolTokenScriptRef(
+          params.scriptReferences,
+          lucid,
+        );
+      tx.readFrom([accountToken]);
+
+      const iassetUnit =
+        params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
+        fromText(asset);
+      const reqAmount = accountUtxo.assets[iassetUnit] ?? 0n;
+
+      const newAccountSnapshot: StabilityPoolSnapshot = {
+        ...stabilityPoolDatum.snapshot,
+        depositVal: {
+          value: accountDatum.snapshot.depositVal.value + reqAmount,
+        },
+      };
+
+      const newDeposit =
+        stabilityPoolDatum.snapshot.depositVal.value + reqAmount;
+      const newSum =
+        stabilityPoolDatum.snapshot.sumVal.value +
+        spDiv(
+          spMul(
+            mkSPInteger(
+              BigInt(params.stabilityPoolParams.accountCreateFeeLovelaces),
+            ),
+            stabilityPoolDatum.snapshot.productVal.value,
+          ),
+          newDeposit,
+        );
+      const newStabilityPoolSnapshot: StabilityPoolSnapshot = {
+        ...stabilityPoolDatum.snapshot,
+        depositVal: { value: newDeposit },
+        sumVal: { value: newSum },
+      };
+
+      const newEpochToScaleToSum: EpochToScaleToSum = new Map(
+        stabilityPoolDatum.epochToScaleToSum,
+      );
+      newEpochToScaleToSum.set(
+        {
+          epoch: stabilityPoolDatum.snapshot.epoch,
+          scale: stabilityPoolDatum.snapshot.scale,
+        },
+        { sum: newSum },
+      );
+
+      const poolOutputValue = {
+        lovelace:
+          stabilityPoolUtxo.assets.lovelace +
+          BigInt(params.stabilityPoolParams.accountCreateFeeLovelaces),
+        [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
+        fromText(asset)]: stabilityPoolUtxo.assets[iassetUnit] + reqAmount,
+      };
+
+      tx.mintAssets(
+        {
+          [params.stabilityPoolParams.accountToken[0].unCurrencySymbol +
+          fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
+        },
+        Data.to(new Constr(0, [])),
+      );
+
+      tx.pay.ToContract(stabilityPoolUtxo.address, {
+        kind: 'inline',
+        value: serialiseStabilityPoolDatum({
+          StabilityPool: {
+            content: {
+              ...stabilityPoolDatum,
+              snapshot: newStabilityPoolSnapshot,
+              epochToScaleToSum: newEpochToScaleToSum,
+            },
+          },
+        }),
+      }, poolOutputValue);
+
+      tx.pay.ToContract(
+        stabilityPoolUtxo.address,
+        {
+          kind: 'inline',
+          value: serialiseStabilityPoolDatum({
+            Account: {
+              content: {
+                ...accountDatum,
+                snapshot: newAccountSnapshot,
+                request: null,
+              }
+            }
+          })
+        }, {
+          lovelace: accountUtxo.assets.lovelace - BigInt(params.stabilityPoolParams.accountCreateFeeLovelaces),
+          [params.stabilityPoolParams.accountToken[0].unCurrencySymbol + fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
+        }
+      )
+    } else if ('Adjust' in accountDatum.request) {
+      throw 'Not implemented';
+    } else if ('Close' in accountDatum.request) {
+      throw 'Not implemented';
+    }
+
+    return tx;
   }
 
   static validator(params: StabilityPoolParams): SpendingValidator {
@@ -140,7 +305,7 @@ export class StabilityPoolContract {
           ]),
           BigInt(params.accountCreateFeeLovelaces),
           BigInt(params.accountAdjustmentFeeLovelaces),
-          BigInt(params.requestCollateralLovelaces)
+          BigInt(params.requestCollateralLovelaces),
         ]),
       ]),
     };

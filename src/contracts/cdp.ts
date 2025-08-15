@@ -51,9 +51,9 @@ export class CDPContract {
     interestOracleRef?: OutRef,
     cdpCreatorRef?: OutRef,
     collectorRef?: OutRef,
+    now: number = Date.now(),
   ): Promise<TxBuilder> {
     const [pkh, skh] = await addrDetails(lucid);
-    const now = Date.now();
     const assetOut = await (assetRef
       ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
       : IAssetHelpers.findIAssetByName(asset, params, lucid));
@@ -66,7 +66,7 @@ export class CDPContract {
     const oracleOut = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(
-          oracleAsset.currencySymbol + fromText(oracleAsset.tokenName),
+          oracleAsset.currencySymbol + oracleAsset.tokenName,
         );
     if (!oracleOut.datum) return Promise.reject('Price Oracle datum not found');
     const oracleDatum = parsePriceOracleDatum(
@@ -77,8 +77,7 @@ export class CDPContract {
     const interestOracleOut = interestOracleRef
       ? (await lucid.utxosByOutRef([interestOracleRef]))[0]
       : await lucid.utxoByUnit(
-          interestOracleAsset.currencySymbol +
-            fromText(interestOracleAsset.tokenName),
+          interestOracleAsset.currencySymbol + interestOracleAsset.tokenName,
         );
     if (!interestOracleOut.datum)
       return Promise.reject('Interest Oracle datum not found');
@@ -177,7 +176,7 @@ export class CDPContract {
       .mintAssets(iassetTokenMintValue, Data.to(new Constr(0, [])))
       .readFrom([iAssetTokenScriptRefUtxo])
       .addSignerKey(pkh.hash)
-      .validFrom(Number(now - 60_000))
+      .validFrom(Number(now - 100))
       .validTo(Number(timeValidTo));
 
     if (debtMintingFee > 0) {

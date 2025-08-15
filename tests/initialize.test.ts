@@ -8,7 +8,7 @@ import { init } from "./endpoints/initialize";
 beforeEach<LucidContext>(async (context: LucidContext) => {
     context.users = {
         admin: generateEmulatorAccount({
-            lovelace: BigInt(100_000_000),
+            lovelace: BigInt(100_000_000_000_000),
         }),
     };
 

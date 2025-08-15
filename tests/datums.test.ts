@@ -4,14 +4,18 @@ import {
   AccountContent,
   CDPContent,
   IAssetContent,
+  parseAccountDatum,
   parseCDPDatum,
   parseIAssetDatum,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
+  parseSnapshotEpochToScaleToSumDatum,
+  parseStabilityPoolDatum,
   serialiseCDPDatum,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
+  serialiseStabilityPoolDatum,
   SnapshotEpochToScaleToSumContent,
   StabilityPoolContent,
   StabilityPoolContract,
@@ -189,7 +193,6 @@ describe('Datum checks', () => {
     const stabilityPoolDatum =
       'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffbfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
     const stabilityPoolObject: StabilityPoolContent = {
-      content: {
         asset: fromText('iUSD'),
         snapshot: {
           productVal: { value: 736247675907734314n },
@@ -202,13 +205,10 @@ describe('Datum checks', () => {
           [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
           [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
         ]),
-      },
     };
-    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
-      StabilityPool: stabilityPoolObject,
-    });
+    expect(parseStabilityPoolDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
     expect(
-      StabilityPoolContract.encodeDatum({ StabilityPool: stabilityPoolObject }),
+      serialiseStabilityPoolDatum({ StabilityPool: { content: stabilityPoolObject } }),
     ).toEqual(stabilityPoolDatum);
   });
 
@@ -216,7 +216,6 @@ describe('Datum checks', () => {
     const stabilityPoolDatum =
       'd87a9fd8799f581c12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f674469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24c39fa2838b1f7dd38267f0a6dffd8799f1b0fde3b75c28ab489ff0100ffd87a80ffff';
     const stabilityPoolObject: AccountContent = {
-      content: {
         owner: '12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f67',
         asset: fromText('iUSD'),
         snapshot: {
@@ -227,14 +226,11 @@ describe('Datum checks', () => {
           scale: 0n,
         },
         request: null,
-      },
     };
 
-    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
-      Account: stabilityPoolObject,
-    });
+    expect(parseAccountDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
     expect(
-      StabilityPoolContract.encodeDatum({ Account: stabilityPoolObject }),
+      serialiseStabilityPoolDatum({ Account: { content: stabilityPoolObject } }),
     ).toEqual(stabilityPoolDatum);
   });
 
@@ -242,21 +238,17 @@ describe('Datum checks', () => {
     const stabilityPoolDatum =
       'd87b9fd8799f4469555344bfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
     const stabilityPoolObject: SnapshotEpochToScaleToSumContent = {
-      content: {
         asset: fromText('iUSD'),
         snapshot: new Map([
           [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
           [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
         ]),
-      },
     };
 
-    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
-      SnapshotEpochToScaleToSum: stabilityPoolObject,
-    });
+    expect(parseSnapshotEpochToScaleToSumDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
     expect(
-      StabilityPoolContract.encodeDatum({
-        SnapshotEpochToScaleToSum: stabilityPoolObject,
+      serialiseStabilityPoolDatum({
+        SnapshotEpochToScaleToSum: { content: stabilityPoolObject },
       }),
     ).toEqual(stabilityPoolDatum);
   });

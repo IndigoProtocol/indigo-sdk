@@ -1,10 +1,12 @@
-import { Data } from '@lucid-evolution/lucid';
+import { Data, Datum } from '@lucid-evolution/lucid';
+import { match, P } from 'ts-pattern';
+import { OutputReferenceSchema } from '../generic';
 
 export const SPIntegerSchema = Data.Object({
   value: Data.Integer(),
 });
 
-export const StabilityPoolSnapshotSchema = Data.Object({
+const StabilityPoolSnapshotSchema = Data.Object({
   productVal: SPIntegerSchema,
   depositVal: SPIntegerSchema,
   sumVal: SPIntegerSchema,
@@ -12,18 +14,28 @@ export const StabilityPoolSnapshotSchema = Data.Object({
   scale: Data.Integer(),
 });
 
+export type StabilityPoolSnapshot = Data.Static<
+  typeof StabilityPoolSnapshotSchema
+>;
+export const StabilityPoolSnapshot =
+  StabilityPoolSnapshotSchema as unknown as StabilityPoolSnapshot;
+
 export const EpochToScaleToSumSchema = Data.Map(
   Data.Object({ epoch: Data.Integer(), scale: Data.Integer() }),
   Data.Object({ sum: Data.Integer() }),
   { minItems: 0 },
 );
 
+export type EpochToScaleToSum = Data.Static<
+  typeof EpochToScaleToSumSchema
+>;
+export const EpochToScaleToSum =
+  EpochToScaleToSumSchema as unknown as EpochToScaleToSum;
+
 export const StabilityPoolContentSchema = Data.Object({
-  content: Data.Object({
-    asset: Data.Bytes(),
-    snapshot: StabilityPoolSnapshotSchema,
-    epochToScaleToSum: EpochToScaleToSumSchema,
-  }),
+  asset: Data.Bytes(),
+  snapshot: StabilityPoolSnapshotSchema,
+  epochToScaleToSum: EpochToScaleToSumSchema,
 });
 
 export type StabilityPoolContent = Data.Static<
@@ -44,22 +56,18 @@ export const AccountActionSchema = Data.Enum([
 ]);
 
 export const AccountContentSchema = Data.Object({
-  content: Data.Object({
-    owner: Data.Bytes(),
-    asset: Data.Bytes(),
-    snapshot: StabilityPoolSnapshotSchema,
-    request: Data.Nullable(AccountActionSchema),
-  }),
+  owner: Data.Bytes(),
+  asset: Data.Bytes(),
+  snapshot: StabilityPoolSnapshotSchema,
+  request: Data.Nullable(AccountActionSchema),
 });
 
 export type AccountContent = Data.Static<typeof AccountContentSchema>;
 export const AccountContent = AccountContentSchema as unknown as AccountContent;
 
 export const SnapshotEpochToScaleToSumContentSchema = Data.Object({
-  content: Data.Object({
     asset: Data.Bytes(),
     snapshot: EpochToScaleToSumSchema,
-  }),
 });
 
 export type SnapshotEpochToScaleToSumContent = Data.Static<
@@ -69,10 +77,10 @@ export const SnapshotEpochToScaleToSumContent =
   SnapshotEpochToScaleToSumContentSchema as unknown as SnapshotEpochToScaleToSumContent;
 
 export const StabilityPoolDatumSchema = Data.Enum([
-  Data.Object({ StabilityPool: StabilityPoolContentSchema }),
-  Data.Object({ Account: AccountContentSchema }),
+  Data.Object({ StabilityPool: Data.Object({ content: StabilityPoolContentSchema }) }),
+  Data.Object({ Account: Data.Object({ content: AccountContentSchema }) }),
   Data.Object({
-    SnapshotEpochToScaleToSum: SnapshotEpochToScaleToSumContentSchema,
+    SnapshotEpochToScaleToSum: Data.Object({ content: SnapshotEpochToScaleToSumContentSchema }),
   }),
 ]);
 
@@ -80,50 +88,60 @@ export type StabilityPoolDatum = Data.Static<typeof StabilityPoolDatumSchema>;
 export const StabilityPoolDatum =
   StabilityPoolDatumSchema as unknown as StabilityPoolDatum;
 
-// export type StabilityPoolSnapshot = {
-//     productVal: bigint;
-//     depositVal: bigint;
-//     sumVal: bigint;
-//     epoch: bigint;
-//     scale: bigint;
-// };
 
-// export type EpochToScaleKey = [bigint, bigint];
-// export type EpochToScaleToSum = Map<EpochToScaleKey, bigint>;
+export const StabilityPoolRedeemerSchema = Data.Enum([
+  Data.Object({ RequestAction: Data.Object({ action: AccountActionSchema }) }),
+  Data.Object({ ProcessRequest: Data.Object({ requestRef: OutputReferenceSchema }) }),
+  Data.Object({ AnnulRequest: Data.Object({}) }),
+  Data.Object({ LiquidateCDP: Data.Object({}) }),
+  Data.Object({ RecordEpochToScaleToSum: Data.Object({}) }),
+  Data.Object({ UpgradeVersion: Data.Object({}) }),
+]);
 
-// export type StabilityPoolDatum =
-//     StabilityPoolContent |
-//     AccountContent |
-//     SnapshotEpochToScaleToSumContent;
+export type StabilityPoolRedeemer = Data.Static<typeof StabilityPoolRedeemerSchema>;
+export const StabilityPoolRedeemer =
+  StabilityPoolRedeemerSchema as unknown as StabilityPoolRedeemer;
 
-// export type StabilityPoolContent = {
-//     type: 'StabilityPoolContent';
-//     asset: string;
-//     snapshot: StabilityPoolSnapshot;
-//     epochToScaleToSum: EpochToScaleToSum;
-// }
+export function parseStabilityPoolDatum(datum: Datum): StabilityPoolContent {
+  return match(Data.from<StabilityPoolDatum>(datum, StabilityPoolDatum))
+    .with({ StabilityPool: { content: P.select() } }, (res) => res)
+    .otherwise(() => {
+      throw new Error('Expected a Stability Pool datum.');
+    });
+}
 
-// export type AccountAction = {
-//     type: 'Create';
-// } | {
-//     type: 'Adjust';
-//     amount: bigint;
-//     outputAddress: string;
-// } | {
-//     type: 'Close';
-//     outputAddress: string;
-// }
+export function parseAccountDatum(datum: Datum): AccountContent {
+  return match(Data.from<StabilityPoolDatum>(datum, StabilityPoolDatum))
+    .with({ Account: { content: P.select() } }, (res) => res)
+    .otherwise(() => {
+      throw new Error('Expected a StakingPosition datum.');
+    });
+}
 
-// export type AccountContent = {
-//     type: 'AccountContent';
-//     owner: string;
-//     asset: string;
-//     snapshot: StabilityPoolSnapshot;
-//     request?: AccountAction;
-// }
+export function parseSnapshotEpochToScaleToSumDatum(datum: Datum): SnapshotEpochToScaleToSumContent {
+  return match(Data.from<StabilityPoolDatum>(datum, StabilityPoolDatum))
+    .with({ SnapshotEpochToScaleToSum: { content: P.select() } }, (res) => res)
+    .otherwise(() => {
+      throw new Error('Expected a StakingPosition datum.');
+    });
+}
 
-// export type SnapshotEpochToScaleToSumContent = {
-//     type: 'SnapshotEpochToScaleToSumContent';
-//     snapshot: EpochToScaleToSum;
-//     asset: string;
-// }
+export function serialiseStabilityPoolDatum(d: StabilityPoolDatum): Datum {
+  return Data.to<StabilityPoolDatum>(d, StabilityPoolDatum);
+}
+
+export function serialiseStabilityPoolRedeemer(params: StabilityPoolRedeemer): string {
+  return Data.to<StabilityPoolRedeemer>(params, StabilityPoolRedeemer);
+}
+
+export function mkSPInteger(value: bigint): bigint {
+  return value * 1000000000000000000n
+}
+
+export function spMul(a: bigint, b: bigint): bigint {
+  return (a * b) / 1000000000000000000n;
+}
+
+export function spDiv(a: bigint, b: bigint): bigint {
+  return (a * 1000000000000000000n) / b;
+}

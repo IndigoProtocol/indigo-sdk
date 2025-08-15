@@ -11,7 +11,7 @@ import { findStakingPosition } from "./queries/staking-queries";
 beforeEach<LucidContext>(async (context: LucidContext) => {
     context.users = {
         admin: generateEmulatorAccount({
-            lovelace: BigInt(100_000_000),
+            lovelace: BigInt(100_000_000_000_000),
         }),
     };
 

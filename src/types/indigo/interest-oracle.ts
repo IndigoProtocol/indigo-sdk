@@ -1,13 +1,6 @@
 import { Data, Datum } from "@lucid-evolution/lucid";
 import { OnChainDecimalSchema } from "../on-chain-decimal";
 
-// export type InterestOracleDatum = {
-//   unitaryInterest: bigint;
-//   interestRate: bigint;
-//   lastUpdated: bigint;
-// };
-
-
 export const InterestOracleDatumSchema = Data.Object({
   unitaryInterest: Data.Integer(),
   interestRate: OnChainDecimalSchema,
@@ -22,4 +15,17 @@ export function parseInterestOracleDatum(datum: Datum): InterestOracleDatum {
 
 export function serialiseInterestOracleDatum(datum: InterestOracleDatum): Datum {
   return Data.to<InterestOracleDatum>(datum, InterestOracleDatum);
+}
+
+export const InterestOracleParamsSchema = Data.Object({
+  /**  Milliseconds */
+  biasTime: Data.Integer(),
+  owner: Data.Bytes(),
+});
+export type InterestOracleParams = Data.Static<typeof InterestOracleParamsSchema>;
+const InterestOracleParams =
+  InterestOracleParamsSchema as unknown as InterestOracleParams;
+
+export function castInterestOracleParams(params: InterestOracleParams): Data {
+  return Data.castTo(params, InterestOracleParams);
 }
