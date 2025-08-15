@@ -1,9 +1,9 @@
 import { fromText, LucidEvolution, OutRef, UTxO } from '@lucid-evolution/lucid';
 import { CDPContract } from '../contracts/cdp';
 import { SystemParams } from '../types/system-params';
-import { IAsset } from '../types/indigo/cdp';
+import { IAssetContent } from '../types/indigo/cdp';
 
-export type IAssetOutput = { utxo: UTxO; datum: IAsset };
+export type IAssetOutput = { utxo: UTxO; datum: IAssetContent };
 
 export class IAssetHelpers {
   static async findIAssetByRef(
@@ -36,8 +36,8 @@ export class IAssetHelpers {
     return lucid
       .utxosAtWithUnit(
         CDPContract.address(params.cdpParams, lucid),
-        params.cdpParams.iAssetAuthToken[0].unCurrencySymbol +
-          fromText(params.cdpParams.iAssetAuthToken[1].unTokenName),
+        params.cdpParams.iAssetAuthToken.currencySymbol +
+          fromText(params.cdpParams.iAssetAuthToken.tokenName),
       )
       .then((utxos) =>
         utxos
