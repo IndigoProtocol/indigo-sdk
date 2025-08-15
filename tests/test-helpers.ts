@@ -1,4 +1,10 @@
-import { LucidEvolution, TxBuilder } from '@lucid-evolution/lucid';
+import { Emulator, LucidEvolution, TxBuilder } from '@lucid-evolution/lucid';
+
+export type LucidContext = {
+    lucid: LucidEvolution;
+    users: any;
+    emulator: Emulator;
+}
 
 export async function runAndAwaitTx(
   lucid: LucidEvolution,
