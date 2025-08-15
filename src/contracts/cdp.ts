@@ -20,7 +20,6 @@ import {
   SystemParams,
 } from '../types/system-params';
 import { IAssetHelpers } from '../helpers/asset-helpers';
-import { PriceOracleContract } from './price-oracle';
 import { CDPCreatorContract } from './cdp-creator';
 import { CollectorContract } from './collector';
 import { InterestOracleContract } from './interest-oracle';
@@ -660,7 +659,7 @@ export class CDPContract {
   }
 
   static decodeCdpDatum(datum: string): CDPDatum {
-    const cdpDatum = Data.from(datum) as any;
+    const cdpDatum = Data.from(datum);
     if (cdpDatum.index == 1 && cdpDatum.fields[0].index == 0) {
       const iasset = cdpDatum.fields[0].fields;
       return {

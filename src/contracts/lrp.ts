@@ -37,7 +37,7 @@ import { matchSingle } from '../helpers/helpers';
 const MIN_UTXO_COLLATERAL_AMT = 2_000_000n;
 
 export async function openLrp(
-  asset: string,
+  assetTokenName: string,
   lovelacesAmt: bigint,
   maxPrice: OnChainDecimal,
   lucid: LucidEvolution,
@@ -49,7 +49,7 @@ export async function openLrp(
 
   const newDatum: LRPDatum = {
     owner: ownPkh.hash,
-    iasset: asset,
+    iasset: assetTokenName,
     maxPrice: maxPrice,
     lovelacesToSpend: lovelacesAmt,
   };
@@ -203,17 +203,21 @@ export async function redeemLrp(
   )(redemptionLrps);
 
   const txValidity = oracleExpirationAwareValidity(
-    Date.now(),
+    lucid.currentSlot(),
     Number(priceOracleParams.biasTime),
     Number(priceOracleDatum.expiration),
     network,
   );
 
-  return lucid
-    .newTx()
-    .validFrom(txValidity.validFrom)
-    .validTo(txValidity.validTo)
-    .readFrom([lrpScriptRefUtxo])
-    .readFrom([iassetUtxo, priceOracleUtxo])
-    .compose(tx);
+  return (
+    lucid
+      .newTx()
+      // .validFrom(txValidity.validFrom)
+      .validTo(txValidity.validTo)
+      // Ref script
+      .readFrom([lrpScriptRefUtxo])
+      // Ref inputs
+      .readFrom([iassetUtxo, priceOracleUtxo])
+      .compose(tx)
+  );
 }

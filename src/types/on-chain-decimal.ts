@@ -18,3 +18,6 @@ export function ocdDiv(a: OnChainDecimal, b: OnChainDecimal): OnChainDecimal {
     getOnChainInt: (a.getOnChainInt * OCD_DECIMAL_UNIT) / b.getOnChainInt,
   };
 }
+
+export const OCD_ONE: OnChainDecimal = { getOnChainInt: 1_000_000n };
+export const OCD_ZERO: OnChainDecimal = { getOnChainInt: 0n };
