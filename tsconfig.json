@@ -2,10 +2,9 @@
   "compilerOptions": {
     "outDir": "./dist",
     "sourceMap": true,
-    "module": "es2022",
-    "target": "es2022",
-    "lib": ["es2022", "DOM"],
-    "moduleResolution": "node"
+    "module": "nodenext",
+    "target": "ESNext",
+    "moduleResolution": "nodenext"
   },
   "ts-node": {
     "compilerOptions": {

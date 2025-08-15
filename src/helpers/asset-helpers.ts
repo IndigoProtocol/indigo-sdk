@@ -1,28 +1,58 @@
-import { fromText, LucidEvolution, OutRef, UTxO } from "@lucid-evolution/lucid";
-import { CDPContract } from "../contracts/cdp";
-import { SystemParams } from "../types/system-params";
-import { IAsset } from "../types/indigo/cdp";
+import { fromText, LucidEvolution, OutRef, UTxO } from '@lucid-evolution/lucid';
+import { CDPContract } from '../contracts/cdp';
+import { SystemParams } from '../types/system-params';
+import { IAssetContent } from '../types/indigo/cdp';
 
-export type IAssetOutput = { utxo: UTxO, datum: IAsset };
+export type IAssetOutput = { utxo: UTxO; datum: IAssetContent };
 
 export class IAssetHelpers {
-    static async findIAssetByRef(outRef: OutRef, params: SystemParams, lucid: LucidEvolution): Promise<IAssetOutput> {
-        throw new Error('Not implemented');
-    }
+  static async findIAssetByRef(
+    outRef: OutRef,
+    lucid: LucidEvolution,
+  ): Promise<IAssetOutput> {
+    return lucid
+      .utxosByOutRef([outRef])
+      .then((utxos) =>
+        utxos
+          .map((utxo) => {
+            if (!utxo.datum) return undefined;
+            const datum = CDPContract.decodeCdpDatum(utxo.datum);
+            if (datum.type !== 'IAsset') return undefined;
+            return { utxo, datum };
+          })
+          .find((utxo) => utxo !== undefined),
+      )
+      .then((result) => {
+        if (!result) throw 'Unable to locate IAsset by output reference.';
+        return result;
+      });
+  }
 
-    static async findIAssetByName(assetName: string, params: SystemParams, lucid: LucidEvolution): Promise<IAssetOutput> {
-        return lucid.utxosAtWithUnit(
-            CDPContract.address(params.cdpParams, lucid),
-            params.cdpParams.iAssetAuthToken.symbol + fromText(params.cdpParams.iAssetAuthToken.name),
-        ).then(utxos => utxos.map(utxo => {
+  static async findIAssetByName(
+    assetName: string,
+    params: SystemParams,
+    lucid: LucidEvolution,
+  ): Promise<IAssetOutput> {
+    return lucid
+      .utxosAtWithUnit(
+        CDPContract.address(params.cdpParams, lucid),
+        params.cdpParams.iAssetAuthToken.currencySymbol +
+          fromText(params.cdpParams.iAssetAuthToken.tokenName),
+      )
+      .then((utxos) =>
+        utxos
+          .map((utxo) => {
             if (!utxo.datum) return undefined;
             const datum = CDPContract.decodeCdpDatum(utxo.datum);
             if (datum.type !== 'IAsset') return undefined;
             if (datum.name !== assetName) return undefined;
             return { utxo, datum };
-        }).find(utxo => utxo !== undefined)).then(result => {
-            if (!result) throw 'Unable to locate IAsset by name.';
-            return result;
-        });
-    } 
+          })
+          .find((utxo) => utxo !== undefined),
+      )
+      .then((result) => {
+        if (!result) throw 'Unable to locate IAsset by name.';
+        return result;
+      });
+  }
 }

@@ -31,7 +31,10 @@ import {
   scriptRef,
 } from '../helpers/lucid-utils';
 import { AssetClass } from '../types/generic';
-import { calculateFeeFromPercentage } from '../helpers/helpers';
+import {
+  calculateFeeFromPercentage,
+  getRandomElement,
+} from '../helpers/helpers';
 import { CDP, CDPDatum, CDPFees } from '../types/indigo/cdp';
 import { _cdpValidator } from '../scripts/cdp-validator';
 
@@ -51,7 +54,7 @@ export class CDPContract {
     const [pkh, skh] = await addrDetails(lucid);
     const now = Date.now();
     const assetOut = await (assetRef
-      ? IAssetHelpers.findIAssetByRef(assetRef, params, lucid)
+      ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
       : IAssetHelpers.findIAssetByName(asset, params, lucid));
 
     // Fail if delisted asset
@@ -323,7 +326,7 @@ export class CDPContract {
     const cdpDatum = CDPContract.decodeCdpDatum(cdp.datum);
     if (cdpDatum.type !== 'CDP') throw 'Invalid CDP Datum';
     const iAsset = await (assetRef
-      ? IAssetHelpers.findIAssetByRef(assetRef, params, lucid)
+      ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
       : IAssetHelpers.findIAssetByName(cdpDatum.asset, params, lucid));
 
     const gov = govRef
@@ -525,7 +528,7 @@ export class CDPContract {
     const cdpDatum = CDPContract.decodeCdpDatum(cdp.datum);
     if (cdpDatum.type !== 'CDP') throw 'Invalid CDP Datum';
     const iAsset = await (assetRef
-      ? IAssetHelpers.findIAssetByRef(assetRef, params, lucid)
+      ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
       : IAssetHelpers.findIAssetByName(cdpDatum.asset, params, lucid));
 
     const gov = govRef
@@ -705,7 +708,7 @@ export class CDPContract {
       const cdp = cdpDatum.fields[0].fields;
       return {
         type: 'CDP',
-        owner: cdp[0].fields[0],
+        owner: cdp[0].fields[0], // TODO: What if the cdp is frozen?
         asset: toText(cdp[1]),
         mintedAmount: cdp[2],
         fees:
@@ -806,6 +809,7 @@ export class CDPContract {
     throw 'Invalid CDP Datum provided';
   }
 
+  // TODO: Remove this (use `encodeCdpDatum` instead)
   static datum(
     hash: Credential,
     asset: string,
