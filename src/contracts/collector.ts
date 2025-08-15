@@ -61,16 +61,16 @@ export class CollectorContract {
       script: applyParamsToScript(_collectorValidator.cborHex, [
         new Constr(0, [
           new Constr(0, [
-            params.stakingManagerNFT.currencySymbol,
-            fromText(params.stakingManagerNFT.tokenName),
+            params.stakingManagerNFT[0].unCurrencySymbol,
+            fromText(params.stakingManagerNFT[1].unTokenName),
           ]),
           new Constr(0, [
-            params.stakingToken.currencySymbol,
-            fromText(params.stakingToken.tokenName),
+            params.stakingToken[0].unCurrencySymbol,
+            fromText(params.stakingToken[1].unTokenName),
           ]),
           new Constr(0, [
-            params.versionRecordToken.currencySymbol,
-            fromText(params.versionRecordToken.tokenName),
+            params.versionRecordToken[0].unCurrencySymbol,
+            fromText(params.versionRecordToken[1].unTokenName),
           ]),
         ]),
       ]),

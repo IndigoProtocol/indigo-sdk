@@ -1,5 +1,5 @@
-import { fromText, LucidEvolution, mintingPolicyToId, PolicyId, validatorToAddress } from "@lucid-evolution/lucid";
-import { addrDetails, AssetClass, CollectorContract, CollectorParams, runOneShotMintTx, StakingParams, SystemParams } from "../../src";
+import { fromText, LucidEvolution, mintingPolicyToId, PolicyId, toText, validatorToAddress } from "@lucid-evolution/lucid";
+import { addrDetails, AssetClass, AssetClassSP, CollectorContract, CollectorParams, runOneShotMintTx, StabilityPoolContract, StabilityPoolParams, StakingParams, SystemParams } from "../../src";
 import { mkAuthTokenPolicy } from "../../src/scripts/auth-token-policy";
 import { StakingContract } from "../../src/contracts/staking";
 
@@ -125,22 +125,53 @@ export async function init(lucid: LucidEvolution): Promise<SystemParams> {
     }
 
     const collectorParams: CollectorParams = {
-        stakingManagerNFT: stakingManagerAsset,
-        stakingToken: stakingToken,
-        versionRecordToken: versionRecordToken
+        stakingManagerNFT: toSystemParamsAsset(stakingManagerAsset),
+        stakingToken: toSystemParamsAsset(stakingToken),
+        versionRecordToken: toSystemParamsAsset(versionRecordToken)
     };
     const collectorValHash = CollectorContract.validatorHash(collectorParams);
 
     const stakingParams: StakingParams = {
-        stakingManagerNFT: stakingManagerAsset,
-        stakingToken: stakingToken,
-        versionRecordToken: versionRecordToken,
-        pollToken: pollToken,
-        indyToken: indyAsset,
+        stakingManagerNFT: toSystemParamsAsset(stakingManagerAsset),
+        stakingToken: toSystemParamsAsset(stakingToken),
+        versionRecordToken: toSystemParamsAsset(versionRecordToken),
+        pollToken: toSystemParamsAsset(pollToken),
+        indyToken: toSystemParamsAsset(indyAsset),
         collectorValHash: collectorValHash,
     };
 
     await initStakingManager(lucid, stakingParams);
+
+    // TODO: Asset Symbol from iAsset Policy
+    const assetSymbol = await mintOneTimeToken(lucid, fromText(iassetTokenName), 1n);
+
+    const snapshotEpochToScaleToSumTokenPolicy = mkAuthTokenPolicy(stabilityPoolToken, fromText(snapshotEpochToScaleToSumTokenName));
+    const snapshotEpochToScaleToSumToken: AssetClass = {
+        currencySymbol: mintingPolicyToId(snapshotEpochToScaleToSumTokenPolicy),
+        tokenName: fromText(snapshotEpochToScaleToSumTokenName),
+    }
+
+    const accountTokenPolicy = mkAuthTokenPolicy(stabilityPoolToken, fromText(accountTokenName));
+    const accountToken: AssetClass = {
+        currencySymbol: mintingPolicyToId(accountTokenPolicy),
+        tokenName: fromText(accountTokenName),
+    }
+
+    const stabilityPoolParams: StabilityPoolParams = {
+        assetSymbol: {unCurrencySymbol: assetSymbol},
+        stabilityPoolToken: toSystemParamsAsset(stabilityPoolToken),
+        snapshotEpochToScaleToSumToken: toSystemParamsAsset(snapshotEpochToScaleToSumToken),
+        accountToken: toSystemParamsAsset(accountToken),
+        cdpToken: toSystemParamsAsset(cdpToken),
+        iAssetAuthToken: toSystemParamsAsset(iassetToken),
+        versionRecordToken: toSystemParamsAsset(versionRecordToken),
+        collectorValHash: collectorValHash,
+        govNFT: toSystemParamsAsset(govNftAsset),
+        accountCreateFeeLovelaces: 5_000_000,
+        accountAdjustmentFeeLovelaces: 5_000_000,
+        requestCollateralLovelaces: 5_000_000,
+    }
+    const stabilityPoolValHash = StabilityPoolContract.validatorHash(stabilityPoolParams);
 
     return {
         collectorParams: collectorParams,
@@ -165,11 +196,15 @@ async function initStakingManager(lucid: LucidEvolution, stakingParams: StakingP
         .pay.ToContract(
             StakingContract.address(stakingParams, lucid),
             { kind: 'inline',  value: StakingContract.encodeDatum({type: 'StakingManager', totalStaked: 0n, snapshot: { snapshotAda: 0n}})},
-            { [stakingParams.stakingManagerNFT.currencySymbol + fromText(stakingParams.stakingManagerNFT.tokenName)]: 1n }
+            { [stakingParams.stakingManagerNFT[0].unCurrencySymbol + fromText(stakingParams.stakingManagerNFT[1].unTokenName)]: 1n }
         )
         .complete()
         .then((tx) => tx.sign.withWallet().complete())
         .then((tx) => tx.submit());
 
     await lucid.awaitTx(txHash);
+}
+
+function toSystemParamsAsset(asset: AssetClass): AssetClassSP { 
+return [{unCurrencySymbol: asset.currencySymbol}, {unTokenName: toText(asset.tokenName)}]   
 }
