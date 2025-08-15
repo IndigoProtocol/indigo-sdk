@@ -10,7 +10,7 @@ describe('Interest Calculations', () => {
                     oneDay * 6n,
                     {
                         unitaryInterest: 684_931_506_849_315n,
-                        interestRate: 100_000n,
+                        interestRate: { getOnChainInt: 100_000n },
                         lastUpdated: oneDay * 5n
                     }
                 )
@@ -23,7 +23,7 @@ describe('Interest Calculations', () => {
                     oneDay * 6n,
                     {
                         unitaryInterest: 0n,
-                        interestRate: 50_000n,
+                        interestRate: { getOnChainInt: 50_000n },
                         lastUpdated: 0n
                     }
                 )
@@ -36,7 +36,7 @@ describe('Interest Calculations', () => {
                     1n,
                     {
                         unitaryInterest: 0n,
-                        interestRate: 1n,
+                        interestRate: { getOnChainInt: 1n },
                         lastUpdated: 0n
                     }
                 )
@@ -54,7 +54,7 @@ describe('Interest Calculations', () => {
                     0n,
                     {
                         unitaryInterest: 0n,
-                        interestRate: 50_000n,
+                        interestRate: { getOnChainInt: 50_000n },
                         lastUpdated: 0n
                     }
                 )
@@ -70,7 +70,7 @@ describe('Interest Calculations', () => {
                     0n,
                     {
                         unitaryInterest: 684_931_506_849_315n,
-                        interestRate: 100_000n,
+                        interestRate: { getOnChainInt: 100_000n },
                         lastUpdated: oneDay * 5n
                     }
                 )
@@ -86,7 +86,7 @@ describe('Interest Calculations', () => {
                     0n,
                     {
                         unitaryInterest: 1_506_849_315_068_493n,
-                        interestRate: 100_000n,
+                        interestRate: { getOnChainInt: 100_000n },
                         lastUpdated: oneDay * 15n
                     }
                 )
@@ -102,7 +102,7 @@ describe('Interest Calculations', () => {
                     oneDay * 3n,
                     {
                         unitaryInterest: 1_506_849_315_068_493n,
-                        interestRate: 100_000n,
+                        interestRate: { getOnChainInt: 100_000n },
                         lastUpdated: oneDay * 15n
                     }
                 )
@@ -118,7 +118,7 @@ describe('Interest Calculations', () => {
                     oneDay * 6n,
                     {
                         unitaryInterest: 1_506_849_315_068_493n,
-                        interestRate: 100_000n,
+                        interestRate: { getOnChainInt: 100_000n },
                         lastUpdated: oneDay * 15n
                     }
                 )
@@ -134,7 +134,7 @@ describe('Interest Calculations', () => {
                     oneDay * 6n,
                     {
                         unitaryInterest: 0n,
-                        interestRate: 50_000n,
+                        interestRate: { getOnChainInt: 50_000n },
                         lastUpdated: 0n
                     }
                 )
