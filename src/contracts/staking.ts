@@ -7,7 +7,6 @@ import {
   LucidEvolution,
   OutRef,
   SpendingValidator,
-  toText,
   TxBuilder,
   UTxO,
   validatorToAddress,
@@ -20,7 +19,11 @@ import {
 } from '../types/system-params';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import { _stakingValidator } from '../scripts/staking-validator';
-import { StakingDatum } from '../types/indigo/staking';
+import {
+  serialiseStakingDatum,
+  StakingManagerContent,
+  StakingPositionContent,
+} from '../types/indigo/staking';
 import { StakingHelpers } from '../helpers/staking-helpers';
 
 export class StakingContract {
@@ -48,20 +51,18 @@ export class StakingContract {
         lucid,
       );
 
-    const newStakingManagerDatum: StakingDatum = {
-      type: 'StakingManager',
-      totalStaked: stakingManagerOut.datum.totalStaked + amount,
-      snapshot: {
-        snapshotAda: stakingManagerOut.datum.snapshot.snapshotAda,
+    const newStakingManagerDatum: StakingManagerContent = {
+      totalStake: stakingManagerOut.datum.totalStake + amount,
+      managerSnapshot: {
+        snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,
       },
     };
 
-    const stakingPositionDatum: StakingDatum = {
-      type: 'StakingPosition',
+    const stakingPositionDatum: StakingPositionContent = {
       owner: pkh.hash,
       lockedAmount: new Map([]),
-      snapshot: {
-        snapshotAda: stakingManagerOut.datum.snapshot.snapshotAda,
+      positionSnapshot: {
+        snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,
       },
     };
 
@@ -80,7 +81,9 @@ export class StakingContract {
         stakingManagerOut.utxo.address,
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum(newStakingManagerDatum),
+          value: serialiseStakingDatum({
+            StakingManager: { content: newStakingManagerDatum },
+          }),
         },
         stakingManagerOut.utxo.assets,
       )
@@ -95,7 +98,9 @@ export class StakingContract {
         StakingContract.address(params.stakingParams, lucid),
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum(stakingPositionDatum),
+          value: serialiseStakingDatum({
+            StakingPosition: { content: stakingPositionDatum },
+          }),
         },
         {
           [stakingToken]: 1n,
@@ -139,8 +144,10 @@ export class StakingContract {
       fromText(params.stakingParams.indyToken[1].unTokenName);
 
     const existingIndyAmount = stakingPositionOut.utxo.assets[indyToken] ?? 0n;
-    const currentSnapshotAda = stakingManagerOut.datum.snapshot.snapshotAda;
-    const oldSnapshotAda = stakingPositionOut.datum.snapshot.snapshotAda;
+    const currentSnapshotAda =
+      stakingManagerOut.datum.managerSnapshot.snapshotAda;
+    const oldSnapshotAda =
+      stakingPositionOut.datum.positionSnapshot.snapshotAda;
     const adaReward =
       ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
       (1000000n * 1000000n);
@@ -162,9 +169,13 @@ export class StakingContract {
         stakingManagerOut.utxo.address,
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum({
-            ...stakingManagerOut.datum,
-            totalStaked: stakingManagerOut.datum.totalStaked + amount,
+          value: serialiseStakingDatum({
+            StakingManager: {
+              content: {
+                ...stakingManagerOut.datum,
+                totalStake: stakingManagerOut.datum.totalStake + amount,
+              },
+            },
           }),
         },
         {
@@ -175,9 +186,13 @@ export class StakingContract {
         stakingPositionOut.utxo.address,
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum({
-            ...stakingPositionOut.datum,
-            lockedAmount: newLockedAmount,
+          value: serialiseStakingDatum({
+            StakingPosition: {
+              content: {
+                ...stakingPositionOut.datum,
+                lockedAmount: newLockedAmount,
+              },
+            },
           }),
         },
         {
@@ -225,8 +240,10 @@ export class StakingContract {
       fromText(params.stakingParams.indyToken[1].unTokenName);
 
     const existingIndyAmount = stakingPositionOut.utxo.assets[indyToken] ?? 0n;
-    const currentSnapshotAda = stakingManagerOut.datum.snapshot.snapshotAda;
-    const oldSnapshotAda = stakingPositionOut.datum.snapshot.snapshotAda;
+    const currentSnapshotAda =
+      stakingManagerOut.datum.managerSnapshot.snapshotAda;
+    const oldSnapshotAda =
+      stakingPositionOut.datum.positionSnapshot.snapshotAda;
     const adaReward =
       ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
       (1000000n * 1000000n);
@@ -242,10 +259,14 @@ export class StakingContract {
         stakingManagerOut.utxo.address,
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum({
-            ...stakingManagerOut.datum,
-            totalStaked:
-              stakingManagerOut.datum.totalStaked - existingIndyAmount,
+          value: serialiseStakingDatum({
+            StakingManager: {
+              content: {
+                ...stakingManagerOut.datum,
+                totalStake:
+                  stakingManagerOut.datum.totalStake - existingIndyAmount,
+              },
+            },
           }),
         },
         {
@@ -259,68 +280,6 @@ export class StakingContract {
         Data.void(),
       )
       .addSignerKey(pkh.hash);
-  }
-
-  static decodeDatum(datum: string): StakingDatum {
-    const stakingDatum = Data.from(datum) as any;
-    if (stakingDatum.index === 0 && stakingDatum.fields[0].index === 0) {
-      const managerDatum = stakingDatum.fields[0].fields;
-      return {
-        type: 'StakingManager',
-        totalStaked: managerDatum[0],
-        snapshot: {
-          snapshotAda: managerDatum[1].fields[0],
-        },
-      };
-    } else if (stakingDatum.index === 1 && stakingDatum.fields[0].index === 0) {
-      const positionDatum = stakingDatum.fields[0].fields;
-      const lockedAmount = new Map<bigint, [bigint, bigint]>();
-      for (const [key, value] of positionDatum[1] as Map<
-        bigint,
-        Constr<bigint>
-      >) {
-        lockedAmount.set(key, [value.fields[0], value.fields[1]]);
-      }
-      return {
-        type: 'StakingPosition',
-        owner: positionDatum[0],
-        lockedAmount,
-        snapshot: {
-          snapshotAda: positionDatum[2].fields[0],
-        },
-      };
-    }
-
-    throw 'Invalid Staking Datum provided';
-  }
-
-  static encodeDatum(datum: StakingDatum): string {
-    if (datum.type === 'StakingManager') {
-      return Data.to(
-        new Constr(0, [
-          new Constr(0, [
-            datum.totalStaked,
-            new Constr(0, [datum.snapshot.snapshotAda]),
-          ]),
-        ]),
-      );
-    } else if (datum.type === 'StakingPosition') {
-      const lockedAmount = new Map<bigint, Constr<bigint>>();
-      for (const [key, value] of datum.lockedAmount) {
-        lockedAmount.set(key, new Constr(0, [value[0], value[1]]));
-      }
-      return Data.to(
-        new Constr(1, [
-          new Constr(0, [
-            datum.owner,
-            lockedAmount,
-            new Constr(0, [datum.snapshot.snapshotAda]),
-          ]),
-        ]),
-      );
-    }
-
-    throw 'Invalid Staking Datum provided';
   }
 
   // Staking Validator

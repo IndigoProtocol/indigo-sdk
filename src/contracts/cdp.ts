@@ -89,8 +89,8 @@ export class CDPContract {
         ? await lucid.utxosByOutRef([cdpCreatorRef])
         : await lucid.utxosAtWithUnit(
             CDPCreatorContract.address(params.cdpCreatorParams, lucid),
-            params.cdpCreatorParams.cdpCreatorNft.currencySymbol +
-              fromText(params.cdpCreatorParams.cdpCreatorNft.tokenName),
+            params.cdpCreatorParams.cdpCreatorNft[0].unCurrencySymbol +
+              fromText(params.cdpCreatorParams.cdpCreatorNft[1].unTokenName),
           ),
     );
     const cdpCreatorRedeemer = CDPCreatorContract.redeemer(
@@ -106,8 +106,8 @@ export class CDPContract {
 
     const cdpAddress = CDPContract.address(params.cdpParams, lucid, skh);
     const cdpToken =
-      params.cdpParams.cdpAuthToken.currencySymbol +
-      fromText(params.cdpParams.cdpAuthToken.tokenName);
+      params.cdpParams.cdpAuthToken[0].unCurrencySymbol +
+      fromText(params.cdpParams.cdpAuthToken[1].unTokenName);
 
     const cdpValue: Assets = {
       lovelace: collateralAmount,
@@ -334,8 +334,8 @@ export class CDPContract {
     const gov = govRef
       ? (await lucid.utxosByOutRef([govRef]))[0]
       : await lucid.utxoByUnit(
-          params.govParams.govNFT.currencySymbol +
-            fromText(params.govParams.govNFT.tokenName),
+          params.govParams.govNFT[0].unCurrencySymbol +
+            fromText(params.govParams.govNFT[1].unTokenName),
         );
     if (!gov.datum) throw 'Unable to find Gov Datum';
     const govData = GovContract.decodeGovDatum(gov.datum);
@@ -528,8 +528,8 @@ export class CDPContract {
     const gov = govRef
       ? (await lucid.utxosByOutRef([govRef]))[0]
       : await lucid.utxoByUnit(
-          params.govParams.govNFT.currencySymbol +
-            fromText(params.govParams.govNFT.tokenName),
+          params.govParams.govNFT[0].unCurrencySymbol +
+            fromText(params.govParams.govNFT[1].unTokenName),
         );
 
     if (!gov.datum) throw 'Unable to find Gov Datum';
@@ -632,8 +632,8 @@ export class CDPContract {
     assetBurnValue[iassetToken] = -BigInt(cdpD.content.mintedAmt);
     const cdpTokenBurnValue = {} as Assets;
     cdpTokenBurnValue[
-      params.cdpParams.cdpAuthToken.currencySymbol +
-        fromText(params.cdpParams.cdpAuthToken.tokenName)
+      params.cdpParams.cdpAuthToken[0].unCurrencySymbol +
+        fromText(params.cdpParams.cdpAuthToken[1].unTokenName)
     ] = -1n;
     const cdpAuthTokenScriptRefUtxo = await CDPContract.cdpAuthTokenRef(
       params.scriptReferences,

@@ -2,6 +2,7 @@ import { fromText, LucidEvolution, mintingPolicyToId, PolicyId, toText, validato
 import { addrDetails, AssetClass, AssetClassSP, CollectorContract, CollectorParams, runOneShotMintTx, StabilityPoolContract, StabilityPoolParams, StakingParams, SystemParams } from "../../src";
 import { mkAuthTokenPolicy } from "../../src/scripts/auth-token-policy";
 import { StakingContract } from "../../src/contracts/staking";
+import { serialiseStakingDatum } from "../../src/types/indigo/staking";
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -195,7 +196,7 @@ async function initStakingManager(lucid: LucidEvolution, stakingParams: StakingP
     const txHash = await lucid.newTx()
         .pay.ToContract(
             StakingContract.address(stakingParams, lucid),
-            { kind: 'inline',  value: StakingContract.encodeDatum({type: 'StakingManager', totalStaked: 0n, snapshot: { snapshotAda: 0n}})},
+            { kind: 'inline',  value: serialiseStakingDatum({StakingManager: {content: {totalStake: 0n, managerSnapshot: {snapshotAda: 0n}}}})},
             { [stakingParams.stakingManagerNFT[0].unCurrencySymbol + fromText(stakingParams.stakingManagerNFT[1].unTokenName)]: 1n }
         )
         .complete()
