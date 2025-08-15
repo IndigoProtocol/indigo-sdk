@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { InterestOracleContract } from '../src/contracts/interest-oracle';
 import { StakingContract } from '../src/contracts/staking';
 import {
   CDPContent,
-  CDPContract,
-  CDPDatum,
   IAssetContent,
   parseCDPDatum,
   parseIAssetDatum,
@@ -15,7 +12,14 @@ import {
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
 } from '../src/index';
-import { StakingDatum } from '../src/types/indigo/staking';
+import {
+  parseStakingManagerDatum,
+  parseStakingPositionDatum,
+  serialiseStakingDatum,
+  StakingDatum,
+  StakingManagerContent,
+  StakingPositionContent,
+} from '../src/types/indigo/staking';
 import { fromText } from '@lucid-evolution/lucid';
 
 describe('Datum checks', () => {
@@ -139,39 +143,41 @@ describe('Datum checks', () => {
   it('Staking Manager', () => {
     const stakingManagerDatum =
       'd8799fd8799f1b000009c04704429ed8799f1b000001402802fec1ffffff';
-    const stakingManagerObject: StakingDatum = {
-      type: 'StakingManager',
-      totalStaked: 10721429832350n,
-      snapshot: {
+    const stakingManagerObject: StakingManagerContent = {
+      totalStake: 10721429832350n,
+      managerSnapshot: {
         snapshotAda: 1375060819649n,
       },
     };
 
-    expect(StakingContract.decodeDatum(stakingManagerDatum)).toEqual(
+    expect(parseStakingManagerDatum(stakingManagerDatum)).toEqual(
       stakingManagerObject,
     );
-    expect(StakingContract.encodeDatum(stakingManagerObject)).toEqual(
-      stakingManagerDatum,
-    );
+    expect(
+      serialiseStakingDatum({
+        StakingManager: { content: stakingManagerObject },
+      }),
+    ).toEqual(stakingManagerDatum);
   });
 
   it('Staking Position', () => {
     const stakingPositionDatum =
       'd87a9fd8799f581cd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43bf1853d8799f1a5c8c1cfb1b0000019616971410ffffd8799f1b0000013a7ed5b0fdffffff';
-    const stakingPositionObject: StakingDatum = {
-      type: 'StakingPosition',
+    const stakingPositionObject: StakingPositionContent = {
       owner: 'd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43',
       lockedAmount: new Map([[83n, [1552686331n, 1744135722000n]]]),
-      snapshot: {
+      positionSnapshot: {
         snapshotAda: 1350747664637n,
       },
     };
 
-    expect(StakingContract.decodeDatum(stakingPositionDatum)).toEqual(
+    expect(parseStakingPositionDatum(stakingPositionDatum)).toEqual(
       stakingPositionObject,
     );
-    expect(StakingContract.encodeDatum(stakingPositionObject)).toEqual(
-      stakingPositionDatum,
-    );
+    expect(
+      serialiseStakingDatum({
+        StakingPosition: { content: stakingPositionObject },
+      }),
+    ).toEqual(stakingPositionDatum);
   });
 });
