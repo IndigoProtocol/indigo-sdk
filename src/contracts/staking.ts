@@ -19,7 +19,11 @@ import {
 } from '../types/system-params';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import { _stakingValidator } from '../scripts/staking-validator';
-import { StakingDatum, StakingManagerContent } from '../types/indigo/staking';
+import {
+  serialiseStakingDatum,
+  StakingManagerContent,
+  StakingPositionContent,
+} from '../types/indigo/staking';
 import { StakingHelpers } from '../helpers/staking-helpers';
 
 export class StakingContract {
@@ -50,16 +54,15 @@ export class StakingContract {
     const newStakingManagerDatum: StakingManagerContent = {
       totalStake: stakingManagerOut.datum.totalStake + amount,
       managerSnapshot: {
-        snapshotAda: stakingManagerOut.datum.snapshot.snapshotAda,
+        snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,
       },
     };
 
-    const stakingPositionDatum: StakingDatum = {
-      type: 'StakingPosition',
+    const stakingPositionDatum: StakingPositionContent = {
       owner: pkh.hash,
       lockedAmount: new Map([]),
-      snapshot: {
-        snapshotAda: stakingManagerOut.datum.snapshot.snapshotAda,
+      positionSnapshot: {
+        snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,
       },
     };
 
@@ -78,7 +81,9 @@ export class StakingContract {
         stakingManagerOut.utxo.address,
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum(newStakingManagerDatum),
+          value: serialiseStakingDatum({
+            StakingManager: { content: newStakingManagerDatum },
+          }),
         },
         stakingManagerOut.utxo.assets,
       )
@@ -93,7 +98,9 @@ export class StakingContract {
         StakingContract.address(params.stakingParams, lucid),
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum(stakingPositionDatum),
+          value: serialiseStakingDatum({
+            StakingPosition: { content: stakingPositionDatum },
+          }),
         },
         {
           [stakingToken]: 1n,
@@ -137,8 +144,10 @@ export class StakingContract {
       fromText(params.stakingParams.indyToken[1].unTokenName);
 
     const existingIndyAmount = stakingPositionOut.utxo.assets[indyToken] ?? 0n;
-    const currentSnapshotAda = stakingManagerOut.datum.snapshot.snapshotAda;
-    const oldSnapshotAda = stakingPositionOut.datum.snapshot.snapshotAda;
+    const currentSnapshotAda =
+      stakingManagerOut.datum.managerSnapshot.snapshotAda;
+    const oldSnapshotAda =
+      stakingPositionOut.datum.positionSnapshot.snapshotAda;
     const adaReward =
       ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
       (1000000n * 1000000n);
@@ -160,9 +169,13 @@ export class StakingContract {
         stakingManagerOut.utxo.address,
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum({
-            ...stakingManagerOut.datum,
-            totalStaked: stakingManagerOut.datum.totalStaked + amount,
+          value: serialiseStakingDatum({
+            StakingManager: {
+              content: {
+                ...stakingManagerOut.datum,
+                totalStake: stakingManagerOut.datum.totalStake + amount,
+              },
+            },
           }),
         },
         {
@@ -173,9 +186,13 @@ export class StakingContract {
         stakingPositionOut.utxo.address,
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum({
-            ...stakingPositionOut.datum,
-            lockedAmount: newLockedAmount,
+          value: serialiseStakingDatum({
+            StakingPosition: {
+              content: {
+                ...stakingPositionOut.datum,
+                lockedAmount: newLockedAmount,
+              },
+            },
           }),
         },
         {
@@ -223,8 +240,10 @@ export class StakingContract {
       fromText(params.stakingParams.indyToken[1].unTokenName);
 
     const existingIndyAmount = stakingPositionOut.utxo.assets[indyToken] ?? 0n;
-    const currentSnapshotAda = stakingManagerOut.datum.snapshot.snapshotAda;
-    const oldSnapshotAda = stakingPositionOut.datum.snapshot.snapshotAda;
+    const currentSnapshotAda =
+      stakingManagerOut.datum.managerSnapshot.snapshotAda;
+    const oldSnapshotAda =
+      stakingPositionOut.datum.positionSnapshot.snapshotAda;
     const adaReward =
       ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
       (1000000n * 1000000n);
@@ -240,10 +259,14 @@ export class StakingContract {
         stakingManagerOut.utxo.address,
         {
           kind: 'inline',
-          value: StakingContract.encodeDatum({
-            ...stakingManagerOut.datum,
-            totalStaked:
-              stakingManagerOut.datum.totalStaked - existingIndyAmount,
+          value: serialiseStakingDatum({
+            StakingManager: {
+              content: {
+                ...stakingManagerOut.datum,
+                totalStake:
+                  stakingManagerOut.datum.totalStake - existingIndyAmount,
+              },
+            },
           }),
         },
         {
@@ -259,7 +282,6 @@ export class StakingContract {
       .addSignerKey(pkh.hash);
   }
 
- 
   // Staking Validator
   static validator(params: StakingParams): SpendingValidator {
     return {

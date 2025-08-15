@@ -1,21 +1,24 @@
-import { fromText, OutRef } from '@lucid-evolution/lucid';
+import { fromText, OutRef, UTxO } from '@lucid-evolution/lucid';
 import { LucidEvolution } from '@lucid-evolution/lucid';
 import { StakingContract } from '../contracts/staking';
 import { SystemParams } from '../types/system-params';
+import { parseStakingManagerDatum, parseStakingPositionDatum, StakingManagerContent, StakingPositionContent } from '../types/indigo/staking';
+
+export type StakingPositionOutput = { utxo: UTxO; datum: StakingPositionContent };
+export type StakingManagerOutput = { utxo: UTxO; datum: StakingManagerContent };
 
 export class StakingHelpers {
   static async findStakingManagerByOutRef(
     stakingManagerRef: OutRef,
     lucid: LucidEvolution,
-  ) {
+  ) : Promise<StakingManagerOutput> {
     return lucid
       .utxosByOutRef([stakingManagerRef])
       .then((utxos) =>
         utxos
           .map((utxo) => {
             if (!utxo.datum) return undefined;
-            const datum = StakingContract.decodeDatum(utxo.datum);
-            if (datum.type !== 'StakingManager') return undefined;
+            const datum = parseStakingPositionDatum(utxo.datum);
             return { utxo, datum };
           })
           .find((utxo) => utxo !== undefined),
@@ -27,7 +30,7 @@ export class StakingHelpers {
       });
   }
 
-  static async findStakingManager(params: SystemParams, lucid: LucidEvolution) {
+  static async findStakingManager(params: SystemParams, lucid: LucidEvolution): Promise<StakingManagerOutput> {
     return lucid
       .utxosAtWithUnit(
         StakingContract.address(params.stakingParams, lucid),
@@ -38,8 +41,7 @@ export class StakingHelpers {
         utxos
           .map((utxo) => {
             if (!utxo.datum) return undefined;
-            const datum = StakingContract.decodeDatum(utxo.datum);
-            if (datum.type !== 'StakingManager') return undefined;
+            const datum = parseStakingManagerDatum(utxo.datum);
             return { utxo, datum };
           })
           .find((utxo) => utxo !== undefined),
@@ -54,15 +56,14 @@ export class StakingHelpers {
   static async findStakingPositionByOutRef(
     stakingPositionRef: OutRef,
     lucid: LucidEvolution,
-  ) {
+  ): Promise<StakingPositionOutput> {
     return lucid
       .utxosByOutRef([stakingPositionRef])
       .then((utxos) =>
         utxos
           .map((utxo) => {
             if (!utxo.datum) return undefined;
-            const datum = StakingContract.decodeDatum(utxo.datum);
-            if (datum.type !== 'StakingPosition') return undefined;
+            const datum = parseStakingPositionDatum(utxo.datum);
             return { utxo, datum };
           })
           .find((utxo) => utxo !== undefined),
