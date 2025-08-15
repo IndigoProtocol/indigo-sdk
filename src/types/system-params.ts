@@ -1,4 +1,9 @@
-import { AssetClass, CurrencySymbol } from './generic';
+import { CurrencySymbol, TokenName } from './generic';
+
+/**
+ * AssetClassSP used in System Params
+ */
+export type AssetClassSP = [CurrencySymbol, TokenName];
 
 export interface SystemParams {
   versionRecordParams: VersionRecordParams;
@@ -10,7 +15,7 @@ export interface SystemParams {
   scriptReferences: ScriptReferences;
   pollShardParams: PollShardParams;
   pollManagerParams: PollManagerParams;
-  indyToken: AssetClass;
+  indyToken: AssetClassSP;
   govParams: GovParams;
   executeParams: ExecuteParams;
   distributionParams: DistributionParams;
@@ -47,11 +52,11 @@ export interface PubKeyHash {
   getPubKeyHash: string;
 }
 export interface VersionRecordParams {
-  upgradeToken: AssetClass;
+  upgradeToken: AssetClassSP;
 }
 export interface TreasuryParams {
-  upgradeToken: AssetClass;
-  versionRecordToken: AssetClass;
+  upgradeToken: AssetClassSP;
+  versionRecordToken: AssetClassSP;
   treasuryUtxosStakeCredential?: ScriptCredential;
 }
 export interface StartTime {
@@ -59,24 +64,24 @@ export interface StartTime {
   blockHeader: string;
 }
 export interface StakingParams {
-  versionRecordToken: AssetClass;
-  stakingToken: AssetClass;
-  stakingManagerNFT: AssetClass;
-  pollToken: AssetClass;
-  indyToken: AssetClass;
+  versionRecordToken: AssetClassSP;
+  stakingToken: AssetClassSP;
+  stakingManagerNFT: AssetClassSP;
+  pollToken: AssetClassSP;
+  indyToken: AssetClassSP;
   collectorValHash: string;
 }
 export interface StabilityPoolParams {
-  versionRecordToken: AssetClass;
-  stabilityPoolToken: AssetClass;
-  snapshotEpochToScaleToSumToken: AssetClass;
+  versionRecordToken: AssetClassSP;
+  stabilityPoolToken: AssetClassSP;
+  snapshotEpochToScaleToSumToken: AssetClassSP;
   requestCollateralLovelaces: number;
-  iAssetAuthToken: AssetClass;
-  govNFT: AssetClass;
+  iAssetAuthToken: AssetClassSP;
+  govNFT: AssetClassSP;
   collectorValHash: string;
-  cdpToken: AssetClass;
+  cdpToken: AssetClassSP;
   assetSymbol: CurrencySymbol;
-  accountToken: AssetClass;
+  accountToken: AssetClassSP;
   accountCreateFeeLovelaces: number;
   accountAdjustmentFeeLovelaces: number;
 }
@@ -147,44 +152,44 @@ export interface AuthTokenPolicies {
 
 export interface PollShardParams {
   stakingValHash: string;
-  stakingToken: AssetClass;
-  pollToken: AssetClass;
-  indyAsset: AssetClass;
+  stakingToken: AssetClassSP;
+  pollToken: AssetClassSP;
+  indyAsset: AssetClassSP;
 }
 
 export interface PollManagerParams {
-  upgradeToken: AssetClass;
+  upgradeToken: AssetClassSP;
   treasuryValHash: string;
   shardsValHash: string;
-  pollToken: AssetClass;
+  pollToken: AssetClassSP;
   pBiasTime: number;
   initialIndyDistribution: number;
-  indyAsset: AssetClass;
-  govNFT: AssetClass;
+  indyAsset: AssetClassSP;
+  govNFT: AssetClassSP;
   govExecuteValHash: string;
 }
 
 export interface GovParams {
-  versionRecordToken: AssetClass;
-  upgradeToken: AssetClass;
-  pollToken: AssetClass;
+  versionRecordToken: AssetClassSP;
+  upgradeToken: AssetClassSP;
+  pollToken: AssetClassSP;
   pollManagerValHash: string;
-  indyAsset: AssetClass;
-  iAssetAuthToken: AssetClass;
-  govNFT: AssetClass;
+  indyAsset: AssetClassSP;
+  iAssetAuthToken: AssetClassSP;
+  govNFT: AssetClassSP;
   gBiasTime: number;
-  daoIdentityToken: AssetClass;
+  daoIdentityToken: AssetClassSP;
 }
 export interface ExecuteParams {
   versionRegistryValHash: string;
-  versionRecordToken: AssetClass;
-  upgradeToken: AssetClass;
+  versionRecordToken: AssetClassSP;
+  upgradeToken: AssetClassSP;
   treasuryValHash: string;
-  stabilityPoolToken: AssetClass;
+  stabilityPoolToken: AssetClassSP;
   sPoolValHash: string;
   maxInterestPeriods: number;
-  iAssetToken: AssetClass;
-  govNFT: AssetClass;
+  iAssetToken: AssetClassSP;
+  govNFT: AssetClassSP;
   cdpValHash: string;
 }
 export interface DistributionParams {
@@ -193,34 +198,34 @@ export interface DistributionParams {
   initialIndyDistribution: number;
 }
 export interface CollectorParams {
-  versionRecordToken: AssetClass;
-  stakingToken: AssetClass;
-  stakingManagerNFT: AssetClass;
+  versionRecordToken: AssetClassSP;
+  stakingToken: AssetClassSP;
+  stakingManagerNFT: AssetClassSP;
 }
 export interface CdpParams {
-  versionRecordToken: AssetClass;
-  upgradeToken: AssetClass;
+  versionRecordToken: AssetClassSP;
+  upgradeToken: AssetClassSP;
   treasuryValHash: string;
-  stabilityPoolAuthToken: AssetClass;
+  stabilityPoolAuthToken: AssetClassSP;
   spValHash: string;
   partialRedemptionExtraFeeLovelace: number;
   minCollateralInLovelace: number;
-  iAssetAuthToken: AssetClass;
-  govNFT: AssetClass;
+  iAssetAuthToken: AssetClassSP;
+  govNFT: AssetClassSP;
   collectorValHash: string;
-  cdpAuthToken: AssetClass;
+  cdpAuthToken: AssetClassSP;
   cdpAssetSymbol: CurrencySymbol;
   biasTime: number;
 }
 
 export interface CdpCreatorParams {
-  versionRecordToken: AssetClass;
+  versionRecordToken: AssetClassSP;
   minCollateralInLovelace: number;
-  iAssetAuthTk: AssetClass;
+  iAssetAuthTk: AssetClassSP;
   collectorValHash: string;
   cdpScriptHash: string;
-  cdpCreatorNft: AssetClass;
-  cdpAuthTk: AssetClass;
+  cdpCreatorNft: AssetClassSP;
+  cdpAuthTk: AssetClassSP;
   cdpAssetCs: CurrencySymbol;
   biasTime: number;
 }
