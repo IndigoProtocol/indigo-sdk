@@ -1,8 +1,10 @@
 import {
+    credentialToAddress,
   fromText,
   LucidEvolution,
   mintingPolicyToId,
   PolicyId,
+  SpendingValidator,
   toText,
   validatorToAddress,
 } from '@lucid-evolution/lucid';
@@ -12,6 +14,7 @@ import {
   AssetClassSP,
   CollectorContract,
   CollectorParams,
+  Input,
   runOneShotMintTx,
   StabilityPoolContract,
   StabilityPoolParams,
@@ -76,6 +79,8 @@ type InitialAsset = {
 };
 
 const initialAssets: InitialAsset[] = [];
+
+const alwaysFailValidatorHash = 'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
 
 export async function init(lucid: LucidEvolution): Promise<SystemParams> {
   const [pkh, skh] = await addrDetails(lucid);
@@ -253,6 +258,19 @@ export async function init(lucid: LucidEvolution): Promise<SystemParams> {
     stakingParams: stakingParams,
     stabilityPoolParams: stabilityPoolParams,
     treasuryParams: treasuryParams,
+    scriptReferences: {
+        stakingValidatorRef: {
+            input: await initScriptRef(lucid, StakingContract.validator(stakingParams))
+        },
+        authTokenPolicies: {
+            stakingTokenRef: {
+                input: await initScriptRef(lucid, stakingTokenPolicy)
+            }
+        }
+    },
+    validatorHashes: {
+        stakingHash: StakingContract.validatorHash(stakingParams)
+    }
   } as SystemParams;
 }
 
@@ -269,6 +287,26 @@ async function mintOneTimeToken(
     },
     mintAmounts: [{ tokenName: tokenName, amount: amount }],
   });
+}
+
+async function initScriptRef(lucid: LucidEvolution, validator: SpendingValidator): Promise<Input> {
+    const tx = await lucid.newTx().pay.ToContract(
+        credentialToAddress(lucid.config().network, {hash: alwaysFailValidatorHash, type: 'Script'}),
+        null,
+        undefined,
+        validator
+    );
+
+    const txHash = await tx.complete()
+        .then((tx) => tx.sign.withWallet().complete())
+        .then((tx) => tx.submit());
+
+    await lucid.awaitTx(txHash);
+
+    return {
+        transactionId: txHash,
+        index: 0
+    };
 }
 
 async function initTreasury(lucid: LucidEvolution, treasuryParams: TreasuryParams, daoAsset: AssetClass, indyAsset: AssetClass, treasuryIndyAmount: bigint): Promise<void> {
@@ -292,6 +330,7 @@ async function initStakingManager(
         }),
       },
       {
+        lovelace: 5_000_000n,
         [stakingParams.stakingManagerNFT[0].unCurrencySymbol +
         fromText(stakingParams.stakingManagerNFT[1].unTokenName)]: 1n,
       },

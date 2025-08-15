@@ -72,11 +72,10 @@ export class StakingContract {
     const indyToken =
       params.stakingParams.indyToken[0].unCurrencySymbol +
       fromText(params.stakingParams.indyToken[1].unTokenName);
-
     return lucid
       .newTx()
       .collectFrom([stakingManagerOut.utxo], Data.to(new Constr(0, [pkh.hash])))
-      .collectFrom([stakingScriptRef])
+      .readFrom([stakingScriptRef])
       .pay.ToContract(
         stakingManagerOut.utxo.address,
         {
@@ -87,7 +86,7 @@ export class StakingContract {
         },
         stakingManagerOut.utxo.assets,
       )
-      .collectFrom([stakingTokenScriptRefUtxo])
+      .readFrom([stakingTokenScriptRefUtxo])
       .mintAssets(
         {
           [stakingToken]: 1n,
@@ -139,6 +138,9 @@ export class StakingContract {
     const stakingToken =
       params.stakingParams.stakingToken[0].unCurrencySymbol +
       fromText(params.stakingParams.stakingToken[1].unTokenName);
+    const stakingManagerToken =
+      params.stakingParams.stakingManagerNFT[0].unCurrencySymbol +
+      fromText(params.stakingParams.stakingManagerNFT[1].unTokenName);
     const indyToken =
       params.stakingParams.indyToken[0].unCurrencySymbol +
       fromText(params.stakingParams.indyToken[1].unTokenName);
@@ -158,11 +160,10 @@ export class StakingContract {
         newLockedAmount.set(key, [value[0], value[1]]);
       }
     }
-
     return lucid
       .newTx()
       .validFrom(Date.now())
-      .collectFrom([stakingScriptRef])
+      .readFrom([stakingScriptRef])
       .collectFrom([stakingPositionOut.utxo], Data.to(new Constr(3, [amount])))
       .collectFrom([stakingManagerOut.utxo], Data.to(new Constr(1, [])))
       .pay.ToContract(
@@ -180,6 +181,7 @@ export class StakingContract {
         },
         {
           lovelace: stakingManagerOut.utxo.assets.lovelace - adaReward,
+          [stakingManagerToken]: 1n,
         },
       )
       .pay.ToContract(
@@ -235,6 +237,9 @@ export class StakingContract {
     const stakingToken =
       params.stakingParams.stakingToken[0].unCurrencySymbol +
       fromText(params.stakingParams.stakingToken[1].unTokenName);
+    const stakingManagerToken =
+      params.stakingParams.stakingManagerNFT[0].unCurrencySymbol +
+      fromText(params.stakingParams.stakingManagerNFT[1].unTokenName);
     const indyToken =
       params.stakingParams.indyToken[0].unCurrencySymbol +
       fromText(params.stakingParams.indyToken[1].unTokenName);
@@ -251,8 +256,8 @@ export class StakingContract {
     return lucid
       .newTx()
       .validFrom(Date.now())
-      .collectFrom([stakingScriptRef])
-      .collectFrom([stakingTokenScriptRefUtxo])
+      .readFrom([stakingScriptRef])
+      .readFrom([stakingTokenScriptRefUtxo])
       .collectFrom([stakingPositionOut.utxo], Data.to(new Constr(4, [])))
       .collectFrom([stakingManagerOut.utxo], Data.to(new Constr(1, [])))
       .pay.ToContract(
@@ -271,6 +276,7 @@ export class StakingContract {
         },
         {
           lovelace: stakingManagerOut.utxo.assets.lovelace - adaReward,
+          [stakingManagerToken]: 1n,
         },
       )
       .mintAssets(
