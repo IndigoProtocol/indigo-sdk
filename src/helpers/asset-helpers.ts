@@ -1,7 +1,7 @@
 import { fromText, LucidEvolution, OutRef, UTxO } from '@lucid-evolution/lucid';
 import { CDPContract } from '../contracts/cdp';
 import { SystemParams } from '../types/system-params';
-import { IAssetContent } from '../types/indigo/cdp';
+import { IAssetContent, parseIAssetDatum } from '../types/indigo/cdp';
 
 export type IAssetOutput = { utxo: UTxO; datum: IAssetContent };
 
@@ -16,8 +16,7 @@ export class IAssetHelpers {
         utxos
           .map((utxo) => {
             if (!utxo.datum) return undefined;
-            const datum = CDPContract.decodeCdpDatum(utxo.datum);
-            if (datum.type !== 'IAsset') return undefined;
+            const datum = parseIAssetDatum(utxo.datum);
             return { utxo, datum };
           })
           .find((utxo) => utxo !== undefined),
@@ -43,9 +42,8 @@ export class IAssetHelpers {
         utxos
           .map((utxo) => {
             if (!utxo.datum) return undefined;
-            const datum = CDPContract.decodeCdpDatum(utxo.datum);
-            if (datum.type !== 'IAsset') return undefined;
-            if (datum.name !== assetName) return undefined;
+            const datum = parseIAssetDatum(utxo.datum);
+            if (datum.content.assetName !== fromText(assetName)) return undefined;
             return { utxo, datum };
           })
           .find((utxo) => utxo !== undefined),

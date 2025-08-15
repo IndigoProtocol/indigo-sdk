@@ -150,7 +150,7 @@ export async function redeemLrp(
         priceOracleDatum.price,
       ).getOnChainInt;
       const reimburstmentLovelaces = calculateFeeFromPercentage(
-        iassetDatum.redemptionReimbursementPercentage,
+        iassetDatum.content.redemptionReimbursementPercentage,
         lovelacesForRedemption,
       );
 
@@ -172,7 +172,7 @@ export async function redeemLrp(
                     asset: mainLrpDatum.iasset,
                     assetPrice: priceOracleDatum.price,
                     redemptionReimbursementPercentage:
-                      iassetDatum.redemptionReimbursementPercentage,
+                      iassetDatum.content.redemptionReimbursementPercentage,
                   },
                 },
           ),

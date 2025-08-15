@@ -66,6 +66,7 @@ describe('LRP', () => {
     const iassetValHash = validatorToScriptHash(alwaysFailValidator);
     const dummyAc: AssetClass = { currencySymbol: '', tokenName: '' };
     const iassetNft = await runCreateIAsset(lucid, network, iassetValHash, {
+      content: {
       assetName: iassetTokenName,
       price: { Oracle: oracleNft },
       interestOracleNft: dummyAc,
@@ -80,6 +81,7 @@ describe('LRP', () => {
       interestCollectorPortionPercentage: OCD_ZERO,
       firstIAsset: true,
       nextIAsset: 'Nothing',
+      }
     });
 
     const lrpParams: LRPParams = {
