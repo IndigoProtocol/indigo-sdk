@@ -45,13 +45,11 @@ export type StakingManagerContent = Data.Static<
 
 const StakingPositionContentSchema = Data.Object({
   owner: Data.Bytes(),
-  lockedAmount: Data.Array(
-    Data.Tuple([
-      Data.Integer(),
-      Data.Tuple([Data.Integer(), Data.Integer()], {
-        hasConstr: true,
-      }),
-    ]),
+  lockedAmount: Data.Map(
+    Data.Integer(),
+    Data.Tuple([Data.Integer(), Data.Integer()], {
+      hasConstr: true,
+    }),
   ),
   positionSnapshot: RewardSnapshotSchema,
 });
