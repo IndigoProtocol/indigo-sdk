@@ -61,7 +61,7 @@ export class StabilityPoolContract {
     if (currentAccountDatum.Account.content.owner !== myAddress) throw 'Account UTXO datum is not owned by the current address';
     if (currentAccountDatum.Account.content.asset !== fromText(asset)) throw 'Account UTXO datum is not for the specified asset';
 
-    
+
 
     const datum: StabilityPoolDatum = {
       Account: {
@@ -87,7 +87,7 @@ export class StabilityPoolContract {
         StabilityPoolContract.address(params.stabilityPoolParams, lucid),
         { kind: 'inline', value: StabilityPoolContract.encodeDatum(datum) },
         { 
-          lovelace: minLovelaces,
+          lovelace: accountUtxo.assets.lovelace,
           [params.stabilityPoolParams.assetSymbol.unCurrencySymbol + fromText(asset)]: amount,
         }
       )

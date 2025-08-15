@@ -1,41 +1,73 @@
-import { AssetClass, OnChainDecimal } from '../generic';
+import { Data, Datum } from '@lucid-evolution/lucid';
+import { AssetClassSchema, mkMaybeSchema } from '../generic';
+import { OnChainDecimalSchema } from '../on-chain-decimal';
+import { OracleAssetNftSchema } from './price-oracle';
+import { match, P } from 'ts-pattern';
 
-export type ActiveCDPInterestTracking = {
-  type: 'ActiveCDPInterestTracking';
-  last_settled: bigint;
-  unitary_interest_snapshot: bigint;
-};
-export type FrozenCDPAccumulatedFees = {
-  type: 'FrozenCDPAccumulatedFees';
-  lovelaces_treasury: bigint;
-  lovelaces_indy_stakers: bigint;
-};
-export type CDPFees = ActiveCDPInterestTracking | FrozenCDPAccumulatedFees;
+export const CDPFeesSchema = Data.Enum([
+  Data.Object({
+    ActiveCDPInterestTracking: Data.Object({
+      lastSettled: Data.Integer(),
+      unitaryInterestSnapshot: Data.Integer(),
+    }),
+  }),
+  Data.Object({
+    FrozenCDPAccumulatedFees: Data.Object({
+      lovelacesTreasury: Data.Integer(),
+      lovelacesIndyStakers: Data.Integer(),
+    }),
+  }),
+]);
 
-export type CDP = {
-  type: 'CDP';
-  owner: string | undefined;
-  asset: string;
-  mintedAmount: bigint;
-  fees: CDPFees;
-};
+export const CDPContentSchema = Data.Object({
+  cdpOwner: mkMaybeSchema(Data.Bytes()),
+  iasset: Data.Bytes(),
+  mintedAmt: Data.Integer(),
+  cdpFees: CDPFeesSchema,
+});
 
-export type IAsset = {
-  type: 'IAsset';
-  name: string;
-  price: OnChainDecimal | AssetClass;
-  interestOracle: AssetClass;
-  redemptionRatioPercentage: OnChainDecimal;
-  maintenanceRatioPercentage: OnChainDecimal;
-  liquidationRatioPercentage: OnChainDecimal;
-  debtMintingFeePercentage: OnChainDecimal;
-  liquidationProcessingFeePercentage: OnChainDecimal;
-  stabilityPoolWithdrawalFeePercentage: OnChainDecimal;
-  redemptionReimbursementPercentage: OnChainDecimal;
-  redemptionProcessingFeePercentage: OnChainDecimal;
-  interestCollectorPortionPercentage: OnChainDecimal;
-  firstAsset: boolean;
-  nextAsset?: string;
-};
+export const IAssetContentSchema = Data.Object({
+  /** Use the HEX encoding */
+  assetName: Data.Bytes(),
+  price: Data.Enum([
+    Data.Object({ Delisted: OnChainDecimalSchema }),
+    Data.Object({
+      Oracle: OracleAssetNftSchema,
+    }),
+  ]),
+  interestOracleNft: AssetClassSchema,
+  redemptionRatio: OnChainDecimalSchema,
+  maintenanceRatio: OnChainDecimalSchema,
+  liquidationRatio: OnChainDecimalSchema,
+  debtMintingFeePercentage: OnChainDecimalSchema,
+  liquidationProcessingFeePercentage: OnChainDecimalSchema,
+  stabilityPoolWithdrawalFeePercentage: OnChainDecimalSchema,
+  redemptionReimbursementPercentage: OnChainDecimalSchema,
+  redemptionProcessingFeePercentage: OnChainDecimalSchema,
+  interestCollectorPortionPercentage: OnChainDecimalSchema,
+  firstIAsset: Data.Boolean(),
+  nextIAsset: mkMaybeSchema(Data.Bytes()),
+});
 
-export type CDPDatum = CDP | IAsset;
+export const CDPDatumSchema = Data.Enum([
+  Data.Object({ CDP: CDPContentSchema }),
+  Data.Object({ IAsset: IAssetContentSchema }),
+]);
+
+export type CDPFees = Data.Static<typeof CDPFeesSchema>;
+export type CDPDatum = Data.Static<typeof CDPDatumSchema>;
+const CDPDatum = CDPDatumSchema as unknown as CDPDatum;
+export type IAssetContent = Data.Static<typeof IAssetContentSchema>;
+const IAssetContent = IAssetContentSchema as unknown as IAssetContent;
+
+export function parseIAssetDatum(datum: Datum): IAssetContent {
+  return match(Data.from<CDPDatum>(datum, CDPDatum))
+    .with({ IAsset: P.select() }, (res) => res)
+    .otherwise(() => {
+      throw new Error('Expected an IAsset datum.');
+    });
+}
+
+export function serialiseIAssetDatum(iassetDatum: IAssetContent): Datum {
+  return Data.to<CDPDatum>({ IAsset: iassetDatum }, CDPDatum);
+}

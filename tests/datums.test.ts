@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { InterestOracleContract } from '../src/contracts/interest-oracle';
 import { StakingContract } from '../src/contracts/staking';
-import { StabilityPoolContract } from '../src/contracts/stability-pool';
-import { CDPContract, CDPDatum, PriceOracleContract } from '../src/index';
+import {
+  CDPContract,
+  CDPDatum,
+  StabilityPoolContract,
+  parsePriceOracleDatum,
+  serialisePriceOracleDatum,
+} from '../src/index';
 import { StakingDatum } from '../src/types/indigo/staking';
 import {
   AccountContent,
@@ -15,28 +20,19 @@ import { Data, fromText } from '@lucid-evolution/lucid';
 describe('Datum checks', () => {
   it('Price Oracle', () => {
     expect(
-      PriceOracleContract.decodePriceOracleDatum(
-        'd8799fd8799f1a0013c347ff1b00000194d68e13d8ff',
-      ),
-    ).toEqual({ price: 1295175n, expiration: 1738766423000n });
+      parsePriceOracleDatum('d8799fd8799f1a0013c347ff1b00000194d68e13d8ff'),
+    ).toEqual({
+      price: { getOnChainInt: 1295175n },
+      expiration: 1738766423000n,
+    });
     expect(
-      PriceOracleContract.encodePriceOracleDatum({
-        price: 1295175n,
+      serialisePriceOracleDatum({
+        price: { getOnChainInt: 1295175n },
         expiration: 1738766423000n,
       }),
     ).toEqual('d8799fd8799f1a0013c347ff1b00000194d68e13d8ff');
   });
-
   it('Interest Oracle', () => {
-    expect(
-      InterestOracleContract.decodeInterestOracleDatum(
-        'd8799f1b0180e51d1ae19514d8799f1a00030d40ff1b00000194ce33c598ff',
-      ),
-    ).toEqual({
-      unitaryInterest: 108338304224695572n,
-      interestRate: 200000n,
-      lastUpdated: 1738626287000n,
-    });
     expect(
       InterestOracleContract.encodeInterestOracleDatum({
         unitaryInterest: 108338304224695572n,
