@@ -45,6 +45,56 @@ export class StabilityPoolContract {
       .addSignerKey(pkh.hash);
   }
 
+  static async adjustAccount(
+    asset: string,
+    amount: bigint,
+    accountUtxo: UTxO,
+    params: SystemParams,
+    lucid: LucidEvolution,
+  ): Promise<TxBuilder> {
+    const [pkh, _skh] = await addrDetails(lucid);
+    const myAddress = await lucid.wallet().address();
+
+    if (!accountUtxo.datum) throw 'Account UTXO datum is invalid';
+    const currentAccountDatum = StabilityPoolContract.decodeDatum(accountUtxo.datum);
+    if (!('Account' in currentAccountDatum)) throw 'Account UTXO datum is not an account';
+    if (currentAccountDatum.Account.content.owner !== myAddress) throw 'Account UTXO datum is not owned by the current address';
+    if (currentAccountDatum.Account.content.asset !== fromText(asset)) throw 'Account UTXO datum is not for the specified asset';
+
+    
+
+    const datum: StabilityPoolDatum = {
+      Account: {
+        content: {
+          owner: pkh.hash,
+          asset: fromText(asset),
+          snapshot: {
+            productVal: { value: 0n },
+            depositVal: { value: 0n },
+            sumVal: { value: 0n },
+            epoch: 0n,
+            scale: 0n,
+          },
+          request: {
+            Create: {}
+          },
+        }
+      }
+    }
+
+    return lucid.newTx()
+      .pay.ToContract(
+        StabilityPoolContract.address(params.stabilityPoolParams, lucid),
+        { kind: 'inline', value: StabilityPoolContract.encodeDatum(datum) },
+        { 
+          lovelace: minLovelaces,
+          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol + fromText(asset)]: amount,
+        }
+      )
+      .addSignerKey(pkh.hash);
+  }
+
+
   static decodeDatum(datum: string): StabilityPoolDatum {
     return Data.from(datum, StabilityPoolDatum);
   }
