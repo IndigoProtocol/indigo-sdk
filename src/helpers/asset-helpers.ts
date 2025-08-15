@@ -35,8 +35,8 @@ export class IAssetHelpers {
     return lucid
       .utxosAtWithUnit(
         CDPContract.address(params.cdpParams, lucid),
-        params.cdpParams.iAssetAuthToken.currencySymbol +
-          fromText(params.cdpParams.iAssetAuthToken.tokenName),
+        params.cdpParams.iAssetAuthToken[0].unCurrencySymbol +
+          fromText(params.cdpParams.iAssetAuthToken[1].unTokenName),
       )
       .then((utxos) =>
         utxos
