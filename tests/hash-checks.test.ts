@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { loadSystemParamsFromFile, loadSystemParamsFromUrl } from '../src/helpers/helpers';
+import { loadSystemParamsFromFile } from '../src/helpers/helpers';
 import { CDPCreatorContract } from '../src/contracts/cdp-creator';
-import { CDPContract, SystemParams } from '../src';
+import { CDPContract } from '../src';
 import { CollectorContract } from '../src/contracts/collector';
-import { StakingContract } from '../src/contracts/staking';
+import { StakingContract } from "../src/contracts/staking";
 
 const systemParams = loadSystemParamsFromFile('./tests/data/system-params.json');
 

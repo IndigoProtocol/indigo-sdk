@@ -7,7 +7,6 @@ import {
   LucidEvolution,
   OutRef,
   SpendingValidator,
-  toText,
   TxBuilder,
   UTxO,
   validatorToAddress,
@@ -20,7 +19,7 @@ import {
 } from '../types/system-params';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import { _stakingValidator } from '../scripts/staking-validator';
-import { StakingDatum } from '../types/indigo/staking';
+import { StakingDatum, StakingManagerContent } from '../types/indigo/staking';
 import { StakingHelpers } from '../helpers/staking-helpers';
 
 export class StakingContract {
@@ -48,10 +47,9 @@ export class StakingContract {
         lucid,
       );
 
-    const newStakingManagerDatum: StakingDatum = {
-      type: 'StakingManager',
-      totalStaked: stakingManagerOut.datum.totalStaked + amount,
-      snapshot: {
+    const newStakingManagerDatum: StakingManagerContent = {
+      totalStake: stakingManagerOut.datum.totalStake + amount,
+      managerSnapshot: {
         snapshotAda: stakingManagerOut.datum.snapshot.snapshotAda,
       },
     };
@@ -262,7 +260,37 @@ export class StakingContract {
   }
 
  
-  
+  // Staking Validator
+  static validator(params: StakingParams): SpendingValidator {
+    return {
+      type: 'PlutusV2',
+      script: applyParamsToScript(_stakingValidator.cborHex, [
+        new Constr(0, [
+          new Constr(0, [
+            params.stakingManagerNFT[0].unCurrencySymbol,
+            fromText(params.stakingManagerNFT[1].unTokenName),
+          ]),
+          new Constr(0, [
+            params.stakingToken[0].unCurrencySymbol,
+            fromText(params.stakingToken[1].unTokenName),
+          ]),
+          new Constr(0, [
+            params.indyToken[0].unCurrencySymbol,
+            fromText(params.indyToken[1].unTokenName),
+          ]),
+          new Constr(0, [
+            params.pollToken[0].unCurrencySymbol,
+            fromText(params.pollToken[1].unTokenName),
+          ]),
+          new Constr(0, [
+            params.versionRecordToken[0].unCurrencySymbol,
+            fromText(params.versionRecordToken[1].unTokenName),
+          ]),
+          params.collectorValHash,
+        ]),
+      ]),
+    };
+  }
 
   static validatorHash(params: StakingParams): string {
     return validatorToScriptHash(StakingContract.validator(params));

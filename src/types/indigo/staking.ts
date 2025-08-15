@@ -10,7 +10,7 @@ const StakingParamsSchema = Data.Object({
   versionRecordToken: AssetClassSchema,
   collectorValHash: Data.Bytes(),
 });
-export type StakingParams = Data.Static<typeof StakingParamsSchema>;
+type StakingParams = Data.Static<typeof StakingParamsSchema>;
 const StakingParams = StakingParamsSchema as unknown as StakingParams;
 
 const StakingRedeemerSchema = Data.Enum([
