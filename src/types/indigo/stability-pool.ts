@@ -48,7 +48,7 @@ export const AccountContentSchema = Data.Object({
     owner: Data.Bytes(),
     asset: Data.Bytes(),
     snapshot: StabilityPoolSnapshotSchema,
-    request: Data.Nullable(Data.Any()),
+    request: Data.Nullable(AccountActionSchema),
   }),
 });
 

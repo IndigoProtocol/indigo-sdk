@@ -1,7 +1,7 @@
-import { applyParamsToScript, Constr, fromText, LucidEvolution, TxBuilder, validatorToScriptHash, SpendingValidator, Data } from '@lucid-evolution/lucid';
+import { applyParamsToScript, Constr, fromText, LucidEvolution, TxBuilder, validatorToScriptHash, SpendingValidator, Data, validatorToAddress, Address, UTxO } from '@lucid-evolution/lucid';
 import { StabilityPoolDatum } from '../types/indigo/stability-pool';
-import { StabilityPoolParams, SystemParams } from '../types/system-params';
-import { addrDetails } from '../helpers/lucid-utils';
+import { ScriptReferences, StabilityPoolParams, SystemParams } from '../types/system-params';
+import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import { _stabilityPoolValidator } from '../scripts/stability-pool-validator';
 
 export class StabilityPoolContract {
@@ -12,9 +12,37 @@ export class StabilityPoolContract {
     params: SystemParams,
     lucid: LucidEvolution,
   ): Promise<TxBuilder> {
-    const [pkh, skh] = await addrDetails(lucid);
+    const [pkh, _skh] = await addrDetails(lucid);
+    const minLovelaces = BigInt(params.stabilityPoolParams.accountCreateFeeLovelaces + params.stabilityPoolParams.requestCollateralLovelaces);
+    const datum: StabilityPoolDatum = {
+      Account: {
+        content: {
+          owner: pkh.hash,
+          asset: fromText(asset),
+          snapshot: {
+            productVal: { value: 0n },
+            depositVal: { value: 0n },
+            sumVal: { value: 0n },
+            epoch: 0n,
+            scale: 0n,
+          },
+          request: {
+            Create: {}
+          },
+        }
+      }
+    }
 
-    throw 'Not implemented';
+    return lucid.newTx()
+      .pay.ToContract(
+        StabilityPoolContract.address(params.stabilityPoolParams, lucid),
+        { kind: 'inline', value: StabilityPoolContract.encodeDatum(datum) },
+        { 
+          lovelace: minLovelaces,
+          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol + fromText(asset)]: amount,
+        }
+      )
+      .addSignerKey(pkh.hash);
   }
 
   static decodeDatum(datum: string): StabilityPoolDatum {
@@ -70,5 +98,27 @@ export class StabilityPoolContract {
 
   static validatorHash(params: StabilityPoolParams): string {
     return validatorToScriptHash(StabilityPoolContract.validator(params));
+  }
+
+  static address(params: StabilityPoolParams, lucid: LucidEvolution): Address {
+    const network = lucid.config().network;
+    if (!network) {
+      throw new Error('Network configuration is undefined');
+    }
+    return validatorToAddress(network, StabilityPoolContract.validator(params));
+  }
+
+  static async scriptRef(
+    params: ScriptReferences,
+    lucid: LucidEvolution,
+  ): Promise<UTxO> {
+    return scriptRef(params.stabilityPoolValidatorRef, lucid);
+  }
+
+  static async stabilityPoolTokenScriptRef(
+    params: ScriptReferences,
+    lucid: LucidEvolution,
+  ): Promise<UTxO> {
+    return scriptRef(params.authTokenPolicies.stabilityPoolTokenRef, lucid);
   }
 }
