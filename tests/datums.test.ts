@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { InterestOracleContract } from '../src/contracts/interest-oracle';
 import { StakingContract } from '../src/contracts/staking';
-import { CDPContract, CDPDatum, PriceOracleContract } from '../src/index';
+import { CDPContract, CDPDatum, parsePriceOracleDatum, serialisePriceOracleDatum, } from '../src/index';
 import { StakingDatum } from '../src/types/indigo/staking';
 
 
 describe('Datum checks', () => {
     it('Price Oracle', () => {
-        expect(PriceOracleContract.decodePriceOracleDatum('d8799fd8799f1a0013c347ff1b00000194d68e13d8ff')).toEqual({ price: 1295175n, expiration: 1738766423000n });
-        expect(PriceOracleContract.encodePriceOracleDatum({ price: 1295175n, expiration: 1738766423000n })).toEqual('d8799fd8799f1a0013c347ff1b00000194d68e13d8ff');
+        expect(parsePriceOracleDatum('d8799fd8799f1a0013c347ff1b00000194d68e13d8ff')).toEqual({ price: { getOnChainInt: 1295175n }, expiration: 1738766423000n });
+        expect(serialisePriceOracleDatum({ price: { getOnChainInt: 1295175n }, expiration: 1738766423000n })).toEqual('d8799fd8799f1a0013c347ff1b00000194d68e13d8ff');
     });
 
     it('Interest Oracle', () => {
