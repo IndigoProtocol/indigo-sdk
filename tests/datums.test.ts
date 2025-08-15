@@ -6,6 +6,7 @@ import { CDPContract, CDPDatum, PriceOracleContract } from '../src/index';
 import { StakingDatum } from '../src/types/indigo/staking';
 import {
   AccountContent,
+  SnapshotEpochToScaleToSumContent,
   StabilityPoolContent,
   StabilityPoolDatum,
 } from '../src/types/indigo/stability-pool';
@@ -175,12 +176,13 @@ describe('Datum checks', () => {
         ]),
       },
     };
-    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({ StabilityPool: stabilityPoolObject });
+    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
+      StabilityPool: stabilityPoolObject,
+    });
     expect(
       StabilityPoolContract.encodeDatum({ StabilityPool: stabilityPoolObject }),
     ).toEqual(stabilityPoolDatum);
   });
-
 
   it('Stability Pool Account', () => {
     const stabilityPoolDatum =
@@ -199,11 +201,35 @@ describe('Datum checks', () => {
         request: null,
       },
     };
-    
-    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({ Account: stabilityPoolObject });
+
+    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
+      Account: stabilityPoolObject,
+    });
     expect(
       StabilityPoolContract.encodeDatum({ Account: stabilityPoolObject }),
     ).toEqual(stabilityPoolDatum);
   });
 
+  it('Stability Pool SnapshotEpochToScaleToSum', () => {
+    const stabilityPoolDatum =
+      'd87b9fd8799f4469555344bfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
+    const stabilityPoolObject: SnapshotEpochToScaleToSumContent = {
+      content: {
+        asset: fromText('iUSD'),
+        snapshot: new Map([
+          [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
+          [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
+        ]),
+      },
+    };
+
+    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
+      SnapshotEpochToScaleToSum: stabilityPoolObject,
+    });
+    expect(
+      StabilityPoolContract.encodeDatum({
+        SnapshotEpochToScaleToSum: stabilityPoolObject,
+      }),
+    ).toEqual(stabilityPoolDatum);
+  });
 });

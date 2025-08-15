@@ -34,10 +34,14 @@ export const StabilityPoolContent =
 
 export const AccountActionSchema = Data.Enum([
   Data.Object({ Create: Data.Object({}) }),
-  Data.Object({ Adjust: Data.Object({ amount: Data.Integer(), outputAddress: Data.Bytes() }) }),
+  Data.Object({
+    Adjust: Data.Object({
+      amount: Data.Integer(),
+      outputAddress: Data.Bytes(),
+    }),
+  }),
   Data.Object({ Close: Data.Object({ outputAddress: Data.Bytes() }) }),
 ]);
-
 
 export const AccountContentSchema = Data.Object({
   content: Data.Object({
@@ -52,8 +56,10 @@ export type AccountContent = Data.Static<typeof AccountContentSchema>;
 export const AccountContent = AccountContentSchema as unknown as AccountContent;
 
 export const SnapshotEpochToScaleToSumContentSchema = Data.Object({
-  asset: Data.Bytes(),
-  snapshot: EpochToScaleToSumSchema,
+  content: Data.Object({
+    asset: Data.Bytes(),
+    snapshot: EpochToScaleToSumSchema,
+  }),
 });
 
 export type SnapshotEpochToScaleToSumContent = Data.Static<
