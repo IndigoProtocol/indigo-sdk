@@ -2,6 +2,7 @@ export * from './contracts/cdp-creator';
 export * from './contracts/cdp';
 export * from './contracts/collector';
 export * from './contracts/gov';
+export * from './contracts/stability-pool';
 export * from './contracts/interest-oracle';
 export * from './contracts/treasury';
 export * from './helpers/asset-helpers';

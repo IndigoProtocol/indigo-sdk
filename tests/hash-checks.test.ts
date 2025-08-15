@@ -4,6 +4,8 @@ import { CDPCreatorContract } from '../src/contracts/cdp-creator';
 import { CDPContract, SystemParams } from '../src';
 import { CollectorContract } from '../src/contracts/collector';
 import { StakingContract } from '../src/contracts/staking';
+import { StabilityPoolContent } from "../src/types/indigo/stability-pool";
+import { StabilityPoolContract } from "../src/contracts/stability-pool";
 
 const systemParams = loadSystemParamsFromFile('./tests/data/system-params.json');
 
@@ -19,5 +21,8 @@ describe('Validator Hash checks', () => {
     });
     it('Staking validator hash', () => {
         expect(StakingContract.validatorHash(systemParams.stakingParams)).toBe(systemParams.validatorHashes.stakingHash);
+    });
+    it('Stability Pool validator hash', () => {
+        expect(StabilityPoolContract.validatorHash(systemParams.stabilityPoolParams)).toBe(systemParams.validatorHashes.stabilityPoolHash);
     });
 })
