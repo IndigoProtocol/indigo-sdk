@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InterestOracleContract } from '../src/contracts/interest-oracle';
 import { StakingContract } from '../src/contracts/staking';
 import {
+  AccountContent,
   CDPContent,
   CDPContract,
   CDPDatum,
@@ -14,6 +15,9 @@ import {
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
+  SnapshotEpochToScaleToSumContent,
+  StabilityPoolContent,
+  StabilityPoolContract,
 } from '../src/index';
 import { StakingDatum } from '../src/types/indigo/staking';
 import { fromText } from '@lucid-evolution/lucid';
@@ -173,5 +177,81 @@ describe('Datum checks', () => {
     expect(StakingContract.encodeDatum(stakingPositionObject)).toEqual(
       stakingPositionDatum,
     );
+  });
+
+  it('Stability Pool', () => {
+    const stabilityPoolDatum =
+      'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffbfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
+    const stabilityPoolObject: StabilityPoolContent = {
+      content: {
+        asset: fromText('iUSD'),
+        snapshot: {
+          productVal: { value: 736247675907734314n },
+          depositVal: { value: 2502085246000826468068228145850n },
+          sumVal: { value: 1143417026613401054n },
+          epoch: 1n,
+          scale: 0n,
+        },
+        epochToScaleToSum: new Map([
+          [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
+          [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
+        ]),
+      },
+    };
+    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
+      StabilityPool: stabilityPoolObject,
+    });
+    expect(
+      StabilityPoolContract.encodeDatum({ StabilityPool: stabilityPoolObject }),
+    ).toEqual(stabilityPoolDatum);
+  });
+
+  it('Stability Pool Account', () => {
+    const stabilityPoolDatum =
+      'd87a9fd8799f581c12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f674469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24c39fa2838b1f7dd38267f0a6dffd8799f1b0fde3b75c28ab489ff0100ffd87a80ffff';
+    const stabilityPoolObject: AccountContent = {
+      content: {
+        owner: '12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f67',
+        asset: fromText('iUSD'),
+        snapshot: {
+          productVal: { value: 736247675907734314n },
+          depositVal: { value: 17943066955221270821727046253n },
+          sumVal: { value: 1143416732359767177n },
+          epoch: 1n,
+          scale: 0n,
+        },
+        request: null,
+      },
+    };
+
+    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
+      Account: stabilityPoolObject,
+    });
+    expect(
+      StabilityPoolContract.encodeDatum({ Account: stabilityPoolObject }),
+    ).toEqual(stabilityPoolDatum);
+  });
+
+  it('Stability Pool SnapshotEpochToScaleToSum', () => {
+    const stabilityPoolDatum =
+      'd87b9fd8799f4469555344bfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
+    const stabilityPoolObject: SnapshotEpochToScaleToSumContent = {
+      content: {
+        asset: fromText('iUSD'),
+        snapshot: new Map([
+          [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
+          [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
+        ]),
+      },
+    };
+
+    expect(StabilityPoolContract.decodeDatum(stabilityPoolDatum)).toEqual({
+      SnapshotEpochToScaleToSum: stabilityPoolObject,
+    });
+    expect(
+      StabilityPoolContract.encodeDatum({
+        SnapshotEpochToScaleToSum: stabilityPoolObject,
+      }),
+    ).toEqual(stabilityPoolDatum);
   });
 });

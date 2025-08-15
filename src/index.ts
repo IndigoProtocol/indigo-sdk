@@ -19,6 +19,7 @@ export * from './types/indigo/cdp';
 export * from './types/indigo/gov';
 export * from './types/indigo/interest-oracle';
 export * from './types/indigo/price-oracle';
+export * from './types/indigo/stability-pool';
 export * from './types/indigo/lrp';
 export * from './types/generic';
 export * from './types/system-params';
