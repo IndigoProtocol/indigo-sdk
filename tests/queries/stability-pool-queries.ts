@@ -1,8 +1,10 @@
 import {
+  fromText,
   LucidEvolution,
   Network,
   OutRef,
   ScriptHash,
+  UTxO,
 } from '@lucid-evolution/lucid';
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
@@ -15,7 +17,7 @@ export async function findStabilityPool(
   stabilityPoolHash: ScriptHash,
   stabilityPoolToken: AssetClass,
   asset: string,
-): Promise<OutRef> {
+): Promise<UTxO> {
   const stakingUtxos = await lucid.utxosAtWithUnit(
     createScriptAddress(network, stabilityPoolHash),
     assetClassToUnit(stabilityPoolToken),
@@ -27,7 +29,7 @@ export async function findStabilityPool(
         try {
           const stabilityPoolDatum = parseStabilityPoolDatum(utxo.datum);
 
-          return stabilityPoolDatum.asset == asset;
+          return stabilityPoolDatum.asset == fromText(asset);
         } catch (_) {
           // when incompatible datum
           return false;
@@ -46,12 +48,10 @@ export async function findStabilityPoolAccount(
   stabilityPoolHash: ScriptHash,
   owner: string,
   asset: string,
-): Promise<OutRef> {
+): Promise<UTxO> {
   const accountUtxos = await lucid.utxosAt(
     createScriptAddress(network, stabilityPoolHash),
   );
-
-  console.log(accountUtxos);
 
   return matchSingle(
     accountUtxos.filter((utxo) => {
@@ -59,7 +59,7 @@ export async function findStabilityPoolAccount(
         try {
           const accountDatum = parseAccountDatum(utxo.datum);
 
-          return accountDatum.asset == asset && accountDatum.owner == owner;
+          return accountDatum.asset == fromText(asset) && accountDatum.owner == owner;
         } catch (_) {
           // when incompatible datum
           return false;

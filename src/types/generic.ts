@@ -28,6 +28,45 @@ export const OutputReferenceSchema = Data.Object({
 });
 export type OutputReference = Data.Static<typeof OutputReferenceSchema>;
 
+
+export const VerificationKeyHashSchema = Data.Bytes({
+  minLength: 28,
+  maxLength: 28,
+});
+
+export const CredentialSchema = Data.Enum([
+  Data.Object({
+    PublicKeyCredential: Data.Tuple([VerificationKeyHashSchema]),
+  }),
+  Data.Object({
+    ScriptCredential: Data.Tuple([
+      Data.Bytes({ minLength: 28, maxLength: 28 }),
+    ]),
+  }),
+]);
+export type Credential = Data.Static<typeof CredentialSchema>;
+export const Credential = CredentialSchema as unknown as Credential;
+
+export const AddressSchema = Data.Object({
+  paymentCredential: CredentialSchema,
+  stakeCredential: Data.Nullable(
+    Data.Enum([
+      Data.Object({ Inline: Data.Tuple([CredentialSchema]) }),
+      Data.Object({
+        Pointer: Data.Tuple([
+          Data.Object({
+            slotNumber: Data.Integer(),
+            transactionIndex: Data.Integer(),
+            certificateIndex: Data.Integer(),
+          }),
+        ]),
+      }),
+    ])
+  ),
+});
+export type Address = Data.Static<typeof AddressSchema>;
+export const Address = AddressSchema as unknown as Address;
+
 export interface CurrencySymbol {
   unCurrencySymbol: string;
 }

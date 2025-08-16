@@ -31,6 +31,8 @@ import {
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
+  serialiseStabilityPoolDatum,
+  StabilityPoolContent,
   StabilityPoolContract,
   StabilityPoolParams,
   StakingParams,
@@ -365,12 +367,18 @@ export async function init(lucid: LucidEvolution, now: number = Date.now()): Pro
         stakingValidatorRef: {
             input: await initScriptRef(lucid, StakingContract.validator(stakingParams))
         },
+        stabilityPoolValidatorRef: {
+            input: await initScriptRef(lucid, StabilityPoolContract.validator(stabilityPoolParams))
+        },
         authTokenPolicies: {
             cdpAuthTokenRef: {
                 input: await initScriptRef(lucid, cdpTokenPolicy)
             },
             iAssetAuthTokenRef: {
                 input: await initScriptRef(lucid, iassetTokenPolicy)
+            },
+            stabilityPoolTokenRef: {
+                input: await initScriptRef(lucid, accountTokenPolicy)
             },
             stabilityPoolAuthTokenRef: {
                 input: await initScriptRef(lucid, stabilityPoolTokenPolicy)
@@ -538,7 +546,6 @@ async function startPriceOracleTx(lucid: LucidEvolution, assetName: string, star
     return oraclePolicyId;
 }
 
-
 async function startInterestOracleTx(lucid: LucidEvolution, assetName: string, initialInterestRate: bigint, oracleParams: InterestOracleParams): Promise<string> {
     const oraclePolicyId = await mintOneTimeToken(lucid, fromText(assetName), 1n);
     const oracleValidator = mkInterestOracleValidator(oracleParams);
@@ -617,18 +624,43 @@ async function initializeAsset(lucid: LucidEvolution, cdpParams: CdpParams, iass
         }
     };
 
-    const tx = lucid.newTx()
+    const assetTx = lucid.newTx()
         .pay.ToContract(
             CDPContract.address(cdpParams, lucid),
             { kind: 'inline', value: serialiseIAssetDatum(iassetDatum)},
             { [iassetToken.currencySymbol + iassetToken.tokenName]: 1n }
         );
 
-    const txHash = await tx.complete()
-        .then((tx) => tx.sign.withWallet().complete())
-        .then((tx) => tx.submit());
+    const assetTxHash = await assetTx.complete()
+        .then((assetTx) => assetTx.sign.withWallet().complete())
+        .then((assetTx) => assetTx.submit());
 
-    await lucid.awaitTx(txHash);
+    await lucid.awaitTx(assetTxHash);
+
+    const stabilityPoolDatum: StabilityPoolContent = {
+        asset: fromText(asset.name),
+        snapshot: {
+            productVal: { value: 1n },
+            depositVal: { value: 0n },
+            sumVal: { value: 0n },
+            epoch: 0n,
+            scale: 0n,
+        },
+        epochToScaleToSum: new Map(),
+    }
+
+    const spTx = lucid.newTx()
+        .pay.ToContract(
+            StabilityPoolContract.address(stabilityPoolParams, lucid),
+            { kind: 'inline', value: serialiseStabilityPoolDatum({ StabilityPool: { content: stabilityPoolDatum } })},
+            { [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n }
+        );
+
+    const spTxHash = await spTx.complete()
+        .then((spTx) => spTx.sign.withWallet().complete())
+        .then((spTx) => spTx.submit());
+
+    await lucid.awaitTx(spTxHash);
 }
 
 async function mintAuthTokenDirect(lucid: LucidEvolution, asset: AssetClass, tokenName: string, amount: bigint): Promise<void> {

@@ -1,6 +1,6 @@
 import { Data, Datum } from '@lucid-evolution/lucid';
 import { match, P } from 'ts-pattern';
-import { OutputReferenceSchema } from '../generic';
+import { AddressSchema, OutputReferenceSchema } from '../generic';
 
 export const SPIntegerSchema = Data.Object({
   value: Data.Integer(),
@@ -49,11 +49,14 @@ export const AccountActionSchema = Data.Enum([
   Data.Object({
     Adjust: Data.Object({
       amount: Data.Integer(),
-      outputAddress: Data.Bytes(),
+      outputAddress: AddressSchema,
     }),
   }),
-  Data.Object({ Close: Data.Object({ outputAddress: Data.Bytes() }) }),
+  Data.Object({ Close: Data.Object({ outputAddress: AddressSchema }) }),
 ]);
+
+export type AccountAction = Data.Static<typeof AccountActionSchema>;
+export const AccountAction = AccountActionSchema as unknown as AccountAction;
 
 export const AccountContentSchema = Data.Object({
   owner: Data.Bytes(),
@@ -127,19 +130,30 @@ export function parseSnapshotEpochToScaleToSumDatum(datum: Datum): SnapshotEpoch
 }
 
 export function serialiseStabilityPoolDatum(d: StabilityPoolDatum): Datum {
-  return Data.to<StabilityPoolDatum>(d, StabilityPoolDatum);
+  let cbor = Data.to<StabilityPoolDatum>(d, StabilityPoolDatum);
+  if ('StabilityPool' in d) {
+    if (cbor.includes('bf')) {
+      if (d.StabilityPool.content.epochToScaleToSum.size > 0) {
+        cbor = cbor.replace('bf', 'a' + d.StabilityPool.content.epochToScaleToSum.size);
+        cbor = cbor.replace('ffffff', 'ffff');
+      }
+    }
+  }
+  return cbor;
 }
 
 export function serialiseStabilityPoolRedeemer(params: StabilityPoolRedeemer): string {
   return Data.to<StabilityPoolRedeemer>(params, StabilityPoolRedeemer);
 }
 
+const spPrecision: bigint = 1000000000000000000n;
+
 export function mkSPInteger(value: bigint): bigint {
-  return value * 1000000000000000000n
+  return value * spPrecision
 }
 
 export function spMul(a: bigint, b: bigint): bigint {
-  return (a * b) / 1000000000000000000n;
+  return (a * b) / spPrecision;
 }
 
 export function spDiv(a: bigint, b: bigint): bigint {

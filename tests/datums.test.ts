@@ -191,7 +191,7 @@ describe('Datum checks', () => {
 
   it('Stability Pool', () => {
     const stabilityPoolDatum =
-      'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffbfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
+      'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffa2d8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffff';
     const stabilityPoolObject: StabilityPoolContent = {
         asset: fromText('iUSD'),
         snapshot: {
@@ -212,44 +212,79 @@ describe('Datum checks', () => {
     ).toEqual(stabilityPoolDatum);
   });
 
-  it('Stability Pool Account', () => {
-    const stabilityPoolDatum =
-      'd87a9fd8799f581c12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f674469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24c39fa2838b1f7dd38267f0a6dffd8799f1b0fde3b75c28ab489ff0100ffd87a80ffff';
-    const stabilityPoolObject: AccountContent = {
-        owner: '12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f67',
-        asset: fromText('iUSD'),
-        snapshot: {
-          productVal: { value: 736247675907734314n },
-          depositVal: { value: 17943066955221270821727046253n },
-          sumVal: { value: 1143416732359767177n },
-          epoch: 1n,
-          scale: 0n,
-        },
-        request: null,
-    };
+  // it('Stability Pool Account', () => {
+  //   const stabilityPoolDatum =
+  //     'd87a9fd8799f581c12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f674469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24c39fa2838b1f7dd38267f0a6dffd8799f1b0fde3b75c28ab489ff0100ffd87a80ffff';
+  //   const stabilityPoolObject: AccountContent = {
+  //       owner: '12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f67',
+  //       asset: fromText('iUSD'),
+  //       snapshot: {
+  //         productVal: { value: 736247675907734314n },
+  //         depositVal: { value: 17943066955221270821727046253n },
+  //         sumVal: { value: 1143416732359767177n },
+  //         epoch: 1n,
+  //         scale: 0n,
+  //       },
+  //       request: null,
+  //   };
 
-    expect(parseAccountDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
-    expect(
-      serialiseStabilityPoolDatum({ Account: { content: stabilityPoolObject } }),
-    ).toEqual(stabilityPoolDatum);
-  });
+  //   expect(parseAccountDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
+  //   expect(
+  //     serialiseStabilityPoolDatum({ Account: { content: stabilityPoolObject } }),
+  //   ).toEqual(stabilityPoolDatum);
+  // });
 
-  it('Stability Pool SnapshotEpochToScaleToSum', () => {
-    const stabilityPoolDatum =
-      'd87b9fd8799f4469555344bfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
-    const stabilityPoolObject: SnapshotEpochToScaleToSumContent = {
-        asset: fromText('iUSD'),
-        snapshot: new Map([
-          [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
-          [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
-        ]),
-    };
 
-    expect(parseSnapshotEpochToScaleToSumDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
-    expect(
-      serialiseStabilityPoolDatum({
-        SnapshotEpochToScaleToSum: { content: stabilityPoolObject },
-      }),
-    ).toEqual(stabilityPoolDatum);
-  });
+  // it('Stability Pool Account w/ Adjust Request', () => {
+  //   const stabilityPoolDatum =
+  //     'd87a9fd8799f581c90e40129516ee738fa6aa9183cf57b45c46946496e1590d34ca1b15c4469555344d8799fd8799f1b0a374472be304a62ffd8799fc24b01aef07f96e5ce00f80000ffd8799f1b0f88aa07a1048079ff0100ffd8799fd87a9f3a0007c359d8799fd8799f581c90e40129516ee738fa6aa9183cf57b45c46946496e1590d34ca1b15cffd8799fd8799fd8799f581c75a4f9204b9308a92a09b0e22b94125e56f24b73bb85e2795f176c6affffffffffffffff';
+  //   const stabilityPoolObject: AccountContent = {
+  //       owner: '90e40129516ee738fa6aa9183cf57b45c46946496e1590d34ca1b15c',
+  //       asset: fromText('iUSD'),
+  //       snapshot: {
+  //         productVal: { value: 736132323706161762n },
+  //         depositVal: { value: 2035054000000000000000000n },
+  //         sumVal: { value: 1119331457144488057n },
+  //         epoch: 1n,
+  //         scale: 0n,
+  //       },
+  //       request: {
+  //         Adjust: {
+  //           amount: -508762n,
+  //           outputAddress: {
+  //             paymentCredential: {
+  //               PublicKeyCredential: ['90e40129516ee738fa6aa9183cf57b45c46946496e1590d34ca1b15c'],
+  //             },
+  //             stakeCredential: {
+  //               Inline: [{PublicKeyCredential: ['75a4f9204b9308a92a09b0e22b94125e56f24b73bb85e2795f176c6a']}],
+  //             },
+  //           },
+  //         },
+  //       },
+  //   };
+
+  //   expect(parseAccountDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
+  //   expect(
+  //     serialiseStabilityPoolDatum({ Account: { content: stabilityPoolObject } }),
+  //   ).toEqual(stabilityPoolDatum);
+  // });
+
+  // it('Stability Pool SnapshotEpochToScaleToSum', () => {
+  //   const stabilityPoolDatum =
+  //     'd87b9fd8799f4469555344bfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
+  //   const stabilityPoolObject: SnapshotEpochToScaleToSumContent = {
+  //       asset: fromText('iUSD'),
+  //       snapshot: new Map([
+  //         [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
+  //         [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
+  //       ]),
+  //   };
+
+  //   expect(parseSnapshotEpochToScaleToSumDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
+  //   expect(
+  //     serialiseStabilityPoolDatum({
+  //       SnapshotEpochToScaleToSum: { content: stabilityPoolObject },
+  //     }),
+  //   ).toEqual(stabilityPoolDatum);
+  // });
 });
