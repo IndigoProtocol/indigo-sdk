@@ -1,16 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { StakingContract } from '../src/contracts/staking';
 import {
+  AccountContent,
   CDPContent,
   IAssetContent,
+  parseAccountDatum,
   parseCDPDatum,
   parseIAssetDatum,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
+  parseSnapshotEpochToScaleToSumDatum,
+  parseStabilityPoolDatum,
   serialiseCDPDatum,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
+  serialiseStabilityPoolDatum,
+  SnapshotEpochToScaleToSumContent,
+  StabilityPoolContent,
+  StabilityPoolContract,
 } from '../src/index';
 import {
   parseStakingManagerDatum,
@@ -62,12 +70,7 @@ describe('Datum checks', () => {
     const activeCDPDatum =
       'd8799fd8799fd8799f581c98e30e1c6dbb727dc98bdcb48b99b313c97fabfb537ff4b29a94ed1cff44695553441b00000004d9b0a47ed8799f1b00000194d5ebec201b03022de04fddf5f9ffffff';
     const activeCDPObject: CDPContent = {
-      content: {
-        cdpOwner: {
-          Some: {
-            value: '98e30e1c6dbb727dc98bdcb48b99b313c97fabfb537ff4b29a94ed1c',
-          },
-        },
+        cdpOwner: '98e30e1c6dbb727dc98bdcb48b99b313c97fabfb537ff4b29a94ed1c',
         iasset: fromText('iUSD'),
         mintedAmt: 20832101502n,
         cdpFees: {
@@ -76,7 +79,6 @@ describe('Datum checks', () => {
             unitaryInterestSnapshot: 216786173503075833n,
           },
         },
-      },
     };
     expect(serialiseCDPDatum(activeCDPObject)).toEqual(activeCDPDatum);
     expect(parseCDPDatum(activeCDPDatum)).toEqual(activeCDPObject);
@@ -85,8 +87,7 @@ describe('Datum checks', () => {
     const frozenCDPDatum =
       'd8799fd8799fd87a8044695553441a0050924ed87a9f1a0002765a1a0003ca56ffffff';
     const frozenCDPObject: CDPContent = {
-      content: {
-        cdpOwner: 'Nothing',
+        cdpOwner: null,
         iasset: fromText('iUSD'),
         mintedAmt: 5280334n,
         cdpFees: {
@@ -95,7 +96,6 @@ describe('Datum checks', () => {
             lovelacesIndyStakers: 248406n,
           },
         },
-      },
     };
     expect(parseCDPDatum(frozenCDPDatum)).toEqual(frozenCDPObject);
     expect(serialiseCDPDatum(frozenCDPObject)).toEqual(frozenCDPDatum);
@@ -105,7 +105,6 @@ describe('Datum checks', () => {
     const assetDatum =
       'd87a9fd8799f4469455448d87a9fd8799fd8799f581c6c9497ffd7e8baf86c3c0d6fcd43c524daa49ad5fceba26d715468e952694554483230323231323139313931333032ffffffd8799f581c7b75e317505dddce858ae7bf200656a967c7544e55efa5d18ef302494d694554485f494e544552455354ffd8799f1a08f0d180ffd8799f1a06dac2c0ffd8799f1a068e7780ffd8799f1a000186a0ffd8799f1a001e8480ffd8799f19c350ffd8799f1a000f4240ffd8799f1a000f4240ffd8799f1a01c9c380ffd87980d8799f4469534f4cffffff';
     const assetObject: IAssetContent = {
-      content: {
         assetName: fromText('iETH'),
         price: {
           Oracle: {
@@ -133,8 +132,7 @@ describe('Datum checks', () => {
         redemptionProcessingFeePercentage: { getOnChainInt: 1000000n },
         interestCollectorPortionPercentage: { getOnChainInt: 30000000n },
         firstIAsset: false,
-        nextIAsset: { Some: { value: fromText('iSOL') } },
-      },
+        nextIAsset: fromText('iSOL'),
     };
     expect(serialiseIAssetDatum(assetObject)).toEqual(assetDatum);
     expect(parseIAssetDatum(assetDatum)).toEqual(assetObject);
@@ -180,4 +178,103 @@ describe('Datum checks', () => {
       }),
     ).toEqual(stakingPositionDatum);
   });
+
+  it('Stability Pool', () => {
+    const stabilityPoolDatum =
+      'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffa2d8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffff';
+    const stabilityPoolObject: StabilityPoolContent = {
+        asset: fromText('iUSD'),
+        snapshot: {
+          productVal: { value: 736247675907734314n },
+          depositVal: { value: 2502085246000826468068228145850n },
+          sumVal: { value: 1143417026613401054n },
+          epoch: 1n,
+          scale: 0n,
+        },
+        epochToScaleToSum: new Map([
+          [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
+          [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
+        ]),
+    };
+    expect(parseStabilityPoolDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
+    expect(
+      serialiseStabilityPoolDatum({ StabilityPool: { content: stabilityPoolObject } }),
+    ).toEqual(stabilityPoolDatum);
+  });
+
+  // it('Stability Pool Account', () => {
+  //   const stabilityPoolDatum =
+  //     'd87a9fd8799f581c12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f674469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24c39fa2838b1f7dd38267f0a6dffd8799f1b0fde3b75c28ab489ff0100ffd87a80ffff';
+  //   const stabilityPoolObject: AccountContent = {
+  //       owner: '12c646d4c6d7a35c14788d15f0f6142f6148975d8932592fbd625f67',
+  //       asset: fromText('iUSD'),
+  //       snapshot: {
+  //         productVal: { value: 736247675907734314n },
+  //         depositVal: { value: 17943066955221270821727046253n },
+  //         sumVal: { value: 1143416732359767177n },
+  //         epoch: 1n,
+  //         scale: 0n,
+  //       },
+  //       request: null,
+  //   };
+
+  //   expect(parseAccountDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
+  //   expect(
+  //     serialiseStabilityPoolDatum({ Account: { content: stabilityPoolObject } }),
+  //   ).toEqual(stabilityPoolDatum);
+  // });
+
+
+  // it('Stability Pool Account w/ Adjust Request', () => {
+  //   const stabilityPoolDatum =
+  //     'd87a9fd8799f581c90e40129516ee738fa6aa9183cf57b45c46946496e1590d34ca1b15c4469555344d8799fd8799f1b0a374472be304a62ffd8799fc24b01aef07f96e5ce00f80000ffd8799f1b0f88aa07a1048079ff0100ffd8799fd87a9f3a0007c359d8799fd8799f581c90e40129516ee738fa6aa9183cf57b45c46946496e1590d34ca1b15cffd8799fd8799fd8799f581c75a4f9204b9308a92a09b0e22b94125e56f24b73bb85e2795f176c6affffffffffffffff';
+  //   const stabilityPoolObject: AccountContent = {
+  //       owner: '90e40129516ee738fa6aa9183cf57b45c46946496e1590d34ca1b15c',
+  //       asset: fromText('iUSD'),
+  //       snapshot: {
+  //         productVal: { value: 736132323706161762n },
+  //         depositVal: { value: 2035054000000000000000000n },
+  //         sumVal: { value: 1119331457144488057n },
+  //         epoch: 1n,
+  //         scale: 0n,
+  //       },
+  //       request: {
+  //         Adjust: {
+  //           amount: -508762n,
+  //           outputAddress: {
+  //             paymentCredential: {
+  //               PublicKeyCredential: ['90e40129516ee738fa6aa9183cf57b45c46946496e1590d34ca1b15c'],
+  //             },
+  //             stakeCredential: {
+  //               Inline: [{PublicKeyCredential: ['75a4f9204b9308a92a09b0e22b94125e56f24b73bb85e2795f176c6a']}],
+  //             },
+  //           },
+  //         },
+  //       },
+  //   };
+
+  //   expect(parseAccountDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
+  //   expect(
+  //     serialiseStabilityPoolDatum({ Account: { content: stabilityPoolObject } }),
+  //   ).toEqual(stabilityPoolDatum);
+  // });
+
+  // it('Stability Pool SnapshotEpochToScaleToSum', () => {
+  //   const stabilityPoolDatum =
+  //     'd87b9fd8799f4469555344bfd8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffffff';
+  //   const stabilityPoolObject: SnapshotEpochToScaleToSumContent = {
+  //       asset: fromText('iUSD'),
+  //       snapshot: new Map([
+  //         [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
+  //         [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
+  //       ]),
+  //   };
+
+  //   expect(parseSnapshotEpochToScaleToSumDatum(stabilityPoolDatum)).toEqual(stabilityPoolObject);
+  //   expect(
+  //     serialiseStabilityPoolDatum({
+  //       SnapshotEpochToScaleToSum: { content: stabilityPoolObject },
+  //     }),
+  //   ).toEqual(stabilityPoolDatum);
+  // });
 });

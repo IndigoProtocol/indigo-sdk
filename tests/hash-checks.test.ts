@@ -3,6 +3,7 @@ import { loadSystemParamsFromFile } from '../src/helpers/helpers';
 import { CDPCreatorContract } from '../src/contracts/cdp-creator';
 import { CDPContract } from '../src';
 import { CollectorContract } from '../src/contracts/collector';
+import { StabilityPoolContract } from "../src/contracts/stability-pool";
 import { StakingContract } from "../src/contracts/staking";
 
 const systemParams = loadSystemParamsFromFile('./tests/data/system-params.json');
@@ -19,5 +20,8 @@ describe('Validator Hash checks', () => {
     });
     it('Staking validator hash', () => {
         expect(StakingContract.validatorHash(systemParams.stakingParams)).toBe(systemParams.validatorHashes.stakingHash);
+    });
+    it('Stability Pool validator hash', () => {
+        expect(StabilityPoolContract.validatorHash(systemParams.stabilityPoolParams)).toBe(systemParams.validatorHashes.stabilityPoolHash);
     });
 })

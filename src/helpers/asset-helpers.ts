@@ -43,7 +43,7 @@ export class IAssetHelpers {
           .map((utxo) => {
             if (!utxo.datum) return undefined;
             const datum = parseIAssetDatum(utxo.datum);
-            if (datum.content.assetName !== fromText(assetName)) return undefined;
+            if (datum.assetName !== fromText(assetName)) return undefined;
             return { utxo, datum };
           })
           .find((utxo) => utxo !== undefined),

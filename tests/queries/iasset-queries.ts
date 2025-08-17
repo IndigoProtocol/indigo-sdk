@@ -1,8 +1,9 @@
 import {
+  fromText,
   LucidEvolution,
   Network,
-  OutRef,
   ScriptHash,
+  UTxO,
 } from '@lucid-evolution/lucid';
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
@@ -15,7 +16,7 @@ export async function findIAsset(
   iassetScriptHash: ScriptHash,
   iassetNft: AssetClass,
   iassetName: string,
-): Promise<OutRef> {
+): Promise<UTxO> {
   const iassetUtxos = await lucid.utxosAtWithUnit(
     createScriptAddress(network, iassetScriptHash),
     assetClassToUnit(iassetNft),
@@ -26,8 +27,8 @@ export async function findIAsset(
       if (utxo.datum != null) {
         try {
           const iassetDatum = parseIAssetDatum(utxo.datum);
-
-          return iassetDatum.assetName == iassetName;
+          console.log(iassetDatum);
+          return iassetDatum.content.assetName == fromText(iassetName);
         } catch (_) {
           // when incompatible datum
           return false;

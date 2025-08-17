@@ -1,5 +1,5 @@
 import { Data, Datum } from '@lucid-evolution/lucid';
-import { AssetClassSchema, mkMaybeSchema } from '../generic';
+import { AssetClassSchema } from '../generic';
 import { OnChainDecimalSchema } from '../on-chain-decimal';
 import { OracleAssetNftSchema } from './price-oracle';
 import { match, P } from 'ts-pattern';
@@ -20,42 +20,38 @@ export const CDPFeesSchema = Data.Enum([
 ]);
 
 export const CDPContentSchema = Data.Object({
-  content: Data.Object({
-    cdpOwner: mkMaybeSchema(Data.Bytes()),
-    iasset: Data.Bytes(),
-    mintedAmt: Data.Integer(),
-    cdpFees: CDPFeesSchema,
-  }),
+  cdpOwner: Data.Nullable(Data.Bytes()),
+  iasset: Data.Bytes(),
+  mintedAmt: Data.Integer(),
+  cdpFees: CDPFeesSchema,
 });
 
 export const IAssetContentSchema = Data.Object({
-  content: Data.Object({
-    /** Use the HEX encoding */
-    assetName: Data.Bytes(),
-    price: Data.Enum([
-      Data.Object({ Delisted: OnChainDecimalSchema }),
-      Data.Object({
-        Oracle: OracleAssetNftSchema,
-      }),
-    ]),
-    interestOracleNft: AssetClassSchema,
-    redemptionRatio: OnChainDecimalSchema,
-    maintenanceRatio: OnChainDecimalSchema,
-    liquidationRatio: OnChainDecimalSchema,
-    debtMintingFeePercentage: OnChainDecimalSchema,
-    liquidationProcessingFeePercentage: OnChainDecimalSchema,
-    stabilityPoolWithdrawalFeePercentage: OnChainDecimalSchema,
-    redemptionReimbursementPercentage: OnChainDecimalSchema,
-    redemptionProcessingFeePercentage: OnChainDecimalSchema,
-    interestCollectorPortionPercentage: OnChainDecimalSchema,
-    firstIAsset: Data.Boolean(),
-    nextIAsset: mkMaybeSchema(Data.Bytes()),
-  }),
+  /** Use the HEX encoding */
+  assetName: Data.Bytes(),
+  price: Data.Enum([
+    Data.Object({ Delisted: OnChainDecimalSchema }),
+    Data.Object({
+      Oracle: OracleAssetNftSchema,
+    }),
+  ]),
+  interestOracleNft: AssetClassSchema,
+  redemptionRatio: OnChainDecimalSchema,
+  maintenanceRatio: OnChainDecimalSchema,
+  liquidationRatio: OnChainDecimalSchema,
+  debtMintingFeePercentage: OnChainDecimalSchema,
+  liquidationProcessingFeePercentage: OnChainDecimalSchema,
+  stabilityPoolWithdrawalFeePercentage: OnChainDecimalSchema,
+  redemptionReimbursementPercentage: OnChainDecimalSchema,
+  redemptionProcessingFeePercentage: OnChainDecimalSchema,
+  interestCollectorPortionPercentage: OnChainDecimalSchema,
+  firstIAsset: Data.Boolean(),
+  nextIAsset: Data.Nullable(Data.Bytes()),
 });
 
 export const CDPDatumSchema = Data.Enum([
-  Data.Object({ CDP: CDPContentSchema }),
-  Data.Object({ IAsset: IAssetContentSchema }),
+  Data.Object({ CDP: Data.Object({ content: CDPContentSchema }) }),
+  Data.Object({ IAsset: Data.Object({ content: IAssetContentSchema }) }),
 ]);
 
 export type CDPFees = Data.Static<typeof CDPFeesSchema>;
@@ -69,24 +65,24 @@ const IAssetContent = IAssetContentSchema as unknown as IAssetContent;
 
 export function parseCDPDatum(datum: Datum): CDPContent {
   return match(Data.from<CDPDatum>(datum, CDPDatum))
-    .with({ CDP: P.select() }, (res) => res)
+    .with({ CDP: { content: P.select() } }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected an CDP datum.');
     });
 }
 
 export function serialiseCDPDatum(cdpDatum: CDPContent): Datum {
-  return Data.to<CDPDatum>({ CDP: cdpDatum }, CDPDatum);
+  return Data.to<CDPDatum>({ CDP: { content: cdpDatum } }, CDPDatum);
 }
 
 export function parseIAssetDatum(datum: Datum): IAssetContent {
   return match(Data.from<CDPDatum>(datum, CDPDatum))
-    .with({ IAsset: P.select() }, (res) => res)
+    .with({ IAsset: { content: P.select() } }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected an IAsset datum.');
     });
 }
 
 export function serialiseIAssetDatum(iassetDatum: IAssetContent): Datum {
-  return Data.to<CDPDatum>({ IAsset: iassetDatum }, CDPDatum);
+  return Data.to<CDPDatum>({ IAsset: { content: iassetDatum } }, CDPDatum);
 }
