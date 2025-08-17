@@ -116,7 +116,7 @@ export interface ScriptOutput {
   referenceScript: string;
   datum: AddressCredentialOrDatum;
   amount: Amount;
-  address: Address;
+  address: AddressSP;
 }
 export interface AddressCredentialOrDatum {
   tag: string;
@@ -125,7 +125,7 @@ export interface AddressCredentialOrDatum {
 export interface Amount {
   getValue?: ((CurrencySymbol | (number[] | null)[] | null)[] | null)[] | null;
 }
-export interface Address {
+export interface AddressSP {
   addressStakingCredential?: null;
   addressCredential: AddressCredentialOrDatum;
 }

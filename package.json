@@ -30,10 +30,6 @@
         "@lucid-evolution/experimental": "^0.0.9",
         "@lucid-evolution/lucid": "^0.4.29",
         "babel-jest": "^29.5.0",
-        "cbor": "^10.0.10",
-        "cbor-js": "^0.1.0",
-        "cbor-x": "^1.6.0",
-        "cbor2": "^2.0.1",
         "dotenv": "^16.5.0",
         "fp-ts": "^2.16.10",
         "ts-pattern": "^5.8.0"
@@ -44,6 +40,7 @@
         "@babel/preset-typescript": "^7.21.4",
         "@eslint/js": "^9.32.0",
         "@types/jest": "^29.5.0",
+        "@types/node": "^24.3.0",
         "eslint": "^9.32.0",
         "jest": "^29.5.0",
         "ts-jest": "^29.1.0",

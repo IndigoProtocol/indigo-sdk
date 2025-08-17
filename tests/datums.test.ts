@@ -70,12 +70,7 @@ describe('Datum checks', () => {
     const activeCDPDatum =
       'd8799fd8799fd8799f581c98e30e1c6dbb727dc98bdcb48b99b313c97fabfb537ff4b29a94ed1cff44695553441b00000004d9b0a47ed8799f1b00000194d5ebec201b03022de04fddf5f9ffffff';
     const activeCDPObject: CDPContent = {
-      content: {
-        cdpOwner: {
-          Some: {
-            value: '98e30e1c6dbb727dc98bdcb48b99b313c97fabfb537ff4b29a94ed1c',
-          },
-        },
+        cdpOwner: '98e30e1c6dbb727dc98bdcb48b99b313c97fabfb537ff4b29a94ed1c',
         iasset: fromText('iUSD'),
         mintedAmt: 20832101502n,
         cdpFees: {
@@ -84,7 +79,6 @@ describe('Datum checks', () => {
             unitaryInterestSnapshot: 216786173503075833n,
           },
         },
-      },
     };
     expect(serialiseCDPDatum(activeCDPObject)).toEqual(activeCDPDatum);
     expect(parseCDPDatum(activeCDPDatum)).toEqual(activeCDPObject);
@@ -93,8 +87,7 @@ describe('Datum checks', () => {
     const frozenCDPDatum =
       'd8799fd8799fd87a8044695553441a0050924ed87a9f1a0002765a1a0003ca56ffffff';
     const frozenCDPObject: CDPContent = {
-      content: {
-        cdpOwner: 'Nothing',
+        cdpOwner: null,
         iasset: fromText('iUSD'),
         mintedAmt: 5280334n,
         cdpFees: {
@@ -103,7 +96,6 @@ describe('Datum checks', () => {
             lovelacesIndyStakers: 248406n,
           },
         },
-      },
     };
     expect(parseCDPDatum(frozenCDPDatum)).toEqual(frozenCDPObject);
     expect(serialiseCDPDatum(frozenCDPObject)).toEqual(frozenCDPDatum);
@@ -113,7 +105,6 @@ describe('Datum checks', () => {
     const assetDatum =
       'd87a9fd8799f4469455448d87a9fd8799fd8799f581c6c9497ffd7e8baf86c3c0d6fcd43c524daa49ad5fceba26d715468e952694554483230323231323139313931333032ffffffd8799f581c7b75e317505dddce858ae7bf200656a967c7544e55efa5d18ef302494d694554485f494e544552455354ffd8799f1a08f0d180ffd8799f1a06dac2c0ffd8799f1a068e7780ffd8799f1a000186a0ffd8799f1a001e8480ffd8799f19c350ffd8799f1a000f4240ffd8799f1a000f4240ffd8799f1a01c9c380ffd87980d8799f4469534f4cffffff';
     const assetObject: IAssetContent = {
-      content: {
         assetName: fromText('iETH'),
         price: {
           Oracle: {
@@ -141,8 +132,7 @@ describe('Datum checks', () => {
         redemptionProcessingFeePercentage: { getOnChainInt: 1000000n },
         interestCollectorPortionPercentage: { getOnChainInt: 30000000n },
         firstIAsset: false,
-        nextIAsset: { Some: { value: fromText('iSOL') } },
-      },
+        nextIAsset: fromText('iSOL'),
     };
     expect(serialiseIAssetDatum(assetObject)).toEqual(assetDatum);
     expect(parseIAssetDatum(assetDatum)).toEqual(assetObject);

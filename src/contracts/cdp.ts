@@ -19,7 +19,7 @@ import {
   ScriptReferences,
   SystemParams,
 } from '../types/system-params';
-import { IAssetHelpers } from '../helpers/asset-helpers';
+import { IAssetHelpers, IAssetOutput } from '../helpers/asset-helpers';
 import { CDPCreatorContract } from './cdp-creator';
 import { CollectorContract } from './collector';
 import { InterestOracleContract } from './interest-oracle';
@@ -54,15 +54,15 @@ export class CDPContract {
     now: number = Date.now(),
   ): Promise<TxBuilder> {
     const [pkh, skh] = await addrDetails(lucid);
-    const assetOut = await (assetRef
+    const assetOut: IAssetOutput = await (assetRef
       ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
       : IAssetHelpers.findIAssetByName(asset, params, lucid));
-
+    if (!assetOut || !assetOut.datum) throw 'Unable to find IAsset';
     // Fail if delisted asset
-    if ('Delisted' in assetOut.datum.content.price)
+    if ('Delisted' in assetOut.datum.price)
       return Promise.reject('Trying to open CDP against delisted asset');
 
-    const oracleAsset = assetOut.datum.content.price.Oracle.oracleNft.asset;
+    const oracleAsset = assetOut.datum.price.Oracle.oracleNft.asset;
     const oracleOut = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(
@@ -73,7 +73,7 @@ export class CDPContract {
       oracleOut.datum,
     );
 
-    const interestOracleAsset = assetOut.datum.content.interestOracleNft;
+    const interestOracleAsset = assetOut.datum.interestOracleNft;
     const interestOracleOut = interestOracleRef
       ? (await lucid.utxosByOutRef([interestOracleRef]))[0]
       : await lucid.utxoByUnit(
@@ -118,12 +118,10 @@ export class CDPContract {
         interestOracleDatum,
       ) + interestOracleDatum.unitaryInterest;
     const cdpDatum: CDPContent = {
-      content: {
-      cdpOwner: { Some: { value: pkh.hash } },
+      cdpOwner: pkh.hash,
       iasset: fromText(asset),
       mintedAmt: mintedAmount,
       cdpFees: { ActiveCDPInterestTracking: { lastSettled: BigInt(now), unitaryInterestSnapshot: newSnapshot } },
-      }
     }
 
     const assetToken =
@@ -143,7 +141,7 @@ export class CDPContract {
     );
 
     const debtMintingFee = calculateFeeFromPercentage(
-      BigInt(assetOut.datum.content.debtMintingFeePercentage.getOnChainInt),
+      BigInt(assetOut.datum.debtMintingFeePercentage.getOnChainInt),
       (mintedAmount * oracleDatum.price.getOnChainInt) / 1_000_000n,
     );
 
@@ -328,7 +326,7 @@ export class CDPContract {
     const cdpDatum = parseCDPDatum(cdp.datum);
     const iAsset = await (assetRef
       ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
-      : IAssetHelpers.findIAssetByName(cdpDatum.content.iasset, params, lucid));
+      : IAssetHelpers.findIAssetByName(cdpDatum.iasset, params, lucid));
 
     const gov = govRef
       ? (await lucid.utxosByOutRef([govRef]))[0]
@@ -346,7 +344,7 @@ export class CDPContract {
     const cdpAssets = Object.assign({}, cdp.assets);
     cdpAssets['lovelace'] = cdp.assets['lovelace'] + collateralAmount;
 
-    const interestOracleAsset = iAsset.datum.content.interestOracleNft;
+    const interestOracleAsset = iAsset.datum.interestOracleNft;
     const interestOracleOut = interestOracleRef
       ? (await lucid.utxosByOutRef([interestOracleRef]))[0]
       : await lucid.utxoByUnit(
@@ -368,7 +366,7 @@ export class CDPContract {
     if (!cdp.datum) throw 'Unable to find CDP Datum';
     const cdpD = parseCDPDatum(cdp.datum);
 
-    if (!('ActiveCDPInterestTracking' in cdpD.content.cdpFees)) throw 'Invalid CDP Fees';
+    if (!('ActiveCDPInterestTracking' in cdpD.cdpFees)) throw 'Invalid CDP Fees';
 
     const newSnapshot =
       InterestOracleContract.calculateUnitaryInterestSinceOracleLastUpdated(
@@ -377,14 +375,12 @@ export class CDPContract {
       ) + interestOracleDatum.unitaryInterest;
 
     const cdpD_: CDPContent = {
-      content:{
-      ...cdpD.content,
-      mintedAmt: cdpD.content.mintedAmt + mintAmount,
+      ...cdpD,
+      mintedAmt: cdpD.mintedAmt + mintAmount,
       cdpFees: { ActiveCDPInterestTracking: {
         lastSettled: BigInt(now),
         unitaryInterestSnapshot: newSnapshot,
       }},
-    }
     };
 
     tx.pay.ToContract(
@@ -397,7 +393,7 @@ export class CDPContract {
     );
 
     // Find Oracle Ref Input
-    const oracleAsset = iAsset.datum.content.price;
+    const oracleAsset = iAsset.datum.price;
     if (!('Oracle' in oracleAsset)) throw 'Invalid oracle asset';
     const oracleRefInput = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
@@ -434,7 +430,7 @@ export class CDPContract {
 
     if (mintAmount > 0) {
       fee += calculateFeeFromPercentage(
-        iAsset.datum.content.debtMintingFeePercentage.getOnChainInt,
+        iAsset.datum.debtMintingFeePercentage.getOnChainInt,
         (mintAmount * od.price.getOnChainInt) / 1_000_000n,
       );
     }
@@ -444,14 +440,14 @@ export class CDPContract {
     const interestPaymentAsset =
       InterestOracleContract.calculateAccruedInterest(
         BigInt(now),
-        cdpD.content.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
-        cdpD.content.mintedAmt,
-        cdpD.content.cdpFees.ActiveCDPInterestTracking.lastSettled,
+        cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
+        cdpD.mintedAmt,
+        cdpD.cdpFees.ActiveCDPInterestTracking.lastSettled,
         interestOracleDatum,
       );
     const interestPayment = (interestPaymentAsset * od.price.getOnChainInt) / 1_000_000n;
     const interestCollectorPayment = calculateFeeFromPercentage(
-      iAsset.datum.content.interestCollectorPortionPercentage.getOnChainInt,
+      iAsset.datum.interestCollectorPortionPercentage.getOnChainInt,
       interestPayment,
     );
     const interestTreasuryPayment = interestPayment - interestCollectorPayment;
@@ -478,7 +474,7 @@ export class CDPContract {
         params.scriptReferences,
         lucid,
       );
-      const iassetToken = params.cdpParams.cdpAssetSymbol.unCurrencySymbol + cdpD.content.iasset;
+      const iassetToken = params.cdpParams.cdpAssetSymbol.unCurrencySymbol + cdpD.iasset;
       const mintValue = {} as Assets;
       mintValue[iassetToken] = mintAmount;
 
@@ -522,7 +518,7 @@ export class CDPContract {
     const cdpDatum = parseCDPDatum(cdp.datum);
     const iAsset = await (assetRef
       ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
-      : IAssetHelpers.findIAssetByName(cdpDatum.content.iasset, params, lucid));
+      : IAssetHelpers.findIAssetByName(cdpDatum.iasset, params, lucid));
 
     const gov = govRef
       ? (await lucid.utxosByOutRef([govRef]))[0]
@@ -539,7 +535,7 @@ export class CDPContract {
       lucid,
     );
 
-    const interestOracleAsset = iAsset.datum.content.interestOracleNft;
+    const interestOracleAsset = iAsset.datum.interestOracleNft;
     const interestOracleOut = interestOracleRef
       ? (await lucid.utxosByOutRef([interestOracleRef]))[0]
       : await lucid.utxoByUnit(
@@ -557,12 +553,12 @@ export class CDPContract {
       .addSignerKey(pkh.hash);
     if (!cdp.datum) throw 'Unable to find CDP Datum';
     const cdpD = parseCDPDatum(cdp.datum);
-    if (!('ActiveCDPInterestTracking' in cdpD.content.cdpFees))
+    if (!('ActiveCDPInterestTracking' in cdpD.cdpFees))
       throw 'Invalid CDP Fees';
 
     // Find Oracle Ref Input
-    if (!('Oracle' in iAsset.datum.content.price)) throw 'iAsset is delisted';
-    const oracleAsset = iAsset.datum.content.price.Oracle.oracleNft.asset as AssetClass;
+    if (!('Oracle' in iAsset.datum.price)) throw 'iAsset is delisted';
+    const oracleAsset = iAsset.datum.price.Oracle.oracleNft.asset as AssetClass;
     const oracleRefInput = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(
@@ -593,14 +589,14 @@ export class CDPContract {
     const interestPaymentAsset =
       InterestOracleContract.calculateAccruedInterest(
         BigInt(now),
-        cdpD.content.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
-        cdpD.content.mintedAmt,
-        cdpD.content.cdpFees.ActiveCDPInterestTracking.lastSettled,
+        cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
+        cdpD.mintedAmt,
+        cdpD.cdpFees.ActiveCDPInterestTracking.lastSettled,
         interestOracleDatum,
       );
     const interestPayment = (interestPaymentAsset * od.price.getOnChainInt) / 1_000_000n;
     const interestCollectorPayment = calculateFeeFromPercentage(
-      iAsset.datum.content.interestCollectorPortionPercentage.getOnChainInt,
+      iAsset.datum.interestCollectorPortionPercentage.getOnChainInt,
       interestPayment,
     );
     const interestTreasuryPayment = interestPayment - interestCollectorPayment;
@@ -626,9 +622,9 @@ export class CDPContract {
       params.scriptReferences,
       lucid,
     );
-    const iassetToken = params.cdpParams.cdpAssetSymbol.unCurrencySymbol + cdpD.content.iasset;
+    const iassetToken = params.cdpParams.cdpAssetSymbol.unCurrencySymbol + cdpD.iasset;
     const assetBurnValue = {} as Assets;
-    assetBurnValue[iassetToken] = -BigInt(cdpD.content.mintedAmt);
+    assetBurnValue[iassetToken] = -BigInt(cdpD.mintedAmt);
     const cdpTokenBurnValue = {} as Assets;
     cdpTokenBurnValue[
       params.cdpParams.cdpAuthToken[0].unCurrencySymbol +

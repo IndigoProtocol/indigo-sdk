@@ -1,19 +1,4 @@
 import { Data } from '@lucid-evolution/lucid';
-import * as TypeBox from '@sinclair/typebox';
-
-export function mkMaybeSchema<T extends TypeBox.TSchema>(
-  item: T,
-): TypeBox.TUnion<
-  (
-    | TypeBox.TLiteral<'Nothing'>
-    | TypeBox.TObject<{ Some: TypeBox.TObject<{ value: T }> }>
-  )[]
-> {
-  return Data.Enum([
-    Data.Object({ Some: Data.Object({ value: item }, { hasConstr: false }) }),
-    Data.Literal('Nothing'),
-  ]);
-}
 
 export const AssetClassSchema = Data.Object({
   currencySymbol: Data.Bytes(),
