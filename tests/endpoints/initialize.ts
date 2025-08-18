@@ -67,8 +67,8 @@ const totalIndySupply = 35000000000000n;
 const totalIndyDistribution = 0n;
 const treasuryIndyAmount = 0n;
 
-const numCdpCreators = 10n;
-const numCollectors = 10n;
+const numCdpCreators = 2n;
+const numCollectors = 2n;
 
 type InitialAsset = {
   name: string;
