@@ -577,7 +577,7 @@ export class CDPContract {
 
     // Find Oracle Ref Input
     if (!('Oracle' in iAsset.datum.price)) throw 'iAsset is delisted';
-    const oracleAsset = iAsset.datum.price.Oracle.oracleNft.asset as AssetClass;
+    const oracleAsset = iAsset.datum.price.Oracle.oracleNft.asset;
     const oracleRefInput = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(

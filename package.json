@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean --tsconfig tsconfig.build.json",
     "lint": "npx eslint .",
+    "lint:fix": "npx eslint --fix .",
     "repack": "pnpm run build  && pnpm pack",
     "format": "npx prettier --write src/ tests/",
     "format:check": "npx prettier --check src/ tests/",
