@@ -67,8 +67,8 @@ const totalIndySupply = 35000000000000n;
 const totalIndyDistribution = 0n;
 const treasuryIndyAmount = 0n;
 
-const numCdpCreators = 10n;
-const numCollectors = 10n;
+const numCdpCreators = 2n;
+const numCollectors = 2n;
 
 type InitialAsset = {
   name: string;
@@ -448,17 +448,15 @@ async function initScriptRef(
   lucid: LucidEvolution,
   validator: SpendingValidator,
 ): Promise<Input> {
-  const tx = await lucid
-    .newTx()
-    .pay.ToContract(
-      credentialToAddress(lucid.config().network, {
-        hash: alwaysFailValidatorHash,
-        type: 'Script',
-      }),
-      null,
-      undefined,
-      validator,
-    );
+  const tx = await lucid.newTx().pay.ToContract(
+    credentialToAddress(lucid.config().network, {
+      hash: alwaysFailValidatorHash,
+      type: 'Script',
+    }),
+    null,
+    undefined,
+    validator,
+  );
 
   const txHash = await tx
     .complete()
@@ -748,20 +746,18 @@ async function initializeAsset(
     epochToScaleToSum: new Map(),
   };
 
-  const spTx = lucid
-    .newTx()
-    .pay.ToContract(
-      StabilityPoolContract.address(stabilityPoolParams, lucid),
-      {
-        kind: 'inline',
-        value: serialiseStabilityPoolDatum({
-          StabilityPool: { content: stabilityPoolDatum },
-        }),
-      },
-      {
-        [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,
-      },
-    );
+  const spTx = lucid.newTx().pay.ToContract(
+    StabilityPoolContract.address(stabilityPoolParams, lucid),
+    {
+      kind: 'inline',
+      value: serialiseStabilityPoolDatum({
+        StabilityPool: { content: stabilityPoolDatum },
+      }),
+    },
+    {
+      [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,
+    },
+  );
 
   const spTxHash = await spTx
     .complete()
