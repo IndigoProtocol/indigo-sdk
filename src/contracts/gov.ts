@@ -3,7 +3,7 @@ import { GovDatum } from '../types/indigo/gov';
 
 export class GovContract {
   static decodeGovDatum(datum: string): GovDatum {
-    const d = Data.from(datum);
+    const d = Data.from<any>(datum);
     if (
       d.index !== 0 ||
       d.fields.length !== 6 ||
