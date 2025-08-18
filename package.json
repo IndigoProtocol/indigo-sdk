@@ -10,6 +10,7 @@
     "lint": "npx eslint .",
     "repack": "pnpm run build  && pnpm pack",
     "format": "npx prettier --write .",
+    "format:check": "npx prettier --check .",
     "test": "vitest run"
   },
   "repository": {
