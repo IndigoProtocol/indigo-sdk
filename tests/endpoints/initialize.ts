@@ -109,14 +109,14 @@ const initialAssets: InitialAsset[] = [
       params: {
         biasTime: 120_000n,
         expirationTime: 900_000n,
-      }
+      },
     },
     initerestOracle: {
       tokenName: 'iUSD_ORACLE',
       initialInterestRate: 1_000_000n,
       params: {
         biasTime: 120_000n,
-      }
+      },
     },
     redemptionRatioPercentage: 200_000_000n,
     maintenanceRatioPercentage: 150_000_000n,
@@ -129,12 +129,16 @@ const initialAssets: InitialAsset[] = [
     interestCollectorPortionPercentage: 40_000_000n,
     firstAsset: true,
     nextAsset: null,
-  }
+  },
 ];
 
-const alwaysFailValidatorHash = 'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
+const alwaysFailValidatorHash =
+  'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
 
-export async function init(lucid: LucidEvolution, now: number = Date.now()): Promise<SystemParams> {
+export async function init(
+  lucid: LucidEvolution,
+  now: number = Date.now(),
+): Promise<SystemParams> {
   const indyAsset: AssetClass = {
     currencySymbol: await mintOneTimeToken(
       lucid,
@@ -294,10 +298,16 @@ export async function init(lucid: LucidEvolution, now: number = Date.now()): Pro
   const treasuryParams: TreasuryParams = {
     upgradeToken: toSystemParamsAsset(upgradeToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    treasuryUtxosStakeCredential: null
+    treasuryUtxosStakeCredential: null,
   };
 
-  await initTreasury(lucid, treasuryParams, daoAsset, indyAsset, treasuryIndyAmount);
+  await initTreasury(
+    lucid,
+    treasuryParams,
+    daoAsset,
+    indyAsset,
+    treasuryIndyAmount,
+  );
 
   const cdpParams: CdpParams = {
     cdpAuthToken: toSystemParamsAsset(cdpToken),
@@ -313,7 +323,7 @@ export async function init(lucid: LucidEvolution, now: number = Date.now()): Pro
     partialRedemptionExtraFeeLovelace: 10_000_000,
     biasTime: 120_000,
     treasuryValHash: collectorValHash,
-  }
+  };
   const cdpValHash = CDPContract.validatorHash(cdpParams);
 
   const cdpCreatorParams: CdpCreatorParams = {
@@ -338,9 +348,22 @@ export async function init(lucid: LucidEvolution, now: number = Date.now()): Pro
 
     for (const asset of initialAssets) {
       await mintAuthTokenDirect(lucid, upgradeToken, iassetTokenName, 1n);
-      await mintAuthTokenDirect(lucid, upgradeToken, stabilityPoolTokenName, 1n);
+      await mintAuthTokenDirect(
+        lucid,
+        upgradeToken,
+        stabilityPoolTokenName,
+        1n,
+      );
 
-      await initializeAsset(lucid, cdpParams, iassetToken, stabilityPoolParams, stabilityPoolToken, asset, now)
+      await initializeAsset(
+        lucid,
+        cdpParams,
+        iassetToken,
+        stabilityPoolParams,
+        stabilityPoolToken,
+        asset,
+        now,
+      );
     }
 
     await mintAuthTokenDirect(lucid, pollToken, upgradeTokenName, -1n);
@@ -356,44 +379,53 @@ export async function init(lucid: LucidEvolution, now: number = Date.now()): Pro
     treasuryParams: treasuryParams,
     scriptReferences: {
       cdpCreatorValidatorRef: {
-        input: await initScriptRef(lucid, CDPCreatorContract.validator(cdpCreatorParams))
+        input: await initScriptRef(
+          lucid,
+          CDPCreatorContract.validator(cdpCreatorParams),
+        ),
       },
       cdpValidatorRef: {
-        input: await initScriptRef(lucid, CDPContract.validator(cdpParams))
+        input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
       },
       iAssetTokenPolicyRef: {
-        input: await initScriptRef(lucid, assetSymbolPolicy)
+        input: await initScriptRef(lucid, assetSymbolPolicy),
       },
       stakingValidatorRef: {
-        input: await initScriptRef(lucid, StakingContract.validator(stakingParams))
+        input: await initScriptRef(
+          lucid,
+          StakingContract.validator(stakingParams),
+        ),
       },
       stabilityPoolValidatorRef: {
-        input: await initScriptRef(lucid, StabilityPoolContract.validator(stabilityPoolParams))
+        input: await initScriptRef(
+          lucid,
+          StabilityPoolContract.validator(stabilityPoolParams),
+        ),
       },
       authTokenPolicies: {
         cdpAuthTokenRef: {
-          input: await initScriptRef(lucid, cdpTokenPolicy)
+          input: await initScriptRef(lucid, cdpTokenPolicy),
         },
         iAssetAuthTokenRef: {
-          input: await initScriptRef(lucid, iassetTokenPolicy)
+          input: await initScriptRef(lucid, iassetTokenPolicy),
         },
         stabilityPoolTokenRef: {
-          input: await initScriptRef(lucid, accountTokenPolicy)
+          input: await initScriptRef(lucid, accountTokenPolicy),
         },
         stabilityPoolAuthTokenRef: {
-          input: await initScriptRef(lucid, stabilityPoolTokenPolicy)
+          input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
         },
         stakingTokenRef: {
-          input: await initScriptRef(lucid, stakingTokenPolicy)
-        }
-      }
+          input: await initScriptRef(lucid, stakingTokenPolicy),
+        },
+      },
     },
     validatorHashes: {
       cdpCreatorHash: cdpCreatorValHash,
       cdpHash: cdpValHash,
       stabilityPoolHash: stabilityPoolValHash,
-      stakingHash: StakingContract.validatorHash(stakingParams)
-    }
+      stakingHash: StakingContract.validatorHash(stakingParams),
+    },
   } as unknown as SystemParams;
 }
 
@@ -412,15 +444,24 @@ async function mintOneTimeToken(
   });
 }
 
-async function initScriptRef(lucid: LucidEvolution, validator: SpendingValidator): Promise<Input> {
-  const tx = await lucid.newTx().pay.ToContract(
-    credentialToAddress(lucid.config().network, { hash: alwaysFailValidatorHash, type: 'Script' }),
-    null,
-    undefined,
-    validator
-  );
+async function initScriptRef(
+  lucid: LucidEvolution,
+  validator: SpendingValidator,
+): Promise<Input> {
+  const tx = await lucid
+    .newTx()
+    .pay.ToContract(
+      credentialToAddress(lucid.config().network, {
+        hash: alwaysFailValidatorHash,
+        type: 'Script',
+      }),
+      null,
+      undefined,
+      validator,
+    );
 
-  const txHash = await tx.complete()
+  const txHash = await tx
+    .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 
@@ -428,28 +469,35 @@ async function initScriptRef(lucid: LucidEvolution, validator: SpendingValidator
 
   return {
     transactionId: txHash,
-    index: 0
+    index: 0,
   };
 }
 
-async function initCollector(lucid: LucidEvolution, collectorParams: CollectorParams): Promise<void> {
+async function initCollector(
+  lucid: LucidEvolution,
+  collectorParams: CollectorParams,
+): Promise<void> {
   const tx = lucid.newTx();
 
   for (let i = 0; i < Number(numCollectors); i++) {
-    tx.pay.ToContract(
-      CollectorContract.address(collectorParams, lucid),
-      { kind: 'inline', value: Data.to(new Constr(0, [])) },
-    )
+    tx.pay.ToContract(CollectorContract.address(collectorParams, lucid), {
+      kind: 'inline',
+      value: Data.to(new Constr(0, [])),
+    });
   }
 
-  const txHash = await tx.complete()
+  const txHash = await tx
+    .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 
   await lucid.awaitTx(txHash);
 }
 
-async function initCDPCreator(lucid: LucidEvolution, cdpCreatorParams: CdpCreatorParams): Promise<void> {
+async function initCDPCreator(
+  lucid: LucidEvolution,
+  cdpCreatorParams: CdpCreatorParams,
+): Promise<void> {
   const tx = lucid.newTx();
 
   for (let i = 0; i < Number(numCdpCreators); i++) {
@@ -457,30 +505,42 @@ async function initCDPCreator(lucid: LucidEvolution, cdpCreatorParams: CdpCreato
       CDPCreatorContract.address(cdpCreatorParams, lucid),
       { kind: 'inline', value: Data.to(new Constr(0, [])) },
       {
-        [cdpCreatorParams.cdpCreatorNft[0].unCurrencySymbol + fromText(cdpCreatorParams.cdpCreatorNft[1].unTokenName)]: 1n
-      }
-    )
+        [cdpCreatorParams.cdpCreatorNft[0].unCurrencySymbol +
+        fromText(cdpCreatorParams.cdpCreatorNft[1].unTokenName)]: 1n,
+      },
+    );
   }
 
-  const txHash = await tx.complete()
+  const txHash = await tx
+    .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 
   await lucid.awaitTx(txHash);
 }
 
-async function initTreasury(lucid: LucidEvolution, treasuryParams: TreasuryParams, daoAsset: AssetClass, indyAsset: AssetClass, treasuryIndyAmount: bigint): Promise<void> {
+async function initTreasury(
+  lucid: LucidEvolution,
+  treasuryParams: TreasuryParams,
+  daoAsset: AssetClass,
+  indyAsset: AssetClass,
+  treasuryIndyAmount: bigint,
+): Promise<void> {
   const tx = lucid.newTx().pay.ToContract(
-    credentialToAddress(lucid.config().network, { hash: TreasuryContract.validatorHash(treasuryParams), type: 'Script' }),
+    credentialToAddress(lucid.config().network, {
+      hash: TreasuryContract.validatorHash(treasuryParams),
+      type: 'Script',
+    }),
     { kind: 'inline', value: Data.to(new Constr(0, [])) },
     {
       lovelace: 5_000_000n,
       [daoAsset.currencySymbol + daoAsset.tokenName]: 1n,
       [indyAsset.currencySymbol + indyAsset.tokenName]: treasuryIndyAmount,
-    }
+    },
   );
 
-  const txHash = await tx.complete()
+  const txHash = await tx
+    .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 
@@ -506,7 +566,7 @@ async function initStakingManager(
       {
         lovelace: 5_000_000n,
         [stakingParams.stakingManagerNFT[0].unCurrencySymbol +
-          fromText(stakingParams.stakingManagerNFT[1].unTokenName)]: 1n,
+        fromText(stakingParams.stakingManagerNFT[1].unTokenName)]: 1n,
       },
     )
     .complete()
@@ -516,7 +576,13 @@ async function initStakingManager(
   await lucid.awaitTx(txHash);
 }
 
-async function startPriceOracleTx(lucid: LucidEvolution, assetName: string, startPrice: bigint, oracleParams: PriceOracleParams, now: number = Date.now()): Promise<string> {
+async function startPriceOracleTx(
+  lucid: LucidEvolution,
+  assetName: string,
+  startPrice: bigint,
+  oracleParams: PriceOracleParams,
+  now: number = Date.now(),
+): Promise<string> {
   const oraclePolicyId = await mintOneTimeToken(lucid, fromText(assetName), 1n);
   const oracleValidator = mkPriceOracleValidator(oracleParams);
 
@@ -525,19 +591,19 @@ async function startPriceOracleTx(lucid: LucidEvolution, assetName: string, star
       getOnChainInt: startPrice,
     },
     expiration: BigInt(now) + oracleParams.expiration,
-  }
+  };
 
-  const tx = lucid.newTx()
-    .pay.ToContract(
-      validatorToAddress(lucid.config().network, oracleValidator),
-      { kind: 'inline', value: serialisePriceOracleDatum(oracleDatum) },
-      {
-        lovelace: 5_000_000n,
-        [oraclePolicyId + fromText(assetName)]: 1n,
-      }
-    )
+  const tx = lucid.newTx().pay.ToContract(
+    validatorToAddress(lucid.config().network, oracleValidator),
+    { kind: 'inline', value: serialisePriceOracleDatum(oracleDatum) },
+    {
+      lovelace: 5_000_000n,
+      [oraclePolicyId + fromText(assetName)]: 1n,
+    },
+  );
 
-  const txHash = await tx.complete()
+  const txHash = await tx
+    .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 
@@ -546,30 +612,34 @@ async function startPriceOracleTx(lucid: LucidEvolution, assetName: string, star
   return oraclePolicyId;
 }
 
-async function startInterestOracleTx(lucid: LucidEvolution, assetName: string, initialInterestRate: bigint, oracleParams: InterestOracleParams): Promise<string> {
+async function startInterestOracleTx(
+  lucid: LucidEvolution,
+  assetName: string,
+  initialInterestRate: bigint,
+  oracleParams: InterestOracleParams,
+): Promise<string> {
   const oraclePolicyId = await mintOneTimeToken(lucid, fromText(assetName), 1n);
   const oracleValidator = mkInterestOracleValidator(oracleParams);
-
 
   const oracleDatum: InterestOracleDatum = {
     unitaryInterest: 0n,
     lastUpdated: 0n,
     interestRate: {
       getOnChainInt: initialInterestRate,
-    }
-  }
+    },
+  };
 
-  const tx = lucid.newTx()
-    .pay.ToContract(
-      validatorToAddress(lucid.config().network, oracleValidator),
-      { kind: 'inline', value: serialiseInterestOracleDatum(oracleDatum) },
-      {
-        lovelace: 5_000_000n,
-        [oraclePolicyId + fromText(assetName)]: 1n,
-      }
-    )
+  const tx = lucid.newTx().pay.ToContract(
+    validatorToAddress(lucid.config().network, oracleValidator),
+    { kind: 'inline', value: serialiseInterestOracleDatum(oracleDatum) },
+    {
+      lovelace: 5_000_000n,
+      [oraclePolicyId + fromText(assetName)]: 1n,
+    },
+  );
 
-  const txHash = await tx.complete()
+  const txHash = await tx
+    .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 
@@ -578,20 +648,39 @@ async function startInterestOracleTx(lucid: LucidEvolution, assetName: string, i
   return oraclePolicyId;
 }
 
-async function initializeAsset(lucid: LucidEvolution, cdpParams: CdpParams, iassetToken: AssetClass, stabilityPoolParams: StabilityPoolParams, stabilityPoolToken: AssetClass, asset: InitialAsset, now: number = Date.now()): Promise<void> {
+async function initializeAsset(
+  lucid: LucidEvolution,
+  cdpParams: CdpParams,
+  iassetToken: AssetClass,
+  stabilityPoolParams: StabilityPoolParams,
+  stabilityPoolToken: AssetClass,
+  asset: InitialAsset,
+  now: number = Date.now(),
+): Promise<void> {
   const [pkh, _] = await addrDetails(lucid);
   const priceOracleTokenName = asset.name + '_ORACLE';
-  const priceOraclePolicyId = await startPriceOracleTx(lucid, priceOracleTokenName, asset.priceOracle.startPrice, {
-    owner: pkh.hash,
-    biasTime: asset.priceOracle.params.biasTime,
-    expiration: asset.priceOracle.params.expirationTime,
-  }, now);
+  const priceOraclePolicyId = await startPriceOracleTx(
+    lucid,
+    priceOracleTokenName,
+    asset.priceOracle.startPrice,
+    {
+      owner: pkh.hash,
+      biasTime: asset.priceOracle.params.biasTime,
+      expiration: asset.priceOracle.params.expirationTime,
+    },
+    now,
+  );
 
   const interestOracleTokenName = asset.name + '_ORACLE';
-  const interestOraclePolicyId = await startInterestOracleTx(lucid, interestOracleTokenName, asset.initerestOracle.initialInterestRate, {
-    owner: pkh.hash,
-    biasTime: asset.priceOracle.params.biasTime,
-  });
+  const interestOraclePolicyId = await startInterestOracleTx(
+    lucid,
+    interestOracleTokenName,
+    asset.initerestOracle.initialInterestRate,
+    {
+      owner: pkh.hash,
+      biasTime: asset.priceOracle.params.biasTime,
+    },
+  );
 
   const iassetDatum: IAssetContent = {
     assetName: fromText(asset.name),
@@ -601,9 +690,9 @@ async function initializeAsset(lucid: LucidEvolution, cdpParams: CdpParams, iass
           asset: {
             currencySymbol: priceOraclePolicyId,
             tokenName: fromText(priceOracleTokenName),
-          }
-        }
-      }
+          },
+        },
+      },
     },
     interestOracleNft: {
       currencySymbol: interestOraclePolicyId,
@@ -613,23 +702,35 @@ async function initializeAsset(lucid: LucidEvolution, cdpParams: CdpParams, iass
     maintenanceRatio: { getOnChainInt: asset.maintenanceRatioPercentage },
     liquidationRatio: { getOnChainInt: asset.liquidationRatioPercentage },
     debtMintingFeePercentage: { getOnChainInt: asset.debtMintingFeePercentage },
-    liquidationProcessingFeePercentage: { getOnChainInt: asset.liquidationProcessingFeePercentage },
-    stabilityPoolWithdrawalFeePercentage: { getOnChainInt: asset.stabilityPoolWithdrawalFeePercentage },
-    redemptionReimbursementPercentage: { getOnChainInt: asset.redemptionReimbursementPercentage },
-    redemptionProcessingFeePercentage: { getOnChainInt: asset.redemptionProcessingFeePercentage },
-    interestCollectorPortionPercentage: { getOnChainInt: asset.interestCollectorPortionPercentage },
+    liquidationProcessingFeePercentage: {
+      getOnChainInt: asset.liquidationProcessingFeePercentage,
+    },
+    stabilityPoolWithdrawalFeePercentage: {
+      getOnChainInt: asset.stabilityPoolWithdrawalFeePercentage,
+    },
+    redemptionReimbursementPercentage: {
+      getOnChainInt: asset.redemptionReimbursementPercentage,
+    },
+    redemptionProcessingFeePercentage: {
+      getOnChainInt: asset.redemptionProcessingFeePercentage,
+    },
+    interestCollectorPortionPercentage: {
+      getOnChainInt: asset.interestCollectorPortionPercentage,
+    },
     firstIAsset: true,
-    nextIAsset: asset.nextAsset ? fromText(asset.nextAsset) : null
+    nextIAsset: asset.nextAsset ? fromText(asset.nextAsset) : null,
   };
 
-  const assetTx = lucid.newTx()
+  const assetTx = lucid
+    .newTx()
     .pay.ToContract(
       CDPContract.address(cdpParams, lucid),
       { kind: 'inline', value: serialiseIAssetDatum(iassetDatum) },
-      { [iassetToken.currencySymbol + iassetToken.tokenName]: 1n }
+      { [iassetToken.currencySymbol + iassetToken.tokenName]: 1n },
     );
 
-  const assetTxHash = await assetTx.complete()
+  const assetTxHash = await assetTx
+    .complete()
     .then((assetTx) => assetTx.sign.withWallet().complete())
     .then((assetTx) => assetTx.submit());
 
@@ -645,42 +746,61 @@ async function initializeAsset(lucid: LucidEvolution, cdpParams: CdpParams, iass
       scale: 0n,
     },
     epochToScaleToSum: new Map(),
-  }
+  };
 
-  const spTx = lucid.newTx()
+  const spTx = lucid
+    .newTx()
     .pay.ToContract(
       StabilityPoolContract.address(stabilityPoolParams, lucid),
-      { kind: 'inline', value: serialiseStabilityPoolDatum({ StabilityPool: { content: stabilityPoolDatum } }) },
-      { [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n }
+      {
+        kind: 'inline',
+        value: serialiseStabilityPoolDatum({
+          StabilityPool: { content: stabilityPoolDatum },
+        }),
+      },
+      {
+        [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,
+      },
     );
 
-  const spTxHash = await spTx.complete()
+  const spTxHash = await spTx
+    .complete()
     .then((spTx) => spTx.sign.withWallet().complete())
     .then((spTx) => spTx.submit());
 
   await lucid.awaitTx(spTxHash);
 }
 
-async function mintAuthTokenDirect(lucid: LucidEvolution, asset: AssetClass, tokenName: string, amount: bigint): Promise<void> {
+async function mintAuthTokenDirect(
+  lucid: LucidEvolution,
+  asset: AssetClass,
+  tokenName: string,
+  amount: bigint,
+): Promise<void> {
   const script = mkAuthTokenPolicy(asset, fromText(tokenName));
   const policyId = mintingPolicyToId(script);
   const address = await lucid.wallet().address();
-  const utxos = await lucid.utxosAtWithUnit(address, asset.currencySymbol + asset.tokenName);
+  const utxos = await lucid.utxosAtWithUnit(
+    address,
+    asset.currencySymbol + asset.tokenName,
+  );
   if (utxos.length === 0) {
     throw new Error('No utxos found');
   }
 
-  const tx = lucid.newTx()
+  const tx = lucid
+    .newTx()
     .attach.MintingPolicy(script)
     .collectFrom(utxos)
     .mintAssets(
       {
-        [policyId + fromText(tokenName)]: amount
+        [policyId + fromText(tokenName)]: amount,
       },
-      Data.to(new Constr(0, []))
+      Data.to(new Constr(0, [])),
     );
 
-  const txHash = await tx.complete()
+  const txHash = await tx
+    .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 

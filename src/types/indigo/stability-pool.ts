@@ -26,9 +26,7 @@ export const EpochToScaleToSumSchema = Data.Map(
   { minItems: 0 },
 );
 
-export type EpochToScaleToSum = Data.Static<
-  typeof EpochToScaleToSumSchema
->;
+export type EpochToScaleToSum = Data.Static<typeof EpochToScaleToSumSchema>;
 export const EpochToScaleToSum =
   EpochToScaleToSumSchema as unknown as EpochToScaleToSum;
 
@@ -69,8 +67,8 @@ export type AccountContent = Data.Static<typeof AccountContentSchema>;
 export const AccountContent = AccountContentSchema as unknown as AccountContent;
 
 export const SnapshotEpochToScaleToSumContentSchema = Data.Object({
-    asset: Data.Bytes(),
-    snapshot: EpochToScaleToSumSchema,
+  asset: Data.Bytes(),
+  snapshot: EpochToScaleToSumSchema,
 });
 
 export type SnapshotEpochToScaleToSumContent = Data.Static<
@@ -80,10 +78,14 @@ export const SnapshotEpochToScaleToSumContent =
   SnapshotEpochToScaleToSumContentSchema as unknown as SnapshotEpochToScaleToSumContent;
 
 export const StabilityPoolDatumSchema = Data.Enum([
-  Data.Object({ StabilityPool: Data.Object({ content: StabilityPoolContentSchema }) }),
+  Data.Object({
+    StabilityPool: Data.Object({ content: StabilityPoolContentSchema }),
+  }),
   Data.Object({ Account: Data.Object({ content: AccountContentSchema }) }),
   Data.Object({
-    SnapshotEpochToScaleToSum: Data.Object({ content: SnapshotEpochToScaleToSumContentSchema }),
+    SnapshotEpochToScaleToSum: Data.Object({
+      content: SnapshotEpochToScaleToSumContentSchema,
+    }),
   }),
 ]);
 
@@ -91,17 +93,20 @@ export type StabilityPoolDatum = Data.Static<typeof StabilityPoolDatumSchema>;
 export const StabilityPoolDatum =
   StabilityPoolDatumSchema as unknown as StabilityPoolDatum;
 
-
 export const StabilityPoolRedeemerSchema = Data.Enum([
   Data.Object({ RequestAction: Data.Object({ action: AccountActionSchema }) }),
-  Data.Object({ ProcessRequest: Data.Object({ requestRef: OutputReferenceSchema }) }),
+  Data.Object({
+    ProcessRequest: Data.Object({ requestRef: OutputReferenceSchema }),
+  }),
   Data.Object({ AnnulRequest: Data.Object({}) }),
   Data.Object({ LiquidateCDP: Data.Object({}) }),
   Data.Object({ RecordEpochToScaleToSum: Data.Object({}) }),
   Data.Object({ UpgradeVersion: Data.Object({}) }),
 ]);
 
-export type StabilityPoolRedeemer = Data.Static<typeof StabilityPoolRedeemerSchema>;
+export type StabilityPoolRedeemer = Data.Static<
+  typeof StabilityPoolRedeemerSchema
+>;
 export const StabilityPoolRedeemer =
   StabilityPoolRedeemerSchema as unknown as StabilityPoolRedeemer;
 
@@ -121,7 +126,9 @@ export function parseAccountDatum(datum: Datum): AccountContent {
     });
 }
 
-export function parseSnapshotEpochToScaleToSumDatum(datum: Datum): SnapshotEpochToScaleToSumContent {
+export function parseSnapshotEpochToScaleToSumDatum(
+  datum: Datum,
+): SnapshotEpochToScaleToSumContent {
   return match(Data.from<StabilityPoolDatum>(datum, StabilityPoolDatum))
     .with({ SnapshotEpochToScaleToSum: { content: P.select() } }, (res) => res)
     .otherwise(() => {
@@ -134,7 +141,10 @@ export function serialiseStabilityPoolDatum(d: StabilityPoolDatum): Datum {
   if ('StabilityPool' in d) {
     if (cbor.includes('bf')) {
       if (d.StabilityPool.content.epochToScaleToSum.size > 0) {
-        cbor = cbor.replace('bf', 'a' + d.StabilityPool.content.epochToScaleToSum.size);
+        cbor = cbor.replace(
+          'bf',
+          'a' + d.StabilityPool.content.epochToScaleToSum.size,
+        );
         cbor = cbor.replace('ffffff', 'ffff');
       }
     }
@@ -142,14 +152,16 @@ export function serialiseStabilityPoolDatum(d: StabilityPoolDatum): Datum {
   return cbor;
 }
 
-export function serialiseStabilityPoolRedeemer(params: StabilityPoolRedeemer): string {
+export function serialiseStabilityPoolRedeemer(
+  params: StabilityPoolRedeemer,
+): string {
   return Data.to<StabilityPoolRedeemer>(params, StabilityPoolRedeemer);
 }
 
 const spPrecision: bigint = 1000000000000000000n;
 
 export function mkSPInteger(value: bigint): bigint {
-  return value * spPrecision
+  return value * spPrecision;
 }
 
 export function spMul(a: bigint, b: bigint): bigint {

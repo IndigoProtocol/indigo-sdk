@@ -13,7 +13,6 @@ export const OutputReferenceSchema = Data.Object({
 });
 export type OutputReference = Data.Static<typeof OutputReferenceSchema>;
 
-
 export const VerificationKeyHashSchema = Data.Bytes({
   minLength: 28,
   maxLength: 28,
@@ -46,7 +45,7 @@ export const AddressSchema = Data.Object({
           }),
         ]),
       }),
-    ])
+    ]),
   ),
 });
 export type Address = Data.Static<typeof AddressSchema>;

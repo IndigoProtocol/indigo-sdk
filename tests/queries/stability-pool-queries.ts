@@ -9,7 +9,11 @@ import {
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
-import { matchSingle, parseAccountDatum, parseStabilityPoolDatum } from '../../src';
+import {
+  matchSingle,
+  parseAccountDatum,
+  parseStabilityPoolDatum,
+} from '../../src';
 
 export async function findStabilityPool(
   lucid: LucidEvolution,
@@ -37,10 +41,11 @@ export async function findStabilityPool(
       }
     }),
     (res) =>
-      new Error('Expected a single Stability Pool UTXO.: ' + JSON.stringify(res)),
+      new Error(
+        'Expected a single Stability Pool UTXO.: ' + JSON.stringify(res),
+      ),
   );
 }
-
 
 export async function findStabilityPoolAccount(
   lucid: LucidEvolution,
@@ -59,7 +64,9 @@ export async function findStabilityPoolAccount(
         try {
           const accountDatum = parseAccountDatum(utxo.datum);
 
-          return accountDatum.asset == fromText(asset) && accountDatum.owner == owner;
+          return (
+            accountDatum.asset == fromText(asset) && accountDatum.owner == owner
+          );
         } catch (_) {
           // when incompatible datum
           return false;

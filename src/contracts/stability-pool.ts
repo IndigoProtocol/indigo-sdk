@@ -101,10 +101,10 @@ export class StabilityPoolContract {
             PublicKeyCredential: [pkh.hash],
           },
           stakeCredential: {
-            Inline: [{PublicKeyCredential: [skh.hash]}],
+            Inline: [{ PublicKeyCredential: [skh.hash] }],
           },
         },
-      }
+      },
     };
     const datum: StabilityPoolDatum = {
       Account: {
@@ -126,24 +126,26 @@ export class StabilityPoolContract {
     const redeemer: StabilityPoolRedeemer = {
       RequestAction: {
         action: request,
-      }
+      },
     };
 
-    return lucid
-      .newTx()
-      .readFrom([stabilityPoolScriptRef])
-      // .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
-      .pay.ToContract(
-        StabilityPoolContract.address(params.stabilityPoolParams, lucid),
-        { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
-        {
-          lovelace: 5_000_000n,
-          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol + fromText(asset)]: amount,
-        },
-      )
-      .addSignerKey(pkh.hash);
+    return (
+      lucid
+        .newTx()
+        .readFrom([stabilityPoolScriptRef])
+        // .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+        .pay.ToContract(
+          StabilityPoolContract.address(params.stabilityPoolParams, lucid),
+          { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
+          {
+            lovelace: 5_000_000n,
+            [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
+            fromText(asset)]: amount,
+          },
+        )
+        .addSignerKey(pkh.hash)
+    );
   }
-
 
   static async closeAccount(
     asset: string,
@@ -152,7 +154,7 @@ export class StabilityPoolContract {
     lucid: LucidEvolution,
   ): Promise<TxBuilder> {
     const [pkh, skh] = await addrDetails(lucid);
-   
+
     const stabilityPoolScriptRef = await StabilityPoolContract.scriptRef(
       params.scriptReferences,
       lucid,
@@ -165,10 +167,10 @@ export class StabilityPoolContract {
             PublicKeyCredential: [pkh.hash],
           },
           stakeCredential: {
-            Inline: [{PublicKeyCredential: [skh.hash]}],
+            Inline: [{ PublicKeyCredential: [skh.hash] }],
           },
         },
-      }
+      },
     };
     const datum: StabilityPoolDatum = {
       Account: {
@@ -190,21 +192,23 @@ export class StabilityPoolContract {
     const redeemer: StabilityPoolRedeemer = {
       RequestAction: {
         action: request,
-      }
+      },
     };
 
-    return lucid
-      .newTx()
-      .readFrom([stabilityPoolScriptRef])
-      // .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
-      .pay.ToContract(
-        StabilityPoolContract.address(params.stabilityPoolParams, lucid),
-        { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
-        {
-          lovelace: 5_000_000n,
-        },
-      )
-      .addSignerKey(pkh.hash);
+    return (
+      lucid
+        .newTx()
+        .readFrom([stabilityPoolScriptRef])
+        // .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+        .pay.ToContract(
+          StabilityPoolContract.address(params.stabilityPoolParams, lucid),
+          { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
+          {
+            lovelace: 5_000_000n,
+          },
+        )
+        .addSignerKey(pkh.hash)
+    );
   }
 
   // static async processRequest(
@@ -335,7 +339,7 @@ export class StabilityPoolContract {
   //     }));
   //     console.log(poolOutputValue);
   //     tx.pay.ToContract(
-  //       stabilityPoolUtxo.address, 
+  //       stabilityPoolUtxo.address,
   //       {
   //       kind: 'inline',
   //       value: serialiseStabilityPoolDatum({
@@ -347,7 +351,7 @@ export class StabilityPoolContract {
   //           },
   //         },
   //       }),
-  //     }, 
+  //     },
   //     poolOutputValue
   //   );
 

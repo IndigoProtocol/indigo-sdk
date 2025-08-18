@@ -9,8 +9,7 @@
     "build": "tsup src/index.ts --format esm,cjs --dts --clean --tsconfig tsconfig.build.json",
     "lint": "npx eslint .",
     "repack": "pnpm run build  && pnpm pack",
-    "prettier": "prettier --ignore-path .gitignore --write \"./src/**/*.+(js|ts|json)\"",
-    "prettier:fix": "prettier --write src",
+    "format": "npx prettier --write .",
     "test": "vitest run"
   },
   "repository": {
@@ -40,6 +39,7 @@
     "@eslint/js": "^9.32.0",
     "@types/node": "^24.3.0",
     "eslint": "^9.32.0",
+    "prettier": "^3.6.2",
     "tsup": "^8.3.6",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.0",

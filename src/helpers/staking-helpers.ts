@@ -2,16 +2,24 @@ import { fromText, OutRef, UTxO } from '@lucid-evolution/lucid';
 import { LucidEvolution } from '@lucid-evolution/lucid';
 import { StakingContract } from '../contracts/staking';
 import { SystemParams } from '../types/system-params';
-import { parseStakingManagerDatum, parseStakingPositionDatum, StakingManagerContent, StakingPositionContent } from '../types/indigo/staking';
+import {
+  parseStakingManagerDatum,
+  parseStakingPositionDatum,
+  StakingManagerContent,
+  StakingPositionContent,
+} from '../types/indigo/staking';
 
-export type StakingPositionOutput = { utxo: UTxO; datum: StakingPositionContent };
+export type StakingPositionOutput = {
+  utxo: UTxO;
+  datum: StakingPositionContent;
+};
 export type StakingManagerOutput = { utxo: UTxO; datum: StakingManagerContent };
 
 export class StakingHelpers {
   static async findStakingManagerByOutRef(
     stakingManagerRef: OutRef,
     lucid: LucidEvolution,
-  ) : Promise<StakingManagerOutput> {
+  ): Promise<StakingManagerOutput> {
     return lucid
       .utxosByOutRef([stakingManagerRef])
       .then((utxos) =>
@@ -30,7 +38,10 @@ export class StakingHelpers {
       });
   }
 
-  static async findStakingManager(params: SystemParams, lucid: LucidEvolution): Promise<StakingManagerOutput> {
+  static async findStakingManager(
+    params: SystemParams,
+    lucid: LucidEvolution,
+  ): Promise<StakingManagerOutput> {
     return lucid
       .utxosAtWithUnit(
         StakingContract.address(params.stakingParams, lucid),
