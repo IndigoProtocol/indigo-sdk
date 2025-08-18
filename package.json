@@ -1,53 +1,48 @@
 {
-    "name": "@indigo-labs/indigo-sdk",
-    "version": "0.1.2",
-    "description": "Indigo SDK for interacting with Indigo endpoints via lucid-evolution",
-    "main": "dist/index.js",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
-    "scripts": {
-        "build": "tsup src/index.ts --format esm,cjs --dts --clean --tsconfig tsconfig.build.json",
-        "lint": "npx eslint .",
-        "repack": "pnpm run build  && pnpm pack",
-        "prettier": "prettier --ignore-path .gitignore --write \"./src/**/*.+(js|ts|json)\"",
-        "prettier:fix": "prettier --write src",
-        "test": "vitest run"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/IndigoProtocol/indigo-sdk.git"
-    },
-    "keywords": [
-        "indigo",
-        "sdk",
-        "typescript",
-        "lucid-evolution",
-        "cdp"
-    ],
-    "author": "3rd Eye Labs",
-    "license": "MIT",
-    "dependencies": {
-        "@lucid-evolution/experimental": "^0.0.9",
-        "@lucid-evolution/lucid": "^0.4.29",
-        "babel-jest": "^29.5.0",
-        "dotenv": "^16.5.0",
-        "fp-ts": "^2.16.10",
-        "ts-pattern": "^5.8.0"
-    },
-    "devDependencies": {
-        "@babel/core": "^7.21.4",
-        "@babel/preset-env": "^7.21.4",
-        "@babel/preset-typescript": "^7.21.4",
-        "@eslint/js": "^9.32.0",
-        "@types/jest": "^29.5.0",
-        "@types/node": "^24.3.0",
-        "eslint": "^9.32.0",
-        "jest": "^29.5.0",
-        "ts-jest": "^29.1.0",
-        "ts-node": "^10.9.1",
-        "tsup": "^8.3.6",
-        "typescript": "^5.9.2",
-        "typescript-eslint": "^8.39.0",
-        "vitest": "^2.0.5"
-    }
+  "name": "@indigo-labs/indigo-sdk",
+  "version": "0.1.2",
+  "description": "Indigo SDK for interacting with Indigo endpoints via lucid-evolution",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --tsconfig tsconfig.build.json",
+    "lint": "npx eslint .",
+    "repack": "pnpm run build  && pnpm pack",
+    "prettier": "prettier --ignore-path .gitignore --write \"./src/**/*.+(js|ts|json)\"",
+    "prettier:fix": "prettier --write src",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IndigoProtocol/indigo-sdk.git"
+  },
+  "keywords": [
+    "indigo",
+    "sdk",
+    "typescript",
+    "lucid-evolution",
+    "cdp"
+  ],
+  "author": "3rd Eye Labs",
+  "license": "MIT",
+  "dependencies": {
+    "@lucid-evolution/experimental": "^0.0.9",
+    "@lucid-evolution/lucid": "^0.4.29",
+    "dotenv": "^16.5.0",
+    "fp-ts": "^2.16.10",
+    "ts-pattern": "^5.8.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.21.4",
+    "@babel/preset-env": "^7.21.4",
+    "@babel/preset-typescript": "^7.21.4",
+    "@eslint/js": "^9.32.0",
+    "@types/node": "^24.3.0",
+    "eslint": "^9.32.0",
+    "tsup": "^8.3.6",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.0",
+    "vitest": "3.2.4"
+  }
 }
