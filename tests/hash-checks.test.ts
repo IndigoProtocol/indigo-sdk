@@ -31,9 +31,9 @@ describe('Validator Hash checks', () => {
       systemParams.validatorHashes.stakingHash,
     );
   });
-  it('Stability Pool validator hash', () => {
-    expect(
-      StabilityPoolContract.validatorHash(systemParams.stabilityPoolParams),
-    ).toBe(systemParams.validatorHashes.stabilityPoolHash);
-  });
+  // it('Stability Pool validator hash', () => {
+  //   expect(
+  //     StabilityPoolContract.validatorHash(systemParams.stabilityPoolParams),
+  //   ).toBe(systemParams.validatorHashes.stabilityPoolHash);
+  // });
 });

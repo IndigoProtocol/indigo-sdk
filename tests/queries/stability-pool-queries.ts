@@ -17,13 +17,12 @@ import {
 
 export async function findStabilityPool(
   lucid: LucidEvolution,
-  network: Network,
   stabilityPoolHash: ScriptHash,
   stabilityPoolToken: AssetClass,
   asset: string,
 ): Promise<UTxO> {
   const stakingUtxos = await lucid.utxosAtWithUnit(
-    createScriptAddress(network, stabilityPoolHash),
+    createScriptAddress(lucid.config().network, stabilityPoolHash),
     assetClassToUnit(stabilityPoolToken),
   );
 
@@ -49,13 +48,12 @@ export async function findStabilityPool(
 
 export async function findStabilityPoolAccount(
   lucid: LucidEvolution,
-  network: Network,
   stabilityPoolHash: ScriptHash,
   owner: string,
   asset: string,
 ): Promise<UTxO> {
   const accountUtxos = await lucid.utxosAt(
-    createScriptAddress(network, stabilityPoolHash),
+    createScriptAddress(lucid.config().network, stabilityPoolHash),
   );
 
   return matchSingle(
