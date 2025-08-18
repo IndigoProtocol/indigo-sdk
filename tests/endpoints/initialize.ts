@@ -448,17 +448,15 @@ async function initScriptRef(
   lucid: LucidEvolution,
   validator: SpendingValidator,
 ): Promise<Input> {
-  const tx = await lucid
-    .newTx()
-    .pay.ToContract(
-      credentialToAddress(lucid.config().network, {
-        hash: alwaysFailValidatorHash,
-        type: 'Script',
-      }),
-      null,
-      undefined,
-      validator,
-    );
+  const tx = await lucid.newTx().pay.ToContract(
+    credentialToAddress(lucid.config().network, {
+      hash: alwaysFailValidatorHash,
+      type: 'Script',
+    }),
+    null,
+    undefined,
+    validator,
+  );
 
   const txHash = await tx
     .complete()
@@ -748,20 +746,18 @@ async function initializeAsset(
     epochToScaleToSum: new Map(),
   };
 
-  const spTx = lucid
-    .newTx()
-    .pay.ToContract(
-      StabilityPoolContract.address(stabilityPoolParams, lucid),
-      {
-        kind: 'inline',
-        value: serialiseStabilityPoolDatum({
-          StabilityPool: { content: stabilityPoolDatum },
-        }),
-      },
-      {
-        [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,
-      },
-    );
+  const spTx = lucid.newTx().pay.ToContract(
+    StabilityPoolContract.address(stabilityPoolParams, lucid),
+    {
+      kind: 'inline',
+      value: serialiseStabilityPoolDatum({
+        StabilityPool: { content: stabilityPoolDatum },
+      }),
+    },
+    {
+      [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,
+    },
+  );
 
   const spTxHash = await spTx
     .complete()
