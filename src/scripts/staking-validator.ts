@@ -1,4 +1,4 @@
-import { ScriptType } from "@lucid-evolution/lucid";
+import { ScriptType } from '@lucid-evolution/lucid';
 
 export const _stakingValidator = {
   type: 'PlutusV2' as ScriptType,

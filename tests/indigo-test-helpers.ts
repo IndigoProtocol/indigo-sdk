@@ -63,7 +63,7 @@ export async function runStartPriceOracle(
       asset: {
         currencySymbol: nftPolicyId,
         tokenName: oracleNftTokenName,
-      }
+      },
     },
   };
 }
