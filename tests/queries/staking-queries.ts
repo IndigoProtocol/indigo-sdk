@@ -36,6 +36,8 @@ export async function findStakingPosition(
       }
     }),
     (res) =>
-      new Error('Expected a single Staking Position UTXO.: ' + JSON.stringify(res)),
+      new Error(
+        'Expected a single Staking Position UTXO.: ' + JSON.stringify(res),
+      ),
   );
 }

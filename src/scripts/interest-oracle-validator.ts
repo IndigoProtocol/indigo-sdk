@@ -1,6 +1,9 @@
 import { applyParamsToScript } from '@lucid-evolution/lucid';
 import { ScriptType, SpendingValidator } from '@lucid-evolution/lucid';
-import { castInterestOracleParams, InterestOracleParams } from '../types/indigo/interest-oracle';
+import {
+  castInterestOracleParams,
+  InterestOracleParams,
+} from '../types/indigo/interest-oracle';
 
 const interestOracleValidator = {
   type: 'PlutusV2' as ScriptType,

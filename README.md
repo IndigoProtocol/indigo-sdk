@@ -15,6 +15,7 @@ npm install @indigo-labs/indigo-sdk
 There are currently a few unit tests available for datums, hash checks, and interest calculations. Additionally, acceptance tests have been published for CDPs, Staking Positions, and Stability Pool accounts. These tests initialize the Indigo Protocol and positively test that the transaction building is working in an emulated Cardano Blockchain.
 
 Instructions:
+
 1. Clone this repository
 2. Run `npm install`
 3. Run `npm run test`
