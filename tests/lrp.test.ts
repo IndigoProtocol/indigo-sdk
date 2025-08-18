@@ -11,7 +11,7 @@ import { LRPParams } from '../src/types/indigo/lrp';
 import { mkLrpValidator } from '../src/scripts/lrp-validator';
 import { runCreateScriptRefTx } from '../src/helpers/helper-txs';
 import { runOneShotMintTx } from '../src/contracts/one-shot';
-import { cancelLrp, openLrp } from '../src/contracts/lrp';
+import { cancelLrp, openLrp, redeemLrp } from '../src/contracts/lrp';
 import { findLrp } from './queries/lrp-queries';
 import { addrDetails } from '../src/helpers/lucid-utils';
 import { runAndAwaitTx } from './test-helpers';
@@ -21,6 +21,8 @@ import { mkPriceOracleValidator } from '../src/scripts/price-oracle-validator';
 import { AssetClass, PriceOracleParams } from '../src';
 import { alwaysFailValidator } from '../src/scripts/always-fail-validator';
 import { OCD_ONE, OCD_ZERO } from '../src/types/on-chain-decimal';
+import { findPriceOracle } from './queries/price-oracle-queries';
+import { findIAsset } from './queries/iasset-queries';
 
 describe('LRP', () => {
   it('case 1', async () => {
@@ -124,26 +126,26 @@ describe('LRP', () => {
       (res) => new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
     );
 
-    await runAndAwaitTx(lucid, cancelLrp(lrpOutRef, lrpRefScriptOutRef, lucid));
+    // await runAndAwaitTx(lucid, cancelLrp(lrpOutRef, lrpRefScriptOutRef, lucid));
 
-    // await runAndAwaitTx(
-    //   lucid,
-    //   redeemLrp(
-    //     [[lrpOutRef, 5_000_000n]],
-    //     lrpRefScriptOutRef,
-    //     await findPriceOracle(lucid, network, oracleValidatorHash, oracleNft),
-    //     await findIAsset(
-    //       lucid,
-    //       network,
-    //       iassetValHash,
-    //       iassetNft,
-    //       iassetTokenName,
-    //     ),
-    //     lucid,
-    //     lrpParams,
-    //     priceOracleParams,
-    //     network,
-    //   ),
-    // );
+    await runAndAwaitTx(
+      lucid,
+      redeemLrp(
+        [[lrpOutRef, 5_000_000n]],
+        lrpRefScriptOutRef,
+        await findPriceOracle(lucid, network, oracleValidatorHash, oracleNft),
+        await findIAsset(
+          lucid,
+          network,
+          iassetValHash,
+          iassetNft,
+          iassetTokenName,
+        ),
+        lucid,
+        lrpParams,
+        priceOracleParams,
+        network,
+      ),
+    );
   });
 });
