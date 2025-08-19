@@ -3,6 +3,7 @@ import {
   Assets,
   Constr,
   Credential,
+  credentialToAddress,
   Data,
   fromText,
   LucidEvolution,
@@ -20,7 +21,6 @@ import {
   SystemParams,
 } from '../types/system-params';
 import { IAssetHelpers, IAssetOutput } from '../helpers/asset-helpers';
-import { CDPCreatorContract } from './cdp-creator';
 import { CollectorContract } from './collector';
 import { InterestOracleContract } from './interest-oracle';
 import { GovContract } from './gov';
@@ -42,6 +42,7 @@ import {
 import { _cdpValidator } from '../scripts/cdp-validator';
 import { parsePriceOracleDatum } from '../types/indigo/price-oracle';
 import { parseInterestOracleDatum } from '../types/indigo/interest-oracle';
+import { castCDPCreatorRedeemer } from '../types/indigo/cdp-creator';
 
 export class CDPContract {
   static async openPosition(
@@ -91,19 +92,26 @@ export class CDPContract {
       cdpCreatorRef
         ? await lucid.utxosByOutRef([cdpCreatorRef])
         : await lucid.utxosAtWithUnit(
-            CDPCreatorContract.address(params.cdpCreatorParams, lucid),
+            credentialToAddress(lucid.config().network, {
+              type: 'Script',
+              hash: params.validatorHashes.cdpCreatorHash
+            }),
             params.cdpCreatorParams.cdpCreatorNft[0].unCurrencySymbol +
               fromText(params.cdpCreatorParams.cdpCreatorNft[1].unTokenName),
           ),
     );
-    const cdpCreatorRedeemer = CDPCreatorContract.redeemer(
-      pkh,
-      mintedAmount,
-      collateralAmount,
-      BigInt(now),
-    );
-    const cdpCreatorScriptRefUtxo = await CDPCreatorContract.scriptRef(
-      params.scriptReferences,
+
+    const cdpCreatorRedeemer = castCDPCreatorRedeemer({
+      CreateCDP: {
+        cdpOwner: pkh.hash,
+        minted: mintedAmount,
+        collateral: collateralAmount,
+        currentTime: BigInt(now),
+      },
+    });
+    
+    const cdpCreatorScriptRefUtxo = await scriptRef(
+      params.scriptReferences.cdpCreatorValidatorRef,
       lucid,
     );
 
@@ -157,7 +165,7 @@ export class CDPContract {
     // Oracle timestamp - 20s (length of a slot)
     const cappedValidateTo = oracleDatum.expiration - 20_001n;
     const timeValidFrom = now - 1_000;
-    const timeValidTo_ = now + params.cdpCreatorParams.biasTime - 1_000;
+    const timeValidTo_ = now + Number(params.cdpCreatorParams.biasTime) - 1_000;
     const timeValidTo =
       cappedValidateTo <= timeValidFrom
         ? timeValidTo_
@@ -426,7 +434,7 @@ export class CDPContract {
     // Oracle timestamp - 20s (length of a slot)
     const cappedValidateTo = od.expiration - 20_001n;
     const timeValidFrom = now - 1_000;
-    const timeValidTo_ = now + params.cdpCreatorParams.biasTime - 1_000;
+    const timeValidTo_ = now + Number(params.cdpCreatorParams.biasTime) - 1_000;
     const timeValidTo =
       cappedValidateTo <= timeValidFrom
         ? timeValidTo_
@@ -593,7 +601,7 @@ export class CDPContract {
     // Oracle timestamp - 20s (length of a slot)
     const cappedValidateTo = od.expiration - 20_001n;
     const timeValidFrom = now - 1_000;
-    const timeValidTo_ = now + params.cdpCreatorParams.biasTime - 1_000;
+    const timeValidTo_ = now + Number(params.cdpCreatorParams.biasTime) - 1_000;
     const timeValidTo =
       cappedValidateTo <= timeValidFrom
         ? timeValidTo_

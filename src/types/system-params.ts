@@ -1,4 +1,5 @@
-import { CurrencySymbol, TokenName } from './generic';
+import { fromText, toText } from '@lucid-evolution/lucid';
+import { AssetClass, CurrencySymbol, TokenName } from './generic';
 
 /**
  * AssetClassSP used in System Params
@@ -13,15 +14,15 @@ export interface SystemParams {
   stakingParams: StakingParams;
   stabilityPoolParams: StabilityPoolParams;
   scriptReferences: ScriptReferences;
-  pollShardParams: PollShardParams;
-  pollManagerParams: PollManagerParams;
+  pollShardParams: PollShardParamsSP;
+  pollManagerParams: PollManagerParamsSP;
   indyToken: AssetClassSP;
-  govParams: GovParams;
-  executeParams: ExecuteParams;
+  govParams: GovParamsSP;
+  executeParams: ExecuteParamsSP;
   distributionParams: DistributionParams;
   collectorParams: CollectorParams;
   cdpParams: CdpParams;
-  cdpCreatorParams: CdpCreatorParams;
+  cdpCreatorParams: CDPCreatorParamsSP;
 }
 export type ValidatorHashes = {
   versionRegistryHash: string;
@@ -150,14 +151,14 @@ export interface AuthTokenPolicies {
   accountTokenRef: ScriptReference;
 }
 
-export interface PollShardParams {
+export interface PollShardParamsSP {
   stakingValHash: string;
   stakingToken: AssetClassSP;
   pollToken: AssetClassSP;
   indyAsset: AssetClassSP;
 }
 
-export interface PollManagerParams {
+export interface PollManagerParamsSP {
   upgradeToken: AssetClassSP;
   treasuryValHash: string;
   shardsValHash: string;
@@ -169,7 +170,7 @@ export interface PollManagerParams {
   govExecuteValHash: string;
 }
 
-export interface GovParams {
+export interface GovParamsSP {
   versionRecordToken: AssetClassSP;
   upgradeToken: AssetClassSP;
   pollToken: AssetClassSP;
@@ -180,17 +181,17 @@ export interface GovParams {
   gBiasTime: number;
   daoIdentityToken: AssetClassSP;
 }
-export interface ExecuteParams {
-  versionRegistryValHash: string;
-  versionRecordToken: AssetClassSP;
-  upgradeToken: AssetClassSP;
-  treasuryValHash: string;
-  stabilityPoolToken: AssetClassSP;
-  sPoolValHash: string;
-  maxInterestPeriods: number;
-  iAssetToken: AssetClassSP;
+export interface ExecuteParamsSP {
   govNFT: AssetClassSP;
+  upgradeToken: AssetClassSP;
+  iAssetToken: AssetClassSP;
+  stabilityPoolToken: AssetClassSP;
+  versionRecordToken: AssetClassSP;
   cdpValHash: string;
+  sPoolValHash: string;
+  versionRegistryValHash: string;
+  treasuryValHash: string;
+  indyAsset: AssetClassSP;
 }
 export interface DistributionParams {
   treasuryIndyAmount: number;
@@ -218,7 +219,7 @@ export interface CdpParams {
   biasTime: number;
 }
 
-export interface CdpCreatorParams {
+export interface CDPCreatorParamsSP {
   versionRecordToken: AssetClassSP;
   minCollateralInLovelace: number;
   iAssetAuthTk: AssetClassSP;
@@ -228,4 +229,19 @@ export interface CdpCreatorParams {
   cdpAuthTk: AssetClassSP;
   cdpAssetCs: CurrencySymbol;
   biasTime: number;
+}
+
+export function toSystemParamsAsset(asset: AssetClass): AssetClassSP {
+  return [
+    { unCurrencySymbol: asset.currencySymbol },
+    { unTokenName: toText(asset.tokenName) },
+  ];
+}
+
+
+export function fromSystemParamsAsset(asset: AssetClassSP): AssetClass {
+  return {
+    currencySymbol: asset[0].unCurrencySymbol,
+    tokenName: fromText(asset[1].unTokenName),
+  };
 }

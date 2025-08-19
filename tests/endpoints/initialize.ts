@@ -9,6 +9,7 @@ import {
   SpendingValidator,
   toText,
   validatorToAddress,
+  validatorToScriptHash,
 } from '@lucid-evolution/lucid';
 import {
   addrDetails,
@@ -16,15 +17,23 @@ import {
   AssetClassSP,
   CDPContract,
   CDPCreatorContract,
-  CdpCreatorParams,
+  CDPCreatorParamsSP,
   CdpParams,
   CollectorContract,
   CollectorParams,
+  ExecuteParams,
+  ExecuteParamsSP,
+  GovParamsSP,
   IAssetContent,
   Input,
   InterestOracleDatum,
   InterestOracleParams,
+  mkCDPCreatorValidatorFromSP,
   mkInterestOracleValidator,
+  mkPollManagerValidatorFromSP,
+  mkPollShardValidatorFromSP,
+  PollManagerParamsSP,
+  PollShardParamsSP,
   PriceOracleDatum,
   PriceOracleParams,
   runOneShotMintTx,
@@ -37,6 +46,7 @@ import {
   StabilityPoolParams,
   StakingParams,
   SystemParams,
+  toSystemParamsAsset,
   TreasuryContract,
   TreasuryParams,
 } from '../../src';
@@ -46,6 +56,10 @@ import { serialiseStakingDatum } from '../../src/types/indigo/staking';
 import { mkIAssetTokenPolicy } from '../../src/scripts/iasset-policy';
 import { runAndAwaitTx } from '../test-helpers';
 import { mkPriceOracleValidator } from '../../src/scripts/price-oracle-validator';
+import { mkVersionRecordTokenPolicy } from '../../src/scripts/version-record-policy';
+import { mkVersionRegistryValidator } from '../../src/scripts/version-registry';
+import { mkExecuteValidator, mkExecuteValidatorFromSP } from '../../src/scripts/execute-validator';
+import { mkGovValidator, mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -198,8 +212,16 @@ export async function init(
     tokenName: fromText(stabilityPoolTokenName),
   };
 
-  // TODO: Create Version Record Token Policy
-  const versionRecordToken: AssetClass = govNftAsset;
+  const versionRecordTokenPolicy = mkVersionRecordTokenPolicy({
+    upgradeToken: upgradeToken,
+  });
+  const versionRecordToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(versionRecordTokenPolicy),
+    tokenName: fromText(versionRecordTokenName),
+  };
+
+  const versionRegistryValidator = mkVersionRegistryValidator();
+  const versionRegistryValHash = validatorToScriptHash(versionRegistryValidator)
 
   const cdpCreatorAsset: AssetClass = {
     currencySymbol: await mintOneTimeToken(
@@ -252,6 +274,7 @@ export async function init(
     indyToken: toSystemParamsAsset(indyAsset),
     collectorValHash: collectorValHash,
   };
+  const stakingValHash = StakingContract.validatorHash(stakingParams);
 
   await initStakingManager(lucid, stakingParams);
 
@@ -301,6 +324,9 @@ export async function init(
     treasuryUtxosStakeCredential: null,
   };
 
+  const treasuryValidator = TreasuryContract.validator(treasuryParams);
+  const treasuryValHash = TreasuryContract.validatorHash(treasuryParams);
+
   await initTreasury(
     lucid,
     treasuryParams,
@@ -326,7 +352,7 @@ export async function init(
   };
   const cdpValHash = CDPContract.validatorHash(cdpParams);
 
-  const cdpCreatorParams: CdpCreatorParams = {
+  const cdpCreatorParams: CDPCreatorParamsSP = {
     cdpCreatorNft: toSystemParamsAsset(cdpCreatorAsset),
     cdpAssetCs: { unCurrencySymbol: assetSymbol },
     cdpAuthTk: toSystemParamsAsset(cdpToken),
@@ -334,10 +360,11 @@ export async function init(
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
     cdpScriptHash: cdpValHash,
     collectorValHash: collectorValHash,
-    minCollateralInLovelace: 10_000_000,
-    biasTime: 8_000,
+    minCollateralInLovelace: 10_000_000n,
+    biasTime: 8_000n,
   };
-  const cdpCreatorValHash = CDPCreatorContract.validatorHash(cdpCreatorParams);
+  const cdpCreatorValidator = mkCDPCreatorValidatorFromSP(cdpCreatorParams);
+  const cdpCreatorValHash = validatorToScriptHash(cdpCreatorValidator);
 
   await initCDPCreator(lucid, cdpCreatorParams);
   await initCollector(lucid, collectorParams);
@@ -370,10 +397,64 @@ export async function init(
     await mintAuthTokenDirect(lucid, govNftAsset, pollManagerTokenName, -1n);
   }
 
+  const executeParams: ExecuteParamsSP = {
+    govNFT: toSystemParamsAsset(govNftAsset),
+    upgradeToken: toSystemParamsAsset(upgradeToken),
+    iAssetToken: toSystemParamsAsset(iassetToken),
+    stabilityPoolToken: toSystemParamsAsset(stabilityPoolToken),
+    versionRecordToken: toSystemParamsAsset(versionRecordToken),
+    cdpValHash: cdpValHash,
+    sPoolValHash: stabilityPoolValHash,
+    versionRegistryValHash: versionRegistryValHash,
+    treasuryValHash: treasuryValHash,
+    indyAsset: toSystemParamsAsset(indyAsset),
+  };
+  const executeValidator = mkExecuteValidatorFromSP(executeParams);
+  const executeValHash = validatorToScriptHash(executeValidator);
+
+  const pollShardParams: PollShardParamsSP = {
+    pollToken: toSystemParamsAsset(pollToken),
+    stakingToken: toSystemParamsAsset(stakingToken),
+    indyAsset: toSystemParamsAsset(indyAsset),
+    stakingValHash: stakingValHash,
+  }
+  const pollShardValidator = mkPollShardValidatorFromSP(pollShardParams);
+  const pollShardValHash = validatorToScriptHash(pollShardValidator);
+
+  const pollManagerParams: PollManagerParamsSP = {
+    govNFT: toSystemParamsAsset(govNftAsset),
+    pollToken: toSystemParamsAsset(pollToken),
+    upgradeToken: toSystemParamsAsset(upgradeToken),
+    indyAsset: toSystemParamsAsset(indyAsset),
+    govExecuteValHash: executeValHash,
+    pBiasTime: 120_000n,
+    shardsValHash: pollShardValHash,
+    treasuryValHash: treasuryValHash,
+    initialIndyDistribution: 1_575_000_000_000n,
+  }
+  const pollManagerValidator = mkPollManagerValidatorFromSP(pollManagerParams);
+  const pollManagerValHash = validatorToScriptHash(pollManagerValidator);
+
+  const govParams: GovParamsSP = {
+    gBiasTime: 120_000n,
+    govNFT: toSystemParamsAsset(govNftAsset),
+    pollToken: toSystemParamsAsset(pollToken),
+    upgradeToken: toSystemParamsAsset(upgradeToken),
+    indyAsset: toSystemParamsAsset(indyAsset),
+    versionRecordToken: toSystemParamsAsset(versionRecordToken),
+    pollManagerValHash: pollManagerValHash,
+    daoIdentityToken: toSystemParamsAsset(daoAsset),
+    iAssetAuthToken: toSystemParamsAsset(iassetToken),
+  }
+  const govValidator = mkGovValidatorFromSP(govParams);
+  const govValHash = validatorToScriptHash(govValidator);
+
   return {
     cdpParams: cdpParams,
     cdpCreatorParams: cdpCreatorParams,
     collectorParams: collectorParams,
+    executeParams: executeParams,
+    govParams: govParams,
     stakingParams: stakingParams,
     stabilityPoolParams: stabilityPoolParams,
     treasuryParams: treasuryParams,
@@ -381,11 +462,23 @@ export async function init(
       cdpCreatorValidatorRef: {
         input: await initScriptRef(
           lucid,
-          CDPCreatorContract.validator(cdpCreatorParams),
+          cdpCreatorValidator,
         ),
       },
       cdpValidatorRef: {
         input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
+      },
+      executeValidatorRef: {
+        input: await initScriptRef(lucid, executeValidator),
+      },
+      govValidatorRef: {
+        input: await initScriptRef(lucid, govValidator),
+      },
+      pollShardValidatorRef: {  
+        input: await initScriptRef(lucid, pollShardValidator),
+      },
+      pollManagerValidatorRef: {
+        input: await initScriptRef(lucid, pollManagerValidator),
       },
       iAssetTokenPolicyRef: {
         input: await initScriptRef(lucid, assetSymbolPolicy),
@@ -415,16 +508,27 @@ export async function init(
         stabilityPoolAuthTokenRef: {
           input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
         },
+        pollManagerTokenRef: {
+          input: await initScriptRef(lucid, pollTokenPolicy),
+        },
         stakingTokenRef: {
           input: await initScriptRef(lucid, stakingTokenPolicy),
+        },
+        versionRecordTokenRef: {
+          input: await initScriptRef(lucid, versionRecordTokenPolicy),
         },
       },
     },
     validatorHashes: {
       cdpCreatorHash: cdpCreatorValHash,
       cdpHash: cdpValHash,
+      executeHash: executeValHash,
+      govHash: govValHash,
+      pollShardHash: pollShardValHash,
+      pollManagerHash: pollManagerValHash,
+      treasuryHash: treasuryValHash,
       stabilityPoolHash: stabilityPoolValHash,
-      stakingHash: StakingContract.validatorHash(stakingParams),
+      stakingHash: stakingValHash,
     },
   } as unknown as SystemParams;
 }
@@ -494,13 +598,16 @@ async function initCollector(
 
 async function initCDPCreator(
   lucid: LucidEvolution,
-  cdpCreatorParams: CdpCreatorParams,
+  cdpCreatorParams: CDPCreatorParamsSP,
 ): Promise<void> {
   const tx = lucid.newTx();
 
   for (let i = 0; i < Number(numCdpCreators); i++) {
     tx.pay.ToContract(
-      CDPCreatorContract.address(cdpCreatorParams, lucid),
+      credentialToAddress(lucid.config().network, {
+        hash: validatorToScriptHash(mkCDPCreatorValidatorFromSP(cdpCreatorParams)),
+        type: 'Script',
+      }),
       { kind: 'inline', value: Data.to(new Constr(0, [])) },
       {
         [cdpCreatorParams.cdpCreatorNft[0].unCurrencySymbol +
@@ -531,7 +638,6 @@ async function initTreasury(
     }),
     { kind: 'inline', value: Data.to(new Constr(0, [])) },
     {
-      lovelace: 5_000_000n,
       [daoAsset.currencySymbol + daoAsset.tokenName]: 1n,
       [indyAsset.currencySymbol + indyAsset.tokenName]: treasuryIndyAmount,
     },
@@ -801,11 +907,4 @@ async function mintAuthTokenDirect(
     .then((tx) => tx.submit());
 
   await lucid.awaitTx(txHash);
-}
-
-function toSystemParamsAsset(asset: AssetClass): AssetClassSP {
-  return [
-    { unCurrencySymbol: asset.currencySymbol },
-    { unTokenName: toText(asset.tokenName) },
-  ];
 }
