@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { loadSystemParamsFromFile, StakingContract, StabilityPoolContract, CollectorContract, CDPContract, mkCDPCreatorValidatorFromSP } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkExecuteValidatorFromSP } from '../src/scripts/execute-validator';
+import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
+import { mkGovValidator, mkGovValidatorFromSP } from '../src/scripts/gov-validator';
 
 const systemParams = loadSystemParamsFromFile(
   './tests/data/system-params.json',
@@ -32,6 +34,11 @@ describe('Validator Hash checks', () => {
   //     systemParams.validatorHashes.executeHash,
   //   );
   // });
+  it('Gov validator hash', () => {
+    expect(
+      validatorToScriptHash(mkGovValidatorFromSP(systemParams.govParams)),
+    ).toBe(systemParams.validatorHashes.govHash);
+  });
   it('Staking validator hash', () => {
     expect(StakingContract.validatorHash(systemParams.stakingParams)).toBe(
       systemParams.validatorHashes.stakingHash,
@@ -39,7 +46,7 @@ describe('Validator Hash checks', () => {
   });
   it('Stability Pool validator hash', () => {
     expect(
-      StabilityPoolContract.validatorHash(systemParams.stabilityPoolParams),
+      validatorToScriptHash(mkStabilityPoolValidatorFromSP(systemParams.stabilityPoolParams)),
     ).toBe(systemParams.validatorHashes.stabilityPoolHash);
   });
 });

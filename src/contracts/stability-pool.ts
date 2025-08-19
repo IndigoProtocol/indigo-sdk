@@ -11,6 +11,7 @@ import {
   Address,
   UTxO,
   paymentCredentialOf,
+  credentialToAddress,
 } from '@lucid-evolution/lucid';
 import {
   EpochToScaleToSum,
@@ -28,11 +29,11 @@ import {
 } from '../types/indigo/stability-pool';
 import {
   ScriptReferences,
-  StabilityPoolParams,
+  StabilityPoolParamsSP,
   SystemParams,
 } from '../types/system-params';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
-import { _stabilityPoolValidator } from '../scripts/stability-pool-validator';
+import { mkStabilityPoolValidatorFromSP } from '../scripts/stability-pool-validator';
 
 export class StabilityPoolContract {
   static async createAccount(
@@ -68,7 +69,12 @@ export class StabilityPoolContract {
     return lucid
       .newTx()
       .pay.ToContract(
-        StabilityPoolContract.address(params.stabilityPoolParams, lucid),
+        credentialToAddress(lucid.config().network, {
+          hash: validatorToScriptHash(
+            mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
+          ),
+          type: 'Script',
+        }),
         { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
         {
           lovelace: minLovelaces,
@@ -88,8 +94,8 @@ export class StabilityPoolContract {
   ): Promise<TxBuilder> {
     const [pkh, skh] = await addrDetails(lucid);
 
-    const stabilityPoolScriptRef = await StabilityPoolContract.scriptRef(
-      params.scriptReferences,
+    const stabilityPoolScriptRef = await scriptRef(
+      params.scriptReferences.stabilityPoolValidatorRef,
       lucid,
     );
 
@@ -129,22 +135,25 @@ export class StabilityPoolContract {
       },
     };
 
-    return (
-      lucid
-        .newTx()
-        .readFrom([stabilityPoolScriptRef])
-        // .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
-        .pay.ToContract(
-          StabilityPoolContract.address(params.stabilityPoolParams, lucid),
-          { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
-          {
-            lovelace: 5_000_000n,
-            [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
-            fromText(asset)]: amount,
-          },
-        )
-        .addSignerKey(pkh.hash)
-    );
+    return lucid
+      .newTx()
+      .readFrom([stabilityPoolScriptRef])
+      .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+      .pay.ToContract(
+        credentialToAddress(lucid.config().network, {
+          hash: validatorToScriptHash(
+            mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
+          ),
+          type: 'Script',
+        }),
+        { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
+        {
+          lovelace: 5_000_000n,
+          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
+          fromText(asset)]: amount,
+        },
+      )
+      .addSignerKey(pkh.hash);
   }
 
   static async closeAccount(
@@ -155,8 +164,8 @@ export class StabilityPoolContract {
   ): Promise<TxBuilder> {
     const [pkh, skh] = await addrDetails(lucid);
 
-    const stabilityPoolScriptRef = await StabilityPoolContract.scriptRef(
-      params.scriptReferences,
+    const stabilityPoolScriptRef = await scriptRef(
+      params.scriptReferences.stabilityPoolValidatorRef,
       lucid,
     );
 
@@ -195,20 +204,23 @@ export class StabilityPoolContract {
       },
     };
 
-    return (
-      lucid
-        .newTx()
-        .readFrom([stabilityPoolScriptRef])
-        // .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
-        .pay.ToContract(
-          StabilityPoolContract.address(params.stabilityPoolParams, lucid),
-          { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
-          {
-            lovelace: 5_000_000n,
-          },
-        )
-        .addSignerKey(pkh.hash)
-    );
+    return lucid
+      .newTx()
+      .readFrom([stabilityPoolScriptRef])
+      .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+      .pay.ToContract(
+        credentialToAddress(lucid.config().network, {
+          hash: validatorToScriptHash(
+            mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
+          ),
+          type: 'Script',
+        }),
+        { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
+        {
+          lovelace: 5_000_000n,
+        },
+      )
+      .addSignerKey(pkh.hash);
   }
 
   static async processRequest(
@@ -229,8 +241,8 @@ export class StabilityPoolContract {
         },
       },
     };
-    const stabilityPoolScriptRef = await StabilityPoolContract.scriptRef(
-      params.scriptReferences,
+    const stabilityPoolScriptRef = await scriptRef(
+      params.scriptReferences.stabilityPoolValidatorRef,
       lucid,
     );
 
@@ -248,11 +260,10 @@ export class StabilityPoolContract {
 
     if (!accountDatum.request) throw 'Account Request is null';
     if (accountDatum.request == 'Create' || 'Create' in accountDatum.request) {
-      const accountTokenScriptRef =
-        await StabilityPoolContract.stabilityPoolTokenScriptRef(
-          params.scriptReferences,
-          lucid,
-        );
+      const accountTokenScriptRef = await scriptRef(
+        params.scriptReferences.authTokenPolicies.accountTokenRef,
+        lucid,
+      );
       tx.readFrom([accountTokenScriptRef]);
 
       const iassetUnit =
@@ -365,74 +376,5 @@ export class StabilityPoolContract {
     }
 
     return tx;
-  }
-
-  static validator(params: StabilityPoolParams): SpendingValidator {
-    return {
-      type: _stabilityPoolValidator.type,
-      script: applyParamsToScript(_stabilityPoolValidator.cborHex, [
-        new Constr(0, [
-          params.assetSymbol.unCurrencySymbol,
-          new Constr(0, [
-            params.stabilityPoolToken[0].unCurrencySymbol,
-            fromText(params.stabilityPoolToken[1].unTokenName),
-          ]),
-          new Constr(0, [
-            params.snapshotEpochToScaleToSumToken[0].unCurrencySymbol,
-            fromText(params.snapshotEpochToScaleToSumToken[1].unTokenName),
-          ]),
-          new Constr(0, [
-            params.accountToken[0].unCurrencySymbol,
-            fromText(params.accountToken[1].unTokenName),
-          ]),
-          new Constr(0, [
-            params.cdpToken[0].unCurrencySymbol,
-            fromText(params.cdpToken[1].unTokenName),
-          ]),
-          new Constr(0, [
-            params.iAssetAuthToken[0].unCurrencySymbol,
-            fromText(params.iAssetAuthToken[1].unTokenName),
-          ]),
-          new Constr(0, [
-            params.versionRecordToken[0].unCurrencySymbol,
-            fromText(params.versionRecordToken[1].unTokenName),
-          ]),
-          params.collectorValHash,
-          new Constr(0, [
-            params.govNFT[0].unCurrencySymbol,
-            fromText(params.govNFT[1].unTokenName),
-          ]),
-          BigInt(params.accountCreateFeeLovelaces),
-          BigInt(params.accountAdjustmentFeeLovelaces),
-          BigInt(params.requestCollateralLovelaces),
-        ]),
-      ]),
-    };
-  }
-
-  static validatorHash(params: StabilityPoolParams): string {
-    return validatorToScriptHash(StabilityPoolContract.validator(params));
-  }
-
-  static address(params: StabilityPoolParams, lucid: LucidEvolution): Address {
-    const network = lucid.config().network;
-    if (!network) {
-      throw new Error('Network configuration is undefined');
-    }
-    return validatorToAddress(network, StabilityPoolContract.validator(params));
-  }
-
-  static async scriptRef(
-    params: ScriptReferences,
-    lucid: LucidEvolution,
-  ): Promise<UTxO> {
-    return scriptRef(params.stabilityPoolValidatorRef, lucid);
-  }
-
-  static async stabilityPoolTokenScriptRef(
-    params: ScriptReferences,
-    lucid: LucidEvolution,
-  ): Promise<UTxO> {
-    return scriptRef(params.authTokenPolicies.stabilityPoolTokenRef, lucid);
   }
 }

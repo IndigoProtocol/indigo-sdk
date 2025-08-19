@@ -23,6 +23,8 @@ import {
   CollectorParams,
   ExecuteParams,
   ExecuteParamsSP,
+  GovDatum,
+  GovParams,
   GovParamsSP,
   IAssetContent,
   Input,
@@ -37,13 +39,14 @@ import {
   PriceOracleDatum,
   PriceOracleParams,
   runOneShotMintTx,
+  serialiseGovDatum,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
   serialiseStabilityPoolDatum,
   StabilityPoolContent,
   StabilityPoolContract,
-  StabilityPoolParams,
+  StabilityPoolParamsSP,
   StakingParams,
   SystemParams,
   toSystemParamsAsset,
@@ -60,6 +63,7 @@ import { mkVersionRecordTokenPolicy } from '../../src/scripts/version-record-pol
 import { mkVersionRegistryValidator } from '../../src/scripts/version-registry';
 import { mkExecuteValidator, mkExecuteValidatorFromSP } from '../../src/scripts/execute-validator';
 import { mkGovValidator, mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
+import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool-validator';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -299,7 +303,7 @@ export async function init(
     tokenName: fromText(accountTokenName),
   };
 
-  const stabilityPoolParams: StabilityPoolParams = {
+  const stabilityPoolParams: StabilityPoolParamsSP = {
     assetSymbol: { unCurrencySymbol: assetSymbol },
     stabilityPoolToken: toSystemParamsAsset(stabilityPoolToken),
     snapshotEpochToScaleToSumToken: toSystemParamsAsset(
@@ -311,12 +315,12 @@ export async function init(
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
     collectorValHash: collectorValHash,
     govNFT: toSystemParamsAsset(govNftAsset),
-    accountCreateFeeLovelaces: 5_000_000,
-    accountAdjustmentFeeLovelaces: 5_000_000,
-    requestCollateralLovelaces: 5_000_000,
+    accountCreateFeeLovelaces: 5_000_000n,
+    accountAdjustmentFeeLovelaces: 5_000_000n,
+    requestCollateralLovelaces: 5_000_000n,
   };
-  const stabilityPoolValHash =
-    StabilityPoolContract.validatorHash(stabilityPoolParams);
+  const stabilityPoolValidator = mkStabilityPoolValidatorFromSP(stabilityPoolParams);
+  const stabilityPoolValHash = validatorToScriptHash(stabilityPoolValidator);
 
   const treasuryParams: TreasuryParams = {
     upgradeToken: toSystemParamsAsset(upgradeToken),
@@ -449,6 +453,8 @@ export async function init(
   const govValidator = mkGovValidatorFromSP(govParams);
   const govValHash = validatorToScriptHash(govValidator);
 
+  await initGovernance(lucid, govParams, govNftAsset);
+
   return {
     cdpParams: cdpParams,
     cdpCreatorParams: cdpCreatorParams,
@@ -490,10 +496,7 @@ export async function init(
         ),
       },
       stabilityPoolValidatorRef: {
-        input: await initScriptRef(
-          lucid,
-          StabilityPoolContract.validator(stabilityPoolParams),
-        ),
+        input: await initScriptRef(lucid, stabilityPoolValidator),
       },
       authTokenPolicies: {
         cdpAuthTokenRef: {
@@ -502,7 +505,7 @@ export async function init(
         iAssetAuthTokenRef: {
           input: await initScriptRef(lucid, iassetTokenPolicy),
         },
-        stabilityPoolTokenRef: {
+        accountTokenRef: {
           input: await initScriptRef(lucid, accountTokenPolicy),
         },
         stabilityPoolAuthTokenRef: {
@@ -756,7 +759,7 @@ async function initializeAsset(
   lucid: LucidEvolution,
   cdpParams: CdpParams,
   iassetToken: AssetClass,
-  stabilityPoolParams: StabilityPoolParams,
+  stabilityPoolParams: StabilityPoolParamsSP,
   stabilityPoolToken: AssetClass,
   asset: InitialAsset,
   now: number = Date.now(),
@@ -853,7 +856,10 @@ async function initializeAsset(
   };
 
   const spTx = lucid.newTx().pay.ToContract(
-    StabilityPoolContract.address(stabilityPoolParams, lucid),
+    credentialToAddress(lucid.config().network, {
+      hash: validatorToScriptHash(mkStabilityPoolValidatorFromSP(stabilityPoolParams)),
+      type: 'Script',
+    }),
     {
       kind: 'inline',
       value: serialiseStabilityPoolDatum({
@@ -872,6 +878,51 @@ async function initializeAsset(
 
   await lucid.awaitTx(spTxHash);
 }
+
+async function initGovernance(
+    lucid: LucidEvolution,
+    governanceParams: GovParamsSP,
+    govToken: AssetClass,
+  ): Promise<void> {
+    const datum: GovDatum = {
+        currentProposal: 0n,
+        currentVersion: 0n,
+        protocolParams: {
+            effectiveDelay: 1_000n,
+            expirationPeriod: 180_000n,
+            proposalDeposit: 0n,
+            proposingPeriod: 8_000n,
+            collateralFeePercentage: {
+                getOnChainInt: 1_500_000n,
+            },
+            votingPeriod: 10_000n,
+            totalShards: 4n,
+            minimumQuorum: 100_000n,
+            maxTreasuryLovelaceSpend: 10_000_000n,
+            maxTreasuryIndySpend: 10_000_000n,
+        },
+        activeProposals: 0n,
+        treasuryIndyWithdrawnAmt: 0n,
+        iassetsCount: BigInt(initialAssets.length),
+    };
+    const tx = lucid.newTx().pay.ToContract(
+      credentialToAddress(lucid.config().network, {
+        hash:validatorToScriptHash(mkGovValidatorFromSP(governanceParams)),
+        type: 'Script',
+      }),
+      { kind: 'inline', value: serialiseGovDatum(datum) },
+      {
+        [govToken.currencySymbol + govToken.tokenName]: 1n,
+      },
+    );
+  
+    const txHash = await tx
+      .complete()
+      .then((tx) => tx.sign.withWallet().complete())
+      .then((tx) => tx.submit());
+  
+    await lucid.awaitTx(txHash);
+  }
 
 async function mintAuthTokenDirect(
   lucid: LucidEvolution,

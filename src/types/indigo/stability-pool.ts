@@ -1,6 +1,6 @@
 import { Data, Datum } from '@lucid-evolution/lucid';
 import { match, P } from 'ts-pattern';
-import { AddressSchema, OutputReferenceSchema } from '../generic';
+import { AddressSchema, AssetClassSchema, OutputReferenceSchema } from '../generic';
 
 export const SPIntegerSchema = Data.Object({
   value: Data.Integer(),
@@ -158,6 +158,29 @@ export function serialiseStabilityPoolRedeemer(
   return Data.to<StabilityPoolRedeemer>(params, StabilityPoolRedeemer);
 }
 
+/** SP Parameters */
+const StabilityPoolParamsSchema = Data.Object({
+  assetSymbol: Data.Bytes(),
+  stabilityPoolToken: AssetClassSchema,
+  snapshotEpochToScaleToSumToken: AssetClassSchema,
+  accountToken: AssetClassSchema,
+  cdpToken: AssetClassSchema,
+  iAssetAuthToken: AssetClassSchema,
+  versionRecordToken: AssetClassSchema,
+  collectorValHash: Data.Bytes(),
+  govNFT: AssetClassSchema,
+  accountCreateFeeLovelaces: Data.Integer(),
+  accountAdjustmentFeeLovelaces: Data.Integer(),
+  requestCollateralLovelaces: Data.Integer(),
+});
+export type StabilityPoolParams = Data.Static<typeof StabilityPoolParamsSchema>;
+export const StabilityPoolParams = StabilityPoolParamsSchema as unknown as StabilityPoolParams;
+
+export function castStabilityPoolParams(params: StabilityPoolParams): Data {
+  return Data.castTo(params, StabilityPoolParams);
+}
+
+/** SP Integer */
 const spPrecision: bigint = 1000000000000000000n;
 
 export function mkSPInteger(value: bigint): bigint {

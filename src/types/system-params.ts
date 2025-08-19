@@ -12,7 +12,7 @@ export interface SystemParams {
   treasuryParams: TreasuryParams;
   startTime: StartTime;
   stakingParams: StakingParams;
-  stabilityPoolParams: StabilityPoolParams;
+  stabilityPoolParams: StabilityPoolParamsSP;
   scriptReferences: ScriptReferences;
   pollShardParams: PollShardParamsSP;
   pollManagerParams: PollManagerParamsSP;
@@ -72,7 +72,7 @@ export interface StakingParams {
   indyToken: AssetClassSP;
   collectorValHash: string;
 }
-export interface StabilityPoolParams {
+export interface StabilityPoolParamsSP {
   versionRecordToken: AssetClassSP;
   stabilityPoolToken: AssetClassSP;
   snapshotEpochToScaleToSumToken: AssetClassSP;
@@ -163,8 +163,8 @@ export interface PollManagerParamsSP {
   treasuryValHash: string;
   shardsValHash: string;
   pollToken: AssetClassSP;
-  pBiasTime: number;
-  initialIndyDistribution: number;
+  pBiasTime: bigint;
+  initialIndyDistribution: bigint;
   indyAsset: AssetClassSP;
   govNFT: AssetClassSP;
   govExecuteValHash: string;
@@ -178,7 +178,7 @@ export interface GovParamsSP {
   indyAsset: AssetClassSP;
   iAssetAuthToken: AssetClassSP;
   govNFT: AssetClassSP;
-  gBiasTime: number;
+  gBiasTime: bigint;
   daoIdentityToken: AssetClassSP;
 }
 export interface ExecuteParamsSP {
@@ -228,7 +228,7 @@ export interface CDPCreatorParamsSP {
   cdpCreatorNft: AssetClassSP;
   cdpAuthTk: AssetClassSP;
   cdpAssetCs: CurrencySymbol;
-  biasTime: number;
+  biasTime: bigint;
 }
 
 export function toSystemParamsAsset(asset: AssetClass): AssetClassSP {
