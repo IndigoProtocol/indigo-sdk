@@ -11,7 +11,7 @@ import { LRPParams } from '../src/types/indigo/lrp';
 import { mkLrpValidator } from '../src/scripts/lrp-validator';
 import { runCreateScriptRefTx } from '../src/helpers/helper-txs';
 import { runOneShotMintTx } from '../src/contracts/one-shot';
-import { cancelLrp, openLrp, redeemLrp } from '../src/contracts/lrp';
+import { openLrp, redeemLrp } from '../src/contracts/lrp';
 import { findLrp } from './queries/lrp-queries';
 import { addrDetails } from '../src/helpers/lucid-utils';
 import { runAndAwaitTx } from './test-helpers';
@@ -145,6 +145,7 @@ describe('LRP', () => {
         lrpParams,
         priceOracleParams,
         network,
+        emulator.slot,
       ),
     );
   });

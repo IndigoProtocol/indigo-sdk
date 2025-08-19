@@ -97,6 +97,7 @@ export async function redeemLrp(
   lrpParams: LRPParams,
   priceOracleParams: PriceOracleParams,
   network: Network,
+  currentSlot: number,
 ): Promise<TxBuilder> {
   const lrpScriptRefUtxo = matchSingle(
     await lucid.utxosByOutRef([lrpRefScriptOutRef]),
@@ -203,7 +204,7 @@ export async function redeemLrp(
   )(redemptionLrps);
 
   const txValidity = oracleExpirationAwareValidity(
-    lucid.currentSlot(),
+    currentSlot,
     Number(priceOracleParams.biasTime),
     Number(priceOracleDatum.expiration),
     network,
@@ -212,7 +213,7 @@ export async function redeemLrp(
   return (
     lucid
       .newTx()
-      // .validFrom(txValidity.validFrom)
+      .validFrom(txValidity.validFrom)
       .validTo(txValidity.validTo)
       // Ref script
       .readFrom([lrpScriptRefUtxo])
