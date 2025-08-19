@@ -1,0 +1,14 @@
+name = "indigo/smart-contract-aiken"
+version = "0.0.0"
+license = "Apache-2.0"
+description = "Aiken contracts for project 'indigo/smart-contract-aiken'"
+
+[repository]
+user = "indigo"
+project = "smart-contract-aiken"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "f905f2fe838def359bc9716270d3fe9be854ba57"
+source = "github"
