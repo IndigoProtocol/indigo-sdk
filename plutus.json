@@ -1,0 +1,2578 @@
+{
+  "preamble": {
+    "title": "indigo/smart-contract-aiken",
+    "description": "Aiken contracts for project 'indigo/smart-contract-aiken'",
+    "version": "0.0.0",
+    "plutusVersion": "v2",
+    "compiler": {
+      "name": "Aiken",
+      "version": "v1.0.26-alpha+075668b"
+    },
+    "license": "Apache-2.0"
+  },
+  "validators": [
+
+    {
+      "title": "execute.spend",
+      "datum": {
+        "title": "datum",
+        "schema": {
+          "$ref": "#/definitions/indigo~1contracts~1execute~1types~1ExecuteDatum"
+        }
+      },
+      "redeemer": {
+        "title": "_redeemer",
+        "schema": {
+          "$ref": "#/definitions/Void"
+        }
+      },
+      "parameters": [
+        {
+          "title": "params",
+          "schema": {
+            "$ref": "#/definitions/indigo~1contracts~1execute~1types~1ExecuteParams"
+          }
+        }
+      ],
+      "compiledCode": "59239701000032323232323232322232323232323232323232323232322322533301432325333016300e301837546038603a0042646464646464646464646464646464646464646464646464a66605c66002920125476f7620696e707574206d75737420757365207468652072696768742072656465656d657200533302e00c132323375e00498103d87b8000325333030302d00113232323232323232533303c303f00213232498c0a8008c0ac00c58c0f4004c0f4008c0ec004c0ec008dd7181c800981c8011bad3037001303337540042a666060605000226464a66606c60720042930b1bad3037001303337540042a666060604a0022a66606860666ea80085261615333030302400115333034303337540042930b0b18189baa0013300230153031375401a02c29444c94ccc0bccc0092401174d697865642070726f746f636f6c2076657273696f6e73003370e6eb4c02cc0c8dd50051bad30013032375405a2646464a6660646600a9212243616e206f6e6c7920636f6e73756d65206f6e65207570677261646520746f6b656e00302a300133301301b301630353754062980103d87980001533303233005491224d7573742065786563757465206166746572206566666563746976652064656c617900325333033302b30353754002266e20cdc01bad300f303637540626eb4c03cc0d8dd5180b981b1baa00e375a6072606c6ea8004528180c981a9baa3019303537546010606a6ea807454ccc0c8cc0152411143616e6e6f7420626520657870697265640000713232533233035332253330373034303937540042a66607601e2a66070921475768656e2066756e64732066726f6d207472656173757279207265717565737465642069742068617320746f207370656e642061207574786f2066726f6d20747265617375727900161533303b303e00f13232300500232533303930360011533303d303c37540042930b0a99981c98188008a99981e981e1baa00214985854ccc0e4c0b800454ccc0f4c0f0dd50010a4c2c2a666072605a0022a66607a60786ea800852616153330393370e90040008a99981e981e1baa00214985854ccc0e4cdc3a40140022a66607a60786ea80085261616303a375400266016603c60746ea8c0f403c00454cc0e1241475768656e2066756e64732066726f6d207472656173757279207265717565737465642069742068617320746f207370656e642061207574786f2066726f6d207472656173757279001613300a49014b5768656e206e6f207472656173757279207769746864726177616c207265717565737465642069742063616e2774207370656e6420616e79207574786f2066726f6d207472656173757279003034300600f3002303837540666eacc00cc0e0dd501009980424812b4661696c20746f2065786563757465207570677261646520696e20657865637574696e6720706572696f640032323232323232323232323232323232325332330473301a49012c54686520646174756d206f6620676f7665726e616e6365206d757374207570646174652070726f7065726c7900323253233304a304700213333300d00730233304f0014bd701802198279919191819998291829801998291829801198291829800998291ba8301e375a604860a06ea80a0c150c150004c14c004c148004c134dd5002a5eb80c030c0c4c134dd5024a6103d87a80001533304a303f00213333300d00730233304f0014bd7018021982799181899828182880099828182898271baa00430523052001304d375400a97ae0300c3031304d375409298103d87a80001533304a303e00213333300d00730233304f0014bd7018021982799191819198289829001198289829000998289ba8301d375a6050609e6ea809cc14cc14c004c148004c134dd5002a5eb80c030c0c4c134dd5024a6103d87a80001533304a302c00613333300d00730233304f0014bd70180219827802a5eb80c030c0c4c134dd5024a60103d87a8000133304a0284a0944c0bccc138c0c0c130dd5181818261baa302d304c37540506609c980103d87a80004bd7018251baa001302b304a375408a2a66608e66034920122546865207472616e73616374696f6e206d757374206d696e742070726f7065726c79003375e6e98c8cc004004dd5980d18259baa03322533304d00114bd6f7b63009919191929998269808801080189982919bb037520046e98004cc01801800cdd598278019bae304d0023051002304f001374c64a666090608a00226601c6601c6014603e60966ea811cc028c090c12cdd502398079805181618259baa04715333048303c00113300e300a301a304b375408e601e6014605860966ea811c4c03cc028c0b0c12cdd502398249baa302b304a375408a2a66608e6603492119496e636f727265637420494173736574207370656e64696e6700325333048304000114a22a666090608a00229444c114c8c8cc004004020894ccc13c004520001337006600400460a4002660206eacc0bcc138dd5181798271baa30510010033024304b375408e60926ea8c0acc128dd502289919299199825182380109919191919191919191919191919191919191919191919191929998319981b24812153746162696c697479506f6f6c206f757470757420697320696e636f72726563740033333026020303c33068304933068303c330683069306a306a306a306a306a306a306637540c497ae0330684c103d87a80004bd7025eb80c074cc1a0c124cc1a0c124cc1a0dd480c198342611dd8799fd8799f1b0de0b6b3a7640000ffd8799f00ffd8799f00ff0000ff00330684c10ca1d8799f0000ffd8799f00ff004bd7025eb812f5c0604a607460cc6ea818930103d87a8000153330633060375a607460cc6ea80f84cc0d92412370726f706f73656420694173736574206f757470757420697320696e636f727265637400330014a2980103d87a8000133036490125496e636f72726563746c7920636f6e73756d6564207265666572656e6365206961737365740032325333069306c0021325333066305e3068375400226464a6660d860de00426464a6660d460ce0022a6660d464a6660de60dc0022a6660d660c660da002294454ccc1acc1a0c1b40045280b0b1baa3070307130713071307130713071307130713071307130713071306d37540062a6660d46607a92012370726f706f73656420694173736574206f757470757420697320696e636f727265637400330084a260a0660de60a260da6ea800d2f5c026607a92123636f6e73756d656420694173736574206f757470757420697320696e636f7272656374003333302d02700930243306f30433306f323232323232323232323232305c3307b307c00c3307b307c00b3307b307c00a3307b307c0093307b307c0083307b307c0073307b307c0063307b307c0053307b307c0043307b307c0033307b307c0023307b307c0013307b3330764a0980103d87a80004c0103d8798000307d307d001307c001307b001307a00130790013078001307700130760013075001307400130730013072001306d375400697ae04bd701816182318369baa0694c0103d87a800014a0294054ccc1a8c17c00454ccc1a8c94ccc1acc1a0c1b4dd50008981b998198101bae3071306e37540022944c0a8c1b4dd50018a9998351981ea492370726f706f73656420694173736574206f757470757420697320696e636f727265637400330084a0605460da6ea800c4cc0f524123636f6e73756d656420694173736574206f757470757420697320696e636f7272656374003333302d02700930243306f30433306f323232323232323232323232305c3307b307c00c3307b307c00b3307b307c00a3307b307c0093307b307c0083307b307c0073307b307c0063307b307c0053307b307c0043307b307c0033307b307c0023307b307c0013307b307c307d0013307b305c3307b375205697ae04bd70183e000983d800983d000983c800983c000983b800983b000983a800983a0009839800983900098369baa0034bd7025eb80c0b0c118c1b4dd5034a60103d87a800014a0294054cc1ad2411a537563682069617373657420616c7265616479206578697374730016306b37546606203c6eb8c140c1b0dd500118148008b183680098349baa001163042304130683754609260d06ea800458c1a8004ccc110dd6182518331baa04e303f306637540c4980103d879800014a0446666604e042006603c660d2607a660d26094660d26ea4064cc1a4c0f4cc1a405d2f5c0660d202a660d2026660d2022660d201e660d201a660d2016660d2012660d200e660d200a660d2008660d26660c8004980103d87a80004c0103d8798000330690014bd7025eb812f5c0604c608060ce6ea818d30103d87a8000303a33066304733066018330664c0103d87a80004bd7025eb80c198c19c008c194004c194008c18c004c18c008c184004c184008c17c004c17c008c174004c174008c16c004c16c008c164004c164008c15c004c15c008c154004c154008c14c004c14c008dd7182880098269baa0031533304a30420021323232323232323232323232323232323232323232323232325333067306a0021325333064305c3066375400226464a6660d460da004264a6660ce6607492011a694173736574206f757470757420697320696e636f7272656374003333302a02430403306c304d3306c01e3306c4c103d87a80004bd7025eb80c084cc1b0c100cc1b0c134cc1b0dd480e1983600d1983600c1983600b1983600a1983600919836008198360071983600619836005198360041983600398371837183718371837183718371837183718371837183718351baa0024bd7025eb80c0a4c10cc1a8dd5033260103d87a8000153330673303a4911b5370656e6420696e76616c696420694173736574206f7574707574003371e6eb8c138c1a8dd500100e0a9998339981d2491f43616e6e6f74206d6f6469667920612064656c697374656420694173736574005333067306430693754609660d46ea800854cc1a12411f43616e6e6f74206d6f6469667920612064656c697374656420694173736574001614a226607492011d4d6967726174696e67206e6f6e2d757067726164656420494173736574003375e609c60d46ea8c138c1a8dd5182598351baa00501e14a0294052818138008b183580098339baa001163040303f30663754608e60cc6ea800458c1a0004ccc10807cc0f4c190dd503026103d879800030663067002306500130650023063001306300230610013061002305f001305f002305d001305d002305b001305b00230590013059002305700130570023055001305500230530013053002375c60a2002609a6ea800c54ccc128c0f80084c8cc07924012176657273696f6e5265636f7264206f757470757420697320696e636f7272656374003333300e0083024330503031330503024330503021304e375409497ae0330504c103d87a80004bd7025eb80c014cc140c0c4cc140c144004cc140dd319198008009bab3052305300222533305100114bd6f7b6300998291919bb0305000130353051375460a200260a60026600400460a800297ae04bd701806980e98271baa04a4c0103d87a8000304d375460a0609a6ea800c54ccc128c0fc0085288a5130223304e3016304c375409097ae0304a3754002605660946ea81145280a50374a90020a5032323232302f3304e304f0043304e304f0033304e304f0023304e304f0013304e304f30500013304e37506644a66609666e2000400840044008cdc01bad3016304c375404800a66e092082d1cc044820225e92f5c0609e002609c002609a00260906ea8080c94ccc114c108c11cdd5000899805191980080099198008009bac302b304a3754609a60946ea800c894ccc13000452f5c026609a6e9cc8c8cc13cc140008cc13cc140004cc13cc140c1440052f5c060a000260966ea8c138004cc008008c13c004894ccc12c00452f5bded8c02664464666444a66609a6094002200a26666602e00a0066464004646600200200444a6660a8002293099299982a8008a4c26464a6660a660a060aa6ea8cc06cdd7182a982c8021bae3055002133005005330580020011533054491326b65797320696e206173736f63696174697665206c697374206172656e277420696e20617363656e64696e67206f72646572001630590023057001305700133052337606ea4008dd4000a5eb7bdb180888c94ccc144c068004530103d87a80001303733056374c00297ae03333301b001005004222325333054305100114c103d87a80001303a33059375000297ae03370000200403002a6eb8c14000cdd718280009bad3050305100130500023758609a00266004004609c002602660906ea8110520003011304737540846eb0c124c128c128008dd6182400098221baa02c23047304830483048304830483048304830483048304830483048304800125333040303d30423754002264646464646464646464646464646464646464646464646464646464a6660c060c6004264646464646464646464646493192999834183280089919299983718388010a4c2c6eb8c1bc004c1acdd50068a99983418300008a99983618359baa00d14985858c1a4dd5006182f807982f008182e808982e009182d809982d00a182c80a982c00b182b80b982c80c182980c8b1830800983080119299982f182e8008a99982d1829182e0008a511533305a3057305c00114a02c2c6ea8c17c004c17c008c174004c174008c16c004c16c008c164004c164008c15c004c15c008c154004c154008c14c004c14c008c144004c144008c13c004c13c008c134004c134008c12c004c12c008c124004c124008dd7182380098219baa0011623322533304130394800052f5bded8c0264646600200297adef6c60225333048001133049337606ea4014dd3001a5eb7bdb1804c8c8c8c94ccc120c050cc0400240084cc134cdd81ba9009374c00e00a2a66609066e3c0240084cc134cdd81ba9009374c00e00626609a66ec0dd48011ba600133006006003375660940066eb8c120008c130008c128004c8cc0040052f5bded8c044a66608e00226609066ec0dd4801a6010101004bd6f7b630099191919299982398099980780380109982619bb0375200e981010100005153330473371e00e00426609866ec0dd4803a6101010000313304c337606ea4008dd4000998030030019bad3049003375c608e004609600460920026eb8c098c108dd50009bae3023304237540024444464660020026604c00ca6660866080608a6ea80144c88cdd7981618241baa302c304837540020046092608c6ea80144c88cdd7981618241baa00100230493046375400a44a66609000229404c94ccc114c94ccc118cdd7981118249baa001007132533304b00114a22a666096609c0022646464a666094601c6eb8c14000c54ccc128c03800454ccc128c11cc130dd50048a99982519b89480000084cdc48012410137dc0429404cdc4a400000429405281bae304f3050002375a609c609e609e0026eb0c1340045281919800800998069bab302b304a3754004601c00e44a666098002297ae01323332223233001001003225333052001100313233054374e660a86ea4018cc150dd49bae30510013305437506eb4c1480052f5c06600600660ac00460a80026eb8c12c004dd5982600099801801982800118270008a50304b00214a226600600600260960026e3d2210022333022002375c604860806ea8004dd7181098201baa00122323330010010030022225333043002100113233300400430470033333300a002375c60840026eacc10c004888c94ccc110c0340045300103d87a80001302a33049374c00297ae032333001001003002222533304a0021001132333004004304e00333333012002375c60920026eb4c128004888c94ccc12cc1200045300103d87a80001303133050375000297ae03370000400201e6098004010608a0044646600200200444a666080002297adef6c6013233042337606ea4dd7181f8009ba632330010013756608200444a666086002297adef6c6013233045337606ea4dd718210009ba83370290001bad30430013300300330470023045001330030033044002304200122533303a33720004002298103d87980001533303a3371e0040022980103d87a800014c103d87b80002533303c00114a2294088888c8cc004004018894ccc1040044cc108cdd81ba9006374c00a97adef6c601323232325333041300d3300700a002133046337606ea4028dd30048028a99982099b8f00a0021325333042303f3044375400226608e66ec0dd4805982418229baa001004100433300800a009001133046337606ea4008dd3000998030030019bab3043003375c6082004608a004608600244444646600200200c44a66608000226608266ec0dd48031ba80054bd6f7b630099191919299982018061980380500109982299bb037520146ea002401454ccc100cdc78050010992999820981f18219baa001133046337606ea402cc11cc110dd5000802080219980400500480089982299bb037520046ea0004cc01801800cdd698210019bae304000230440023042001375e98103d879800014a046074607660766076607660760024607260746074607460746074607460746074607400229405280a5030010012253330360011480004c00ccc008008c0e4004dc02400429408c0d4c0d8c0d8c0d8c0d8004528112999817999817800a504a22a66060004200220024464a66605e605860626ea80044c0d4c0c8dd50008a9981824917436f756c64206e6f742066696e642072656465656d6572001632323300100100322533303500114c0103d87a8000132323253330343375e00c606c006260346607200297ae01330050050023036002303900230370013007330330024bd70192999816181218171baa0011337126eb4c0c8c0bcdd500099b80375a6006605e6ea80a8dd6980198179baa3010302f375400e2940c048c0b8dd5180798171baa3001302e375402c460626064606460646064606460646064002460606062606260620026466018024466ebcc044c0b4dd5180898169baa300e302d375400200460026605a605c605e605e605e605e605e605e605e605e60566ea809d2f5c06e95200253330263023302837540022646464646464646464646464a66606c60720042649318140048b1bad30370013037002375a606a002606a0046eb4c0cc004c0cc008dd698188009818801181780098178011bad302d001302937540022c6004600260506ea8c024c0a0dd5002118159816181600092999812180c98131baa0011302a302737540022a6604a921134e6f7420616e20696e6c696e6520646174756d0016300430243754604a004604600264a66604a002264a66604c0022a66046920130457870656374656420476f7620696e7075742065697468657220617320696e707574206f72207265662e20696e7075740016153330263029001133760605000266604494130103d87a80004c0103d8798000153302349130457870656374656420476f7620696e7075742065697468657220617320696e707574206f72207265662e20696e70757400163330023758600a60486ea8030c020c090dd501026103d8798000153330253028001133760604e00266604294530103d87a80004c0103d879800013253330260011533023490130457870656374656420476f7620696e7075742065697468657220617320696e707574206f72207265662e20696e7075740016153330263029001133760605000266604494130103d87a80004c0103d8798000153302349130457870656374656420476f7620696e7075742065697468657220617320696e707574206f72207265662e20696e70757400163330023758600a60486ea8030c020c090dd501026103d879800033300100930073023375403e980103d8798000222323300600423002300830273754002a666044603e60486ea800448c06cccc020dd5980398131baa001375c6014604c6ea800cdd7180398131baa0031230053330083756600e604c6ea8004dd7180518131baa003375c600e604c6ea800cdc42400044646600200200644a66604a002297ae01323253330233005002133028002330040040011330040040013029002302700123023302400122232533301f3017302137540022900009bad30253022375400264a66603e602e60426ea8004530103d87a8000132330010013756604c60466ea8008894ccc094004530103d87a8000132323253330243371e00e6eb8c09800c4c028cc0a4dd4000a5eb804cc014014008dd698130011814801181380099198008008021129998120008a6103d87a8000132323253330233371e00e6eb8c09400c4c024cc0a0dd3000a5eb804cc014014008dd59812801181400118130009ba5480008c080004dd5980f180f980f980f980f980f980f980f980f980f8011bac301d001301937540022c6036002602e6ea8004526136563253330133010301500115333017301600114985858dd5000a999808180698091baa00e13232323232323232323232325333020302300213232498c038008c03c02458c084004c084008dd6980f800980f8011bad301d001301d002375a60360026036004603200260320046eb4c05c004c04cdd50070b1192999808980700089919299980b980d00109924ca6660266020602a6ea80044c8c8c8c94ccc06cc0780084c8c92633013002253330193016301b37540022646464646464a666046604c0042930b1bad30240013024002375c604400260440046eb8c080004c070dd50008b299980b980a180c9baa003132323232533301f302200213232498c94ccc074c0680044c8c94ccc08cc0980084c926325333020301d0011323253330263029002132498c05000458c09c004c08cdd50010a999810180c0008991919191919299981518168010a4c2c6eb4c0ac004c0ac008dd6981480098148011bad3027001302337540042c60426ea800458c090004c080dd50018a99980e980a8008a99981098101baa00314985858c078dd500118068018b18100009810001180f000980d1baa00316163758603800260380046034002602c6ea80045858c060004c050dd50010a99980898048008a99980a980a1baa00214985858c048dd50009192999808180680089919299980b180c8010a4c2c6eb8c05c004c04cdd50010a999808180400089919299980b180c8010a4c2c6eb8c05c004c04cdd50010b18089baa001232533300f300c0011323232323232323232323232323232323232323232323232533302b302e00213232323232323232323232498c0a802cc0a4030c0a0034c09c038c09803cc094040c090044c08c048c08804cc090050c08405458c0b0004c0b0008c0a8004c0a8008c0a0004c0a0008c098004c098008c090004c090008c088004c088008c080004c080008c078004c078008c070004c070008c068004c068008c060004c060008dd7180b00098091baa0021533300f30070011323232323232323232323232323232323232323232323232533302b302e00213232323232323232323232498c0a802cc0a4030c0a0034c09c038c09803cc094040c090044c08c048c08804cc090050c07805458c0b0004c0b0008c0a8004c0a8008c0a0004c0a0008c098004c098008c090004c090008c088004c088008c080004c080008c078004c078008c070004c070008c068004c068008c060004c060008dd7180b00098091baa0021533300f30040011323253330153018002132498c01c00458c058004c048dd50010a999807980180089919299980a980c00109924ca666022601c60266ea80044c8c8c8c94ccc064c0700084c926330100012323253330183015301a375400226464a66603c60420042930b1bae301f001301b37540022c60340046eb8c06000458dd5980d000980d0011bad3018001301437540022c2c602c00260246ea800854ccc03ccdc3a401000226464a66602a60300042930b1bae3016001301237540042c60206ea8004dc3a400c6e1d20042533300b3008300d375400226464646464646464646464646464646464646464a666046604c00426493180c0058b1bad30240013024002375a604400260440046eb4c080004c080008dd6980f000980f0011bad301c001301c002301a001301a002375a603000260300046eb4c058004c058008dd6980a000980a0011bad3012001300e37540022c464a666016601000226464a66602260280042649318030008b180900098071baa0021533300b30030011323253330113014002132498c01c00458c048004c038dd50010b18061baa001370e900112999804180298051baa00113232533300e3011002149858dd6980780098059baa001162533300730043009375400226464a66601a60200042649318028008b180700098051baa0011622323300100100322533300d00114984c8cc00c00cc044008c00cc03c00494ccc014c008c01cdd5000899191919299980698080010a4c2c6eb8c038004c038008dd7180600098041baa00116370e90002b9a5738aae7555cf2ab9f5740ae855d101",
+      "hash": "49d4f63c6953477419133bbeb3e434345a8a41f906b5d269b30d2182"
+    }
+  ],
+  "definitions": {
+    "Bool": {
+      "title": "Bool",
+      "anyOf": [
+        {
+          "title": "False",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        },
+        {
+          "title": "True",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "ByteArray": {
+      "dataType": "bytes"
+    },
+    "Data": {
+      "title": "Data",
+      "description": "Any Plutus data."
+    },
+    "Int": {
+      "dataType": "integer"
+    },
+    "List$Tuple$ByteArray_ByteArray": {
+      "dataType": "map",
+      "keys": {
+        "$ref": "#/definitions/ByteArray"
+      },
+      "values": {
+        "$ref": "#/definitions/ByteArray"
+      }
+    },
+    "List$Tuple$ByteArray_indigo/contracts/gov/types/UpgradePath": {
+      "dataType": "map",
+      "keys": {
+        "$ref": "#/definitions/ByteArray"
+      },
+      "values": {
+        "$ref": "#/definitions/indigo~1contracts~1gov~1types~1UpgradePath"
+      }
+    },
+    "List$Tuple$ByteArray_indigo/types/generic/AssetClass": {
+      "dataType": "map",
+      "keys": {
+        "$ref": "#/definitions/ByteArray"
+      },
+      "values": {
+        "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+      }
+    },
+    "List$Tuple$Int_indigo/contracts/staking/types/LockedAmountValue": {
+      "dataType": "map",
+      "keys": {
+        "$ref": "#/definitions/Int"
+      },
+      "values": {
+        "$ref": "#/definitions/indigo~1contracts~1staking~1types~1LockedAmountValue"
+      }
+    },
+    "List$Tuple$indigo/contracts/stability_pool/types/EpochToScaleKey_indigo/contracts/stability_pool/sp_integer/SPInteger": {
+      "dataType": "map",
+      "keys": {
+        "$ref": "#/definitions/indigo~1contracts~1stability_pool~1types~1EpochToScaleKey"
+      },
+      "values": {
+        "$ref": "#/definitions/indigo~1contracts~1stability_pool~1sp_integer~1SPInteger"
+      }
+    },
+    "List$indigo/contracts/gov/types/ValueWithdrawalItem": {
+      "dataType": "list",
+      "items": {
+        "$ref": "#/definitions/indigo~1contracts~1gov~1types~1ValueWithdrawalItem"
+      }
+    },
+    "Option$ByteArray": {
+      "title": "Optional",
+      "anyOf": [
+        {
+          "title": "Some",
+          "description": "An optional value.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        },
+        {
+          "title": "None",
+          "description": "Nothing.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "Option$aiken/transaction/credential/Referenced$aiken/transaction/credential/Credential": {
+      "title": "Optional",
+      "anyOf": [
+        {
+          "title": "Some",
+          "description": "An optional value.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Referenced$aiken~1transaction~1credential~1Credential"
+            }
+          ]
+        },
+        {
+          "title": "None",
+          "description": "Nothing.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "Option$indigo/contracts/gov/types/TreasuryWithdrawal": {
+      "title": "Optional",
+      "anyOf": [
+        {
+          "title": "Some",
+          "description": "An optional value.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1gov~1types~1TreasuryWithdrawal"
+            }
+          ]
+        },
+        {
+          "title": "None",
+          "description": "Nothing.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "Option$indigo/contracts/stability_pool/types/AccountAction": {
+      "title": "Optional",
+      "anyOf": [
+        {
+          "title": "Some",
+          "description": "An optional value.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1types~1AccountAction"
+            }
+          ]
+        },
+        {
+          "title": "None",
+          "description": "Nothing.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "Void": {
+      "title": "Unit",
+      "description": "The nullary constructor.",
+      "anyOf": [
+        {
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        }
+      ]
+    },
+    "aiken/transaction/OutputReference": {
+      "title": "OutputReference",
+      "description": "An `OutputReference` is a unique reference to an output on-chain. The `output_index`\n corresponds to the position in the output list of the transaction (identified by its id)\n that produced that output",
+      "anyOf": [
+        {
+          "title": "OutputReference",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "transaction_id",
+              "$ref": "#/definitions/aiken~1transaction~1TransactionId"
+            },
+            {
+              "title": "output_index",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "aiken/transaction/TransactionId": {
+      "title": "TransactionId",
+      "description": "A unique transaction identifier, as the hash of a transaction body. Note that the transaction id\n isn't a direct hash of the `Transaction` as visible on-chain. Rather, they correspond to hash\n digests of transaction body as they are serialized on the network.",
+      "anyOf": [
+        {
+          "title": "TransactionId",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "hash",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "aiken/transaction/credential/Address": {
+      "title": "Address",
+      "description": "A Cardano `Address` typically holding one or two credential references.\n\n Note that legacy bootstrap addresses (a.k.a. 'Byron addresses') are\n completely excluded from Plutus contexts. Thus, from an on-chain\n perspective only exists addresses of type 00, 01, ..., 07 as detailed\n in [CIP-0019 :: Shelley Addresses](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0019/#shelley-addresses).",
+      "anyOf": [
+        {
+          "title": "Address",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "payment_credential",
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Credential"
+            },
+            {
+              "title": "stake_credential",
+              "$ref": "#/definitions/Option$aiken~1transaction~1credential~1Referenced$aiken~1transaction~1credential~1Credential"
+            }
+          ]
+        }
+      ]
+    },
+    "aiken/transaction/credential/Credential": {
+      "title": "Credential",
+      "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
+      "anyOf": [
+        {
+          "title": "VerificationKeyCredential",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        },
+        {
+          "title": "ScriptCredential",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "aiken/transaction/credential/Referenced$aiken/transaction/credential/Credential": {
+      "title": "Referenced",
+      "description": "Represent a type of object that can be represented either inline (by hash)\n or via a reference (i.e. a pointer to an on-chain location).\n\n This is mainly use for capturing pointers to a stake credential\n registration certificate in the case of so-called pointer addresses.",
+      "anyOf": [
+        {
+          "title": "Inline",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Credential"
+            }
+          ]
+        },
+        {
+          "title": "Pointer",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "slot_number",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "transaction_index",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "certificate_index",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/cdp/types/CDPContent": {
+      "title": "CDPContent",
+      "anyOf": [
+        {
+          "title": "CDPContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "owner",
+              "description": "Nothing means that the CDP is frozen and can be liquidated \n against the stability pool.",
+              "$ref": "#/definitions/Option$ByteArray"
+            },
+            {
+              "title": "iasset",
+              "description": "Name of iAsset that can be minted from this position.",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "minted_amount",
+              "description": "The actual unit of the iAsset is minted_amount / 1e+6.\n This means that 1 BTC would be represented as minted_amount = 1_000_000.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "fees_tracking",
+              "$ref": "#/definitions/indigo~1contracts~1cdp~1types~1CDPFees"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/cdp/types/CDPDatum": {
+      "title": "CDPDatum",
+      "anyOf": [
+        {
+          "title": "CDP",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1cdp~1types~1CDPContent"
+            }
+          ]
+        },
+        {
+          "title": "IAsset",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1cdp~1types~1IAssetContent"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/cdp/types/CDPFees": {
+      "title": "CDPFees",
+      "anyOf": [
+        {
+          "title": "ActiveCDPInterestTracking",
+          "description": "When CDP is not frozen, we keep track of variables necessary to calculate\n interest for a CDP.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "last_settled",
+              "description": "Tracks when a CDP last settled the interest.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "unitary_interest_snapshot",
+              "description": "Snapshot of the unitary interest value from the interest oracle datum\n from when a CDP was last settled/created.",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "FrozenCDPAccumulatedFees",
+          "description": "When CDP gets frozen, the accrued interest in iAsset gets converted\n to lovelaces based on the price during the freeze transaction.\n Fees can be sent to the treasury (in the case of interest) or to \n INDY stakers (in the case of liquidation processing fee)\n Once frozen, the interest is stored only in lovelaces.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "lovelaces_treasury",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "lovelaces_indy_stakers",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/cdp/types/CDPRedeemer": {
+      "title": "CDPRedeemer",
+      "anyOf": [
+        {
+          "title": "AdjustCDP",
+          "description": "Modify an existing CDP.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "current_time",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "minted_amount_change",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "collateral_amount_change",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "CloseCDP",
+          "description": "Close an exisiting CDP.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "current_time",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "RedeemCDP",
+          "description": "Redeem collateral from a CDP with CR under RMR.",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": [
+            {
+              "title": "current_time",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "FreezeCDP",
+          "description": "Freeze undercollaterized CDP position and prepare it for liquidation.",
+          "dataType": "constructor",
+          "index": 3,
+          "fields": [
+            {
+              "title": "current_time",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "MergeCDPs",
+          "description": "Merge multiple frozen CDPs with the same iAsset into a single one.\n This redeemer is used with only a single UTXO at merging transaction.\n The other UTXOs use MergeAuxiliary redeemer.",
+          "dataType": "constructor",
+          "index": 4,
+          "fields": []
+        },
+        {
+          "title": "MergeAuxiliary",
+          "description": "Used by all the UTXOs in a CDP merging transaction except one,\n which is using MergeCDPs redeemer.",
+          "dataType": "constructor",
+          "index": 5,
+          "fields": [
+            {
+              "title": "main_merge_utxo",
+              "description": "This is the reference of the UTXO consumed with MergeCDPs redeemer.",
+              "$ref": "#/definitions/aiken~1transaction~1OutputReference"
+            }
+          ]
+        },
+        {
+          "title": "Liquidate",
+          "description": "Liquidate a frozen CDP.",
+          "dataType": "constructor",
+          "index": 6,
+          "fields": []
+        },
+        {
+          "title": "UpdateOrInsertAsset",
+          "description": "Update iAssetDatum or use the iAsset as an element of the distributed list\n to insert a new iAsset.",
+          "dataType": "constructor",
+          "index": 7,
+          "fields": []
+        },
+        {
+          "title": "UpgradeVersion",
+          "description": "UpgradeVersion to upgrade the script.",
+          "dataType": "constructor",
+          "index": 8,
+          "fields": []
+        }
+      ]
+    },
+    "indigo/contracts/cdp/types/CDPScriptParams": {
+      "title": "CDPScriptParams",
+      "anyOf": [
+        {
+          "title": "CDPScriptParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "cdp_auth_token",
+              "description": "Token for identifying authentic CDP output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "cdp_asset_symbol",
+              "description": "Currency Symbol/Minting Policy managing the mint/burn of all iAssets.",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "iasset_auth_token",
+              "description": "Token for identifying authentic iAsset output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "stability_pool_auth_token",
+              "description": "Token for identifying authentic Stability Pool output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "version_record_token",
+              "description": "Token for identifying the version record for a protocol upgrade.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "upgrade_token",
+              "description": "Token for identifying authentic iAsset creation or update.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "collector_val_hash",
+              "description": "The validator hash for the collector script.",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "sp_val_hash",
+              "description": "The validator hash of the stability pool script.",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "gov_nft",
+              "description": "NFT for identifying authentic governance parameters.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "min_collateral_in_lovelace",
+              "description": "Minimum ADA allowed in a CDP",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "partial_redemption_extra_fee_lovelace",
+              "description": "Partial redemptions have additional fee.\n For full redemptions this fee is not applied.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "bias_time",
+              "description": "Dictates the maximum length of transaction validity, which is symmetric around the\n time passed by redeemers as the claimed current time.\n\n It is expected that it has a value big enough for transactions to go through even\n in times of network congestion, making the accuracy of the claimed current times\n to be in the order of hours rather than minutes.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "treasury_val_hash",
+              "description": "The validator hash for the treasury script.",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/cdp/types/IAssetContent": {
+      "title": "IAssetContent",
+      "anyOf": [
+        {
+          "title": "IAssetContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "name",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "price_info",
+              "$ref": "#/definitions/indigo~1contracts~1cdp~1types~1IAssetPriceInfo"
+            },
+            {
+              "title": "interest_oracle_nft",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "redemption_ratio_percentage",
+              "description": "The redemption collateral ratio of the iAsset. Represented as a percentage:\n i.e. 130% would be `OnChainDecimal {get_on_chain_int: 130 * decimal_unit()}`.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "maintenance_ratio_percentage",
+              "description": "The maintenance collateral ratio of the iAsset. Represented as a percentage:\n i.e. 130% would be `OnChainDecimal {get_on_chain_int: 130 * decimal_unit()}`.\n This ratio is the minimum that the user can set their CDP collateral ratio to.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "liquidation_ratio_percentage",
+              "description": "The liquidation collateral ratio of the IAsset. Represented as a percentage:\n i.e. 130% would be `OnChainDecimal {get_on_chain_int: 130 * decimal_unit()}`.\n If a CDP is below this ratio, it is susceptible to liquidations.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "debt_minting_fee_percentage",
+              "description": "The Debt Minting Fee Percentage. This fee is paid when iAssets are minted. \n The minter is charged ADA for the amount of iAsset they are minting. That \n ADA goes to INDY stakers.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "liquidation_processing_fee_percentage",
+              "description": "When a liquidation occurs, a fee should be charged on the value of the debt \n at time of seizure (freeze). That fee should be taken from the collateral of\n the CDP and sent to INDY stakers.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "stability_pool_withdrawal_fee_percentage",
+              "description": "This fee is charged when withdrawing iAsset from a stability pool account.\n It is charged and settled in iAsset and redistributed across depositors\n proportionally to their deposited amount of iAsset.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "redemption_reimbursement_percentage",
+              "description": "This fee is charged to the redeemer’s redemption value.\n This percentage of ADA is returned to the redeemed CDPs collateral.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "redemption_processing_fee_percentage",
+              "description": "This fee is charged to the redeemer’s redemption value.\n This percentage of ADA is sent to INDY stakers.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "interest_collector_portion_percentage",
+              "description": "Interest can go both to collector or treasury, this\n percentage controls the distribution.\n The complement of this portion goes to the treasury.\n Represented as a percentage:\n i.e. 40% would be `OnChainDecimal {get_on_chain_int: 40 * decimal_unit()}`.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "first_iasset",
+              "description": "Whether the iAsset is the first element of the distributed whitelist.",
+              "$ref": "#/definitions/Bool"
+            },
+            {
+              "title": "next_iasset",
+              "description": "Next iAsset in the distributed whitelist.",
+              "$ref": "#/definitions/Option$ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/cdp/types/IAssetPriceInfo": {
+      "title": "IAssetPriceInfo",
+      "anyOf": [
+        {
+          "title": "IAssetPriceDelisted",
+          "description": "This value is used when the iAsset is delisted.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            }
+          ]
+        },
+        {
+          "title": "IAssetPriceOracleReference",
+          "description": "Used to reference an oracle with the given NFT.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1oracle~1types~1OracleAssetNft"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/cdp_creator/types/CDPCreatorRedeemer": {
+      "title": "CDPCreatorRedeemer",
+      "anyOf": [
+        {
+          "title": "CreateCDP",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "cdp_owner",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "minted",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "collateral",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "current_time",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "UpgradeCreatorVersion",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "indigo/contracts/cdp_creator/types/CDPCreatorScriptParams": {
+      "title": "CDPCreatorScriptParams",
+      "anyOf": [
+        {
+          "title": "CDPCreatorScriptParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "cdp_creator_nft",
+              "description": "NFT for identifying authentic CDPCreator output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "cdp_asset_cs",
+              "description": "Currency Symbol/Minting Policy managing the mint/burn of all iAssets.",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "cdp_auth_token",
+              "description": "Token for identifying authentic CDP output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "iasset_auth_token",
+              "description": "Token for identifying authentic iAsset output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "version_record_token",
+              "description": "Token for identifying the version record for a protocol upgrade.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "cdp_script_hash",
+              "description": "Hash of CDP script.",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "collector_val_hash",
+              "description": "Hash of Collector script.",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "min_collateral_in_lovelace",
+              "description": "Minimum ADA allowed in a CDP.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "bias_time",
+              "description": "Dictates the maximum length of transaction validity, which is symmetric around the\n time passed by redeemers as the claimed current time.\n\n It is expected that it has a value big enough for transactions to go through even\n in times of network congestion, making the accuracy of the claimed current times\n to be in the order of hours rather than minutes.",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/collector/types/CollectorRedeemer": {
+      "title": "CollectorRedeemer",
+      "anyOf": [
+        {
+          "title": "Collect",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        },
+        {
+          "title": "DistributeToStakers",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        },
+        {
+          "title": "UpgradeVersion",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": []
+        }
+      ]
+    },
+    "indigo/contracts/collector/types/CollectorScriptParams": {
+      "title": "CollectorScriptParams",
+      "anyOf": [
+        {
+          "title": "CollectorScriptParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "staking_manager_nft",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "staking_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "version_record_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/execute/types/ExecuteDatum": {
+      "title": "ExecuteDatum",
+      "anyOf": [
+        {
+          "title": "Upgrade",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "id",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "content",
+              "$ref": "#/definitions/indigo~1contracts~1gov~1types~1ProposalContent"
+            },
+            {
+              "title": "passed_time",
+              "description": "The time when the action `EndProposal` was processed.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "voting_end_time",
+              "description": "The proposal's voting end time.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "protocol_version",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "treasury_withdrawal",
+              "description": "Value proposed to be withdrawn from the treasury as part of the proposal.",
+              "$ref": "#/definitions/Option$indigo~1contracts~1gov~1types~1TreasuryWithdrawal"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/execute/types/ExecuteParams": {
+      "title": "ExecuteParams",
+      "anyOf": [
+        {
+          "title": "ExecuteParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "gov_nft",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "upgrade_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "iasset_token",
+              "description": "NFT identifying authentic iAsset output in CDP contract.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "stability_pool_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "version_record_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "cdp_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "stability_pool_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "version_registry_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "treasury_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "indy_token",
+              "description": "AssetClass of INDY token.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/GovDatum": {
+      "title": "GovDatum",
+      "anyOf": [
+        {
+          "title": "GovDatum",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "current_proposal",
+              "description": "Number of opened Proposal. Use for indexing a Proposal.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "protocol_params",
+              "$ref": "#/definitions/indigo~1contracts~1gov~1types~1ProtocolParams"
+            },
+            {
+              "title": "current_version",
+              "description": "Current version of the protocol, starting at 0.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "iassets_count",
+              "description": "Total iAssets count. Even delisted assets count towards this total.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "active_proposals",
+              "description": "Number of currently active proposals (opened but not closed yet).",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "treasury_indy_withdrawn_amt",
+              "description": "The amount of INDY that was withdrawn from treasury up to the\n amount of INDY locked in treasury at protocol initialisation.",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/GovParams": {
+      "title": "GovParams",
+      "anyOf": [
+        {
+          "title": "GovParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "gov_nft",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "poll_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "upgrade_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "indy_asset",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "version_record_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "poll_manager_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "bias_time",
+              "description": "Dictates the maximum length of transaction validity, which is symmetric around the\n time passed by redeemers as the claimed current time.\n\n It is expected that it has a value big enough for transactions to go through even\n in times of network congestion, making the accuracy of the claimed current times\n to be in the order of hours rather than minutes.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "dao_identity_token",
+              "description": "Unique token representing the treasury.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "iasset_auth_token",
+              "description": "Token authenticating an iAsset UTXO.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/GovRedeemer": {
+      "title": "GovRedeemer",
+      "anyOf": [
+        {
+          "title": "CreatePoll",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "current_time",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "proposal_owner",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "content",
+              "$ref": "#/definitions/indigo~1contracts~1gov~1types~1ProposalContent"
+            },
+            {
+              "title": "treasury_withdrawal",
+              "description": "Value proposed to be withdrawn from the treasury as part of the proposal.",
+              "$ref": "#/definitions/Option$indigo~1contracts~1gov~1types~1TreasuryWithdrawal"
+            }
+          ]
+        },
+        {
+          "title": "WitnessEndPoll",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "current_time",
+              "description": "Should be the same as the one that Poll manager's EndPoll uses.",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "UpgradeGov",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": []
+        },
+        {
+          "title": "UpgradeVersion",
+          "dataType": "constructor",
+          "index": 3,
+          "fields": []
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/ProposalContent": {
+      "title": "ProposalContent",
+      "anyOf": [
+        {
+          "title": "ProposeAsset",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "asset",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "price_oracle_nft",
+              "$ref": "#/definitions/indigo~1contracts~1oracle~1types~1OracleAssetNft"
+            },
+            {
+              "title": "interest_oracle_nft",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "redemption_ratio_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "maintenance_ratio_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "liquidation_ratio_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "debt_minting_fee_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "liquidation_processing_fee_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "stability_pool_withdrawal_fee_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "redemption_reimbursement_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "redemption_processing_fee_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "interest_collector_portion_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            }
+          ]
+        },
+        {
+          "title": "ModifyAsset",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "asset",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "new_asset_price_info",
+              "$ref": "#/definitions/indigo~1contracts~1cdp~1types~1IAssetPriceInfo"
+            },
+            {
+              "title": "new_interest_oracle_nft",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "new_redemption_ratio_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "new_maintenance_ratio_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "new_liquidation_ratio_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "new_debt_minting_fee_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "new_liquidation_processing_fee_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "new_stability_pool_withdrawal_fee_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "new_redemption_reimbursement_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "new_redemption_processing_fee_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "new_interest_collector_portion_percentage",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            }
+          ]
+        },
+        {
+          "title": "ModifyProtocolParams",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": [
+            {
+              "title": "new_params",
+              "$ref": "#/definitions/indigo~1contracts~1gov~1types~1ProtocolParams"
+            }
+          ]
+        },
+        {
+          "title": "UpgradeProtocol",
+          "dataType": "constructor",
+          "index": 3,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1gov~1types~1UpgradePaths"
+            }
+          ]
+        },
+        {
+          "title": "TextProposal",
+          "dataType": "constructor",
+          "index": 4,
+          "fields": [
+            {
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/ProtocolParams": {
+      "title": "ProtocolParams",
+      "anyOf": [
+        {
+          "title": "ProtocolParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "proposal_deposit",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "voting_period",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "effective_delay",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "expiration_period",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "collateral_fee_percentage",
+              "description": "Fee incurred on withdrawn collateral.\n When there is a collateral decrease on a CDP,\n the fee is applied to the difference.\n This can occur on e.g. CDP close, CDP adjust (when withdrawing collateral).\n \n The unit is a percentage. This means that to set the fee to e.g. 1.5%,\n the value would be `OnChainDecimal {get_on_chain_int: 1_500_000}`.",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "proposing_period",
+              "description": "Time window for creating all voting shards.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "total_shards",
+              "description": "Total numer of shards used for voting.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "minimum_quorum",
+              "description": "The minimum number of votes (yes + no votes) for a proposal to be possible to pass.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "max_treasury_lovelace_spend",
+              "description": "Maximum amount of lovelaces that can be spent at once from the treasury.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "max_treasury_indy_spend",
+              "description": "Maximum amount of INDY that can be spent at once from the treasury.",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/TreasuryWithdrawal": {
+      "title": "TreasuryWithdrawal",
+      "anyOf": [
+        {
+          "title": "TreasuryWithdrawal",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "destination",
+              "description": "When a passed proposal asks to withdraw from treasury, the funds go to this Address.\n \n NOTE: it is constrained in the logic that it cannot be a ScriptCredential.\n The reason for keeping the `Address` type here is for usability reasons, to prevent \n confusion on the frontend and in blockchain explorers.",
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Address"
+            },
+            {
+              "title": "value",
+              "description": "When a passed proposal asks to withdraw from treasury, this are the funds to send.\n\n NOTE: This cannot be of type `Value` because it could break invariants\n of the internal `Dict` since it is set by the user.",
+              "$ref": "#/definitions/List$indigo~1contracts~1gov~1types~1ValueWithdrawalItem"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/UpgradePath": {
+      "title": "UpgradePath",
+      "description": "An upgrade proposal may need to contain more evidence than just the\n CurrencySymbol, like the new validator. In that case the additional\n evidence can be stored in new fields of the 'UpgradePath' data type.",
+      "anyOf": [
+        {
+          "title": "UpgradePath",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "upgrade_symbol",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/UpgradePaths": {
+      "title": "UpgradePaths",
+      "anyOf": [
+        {
+          "title": "UpgradePaths",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "upgrade_id",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "upgrade_paths",
+              "description": "Underlying representation of the following mapping: ValidatorHash -> UpgradePath",
+              "$ref": "#/definitions/List$Tuple$ByteArray_indigo~1contracts~1gov~1types~1UpgradePath"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/gov/types/ValueWithdrawalItem": {
+      "title": "ValueWithdrawalItem",
+      "description": "This is for compatibility reasons with PlutusTx, since PlutusTx\n encodes tuples using constr.",
+      "anyOf": [
+        {
+          "title": "ValueWithdrawalItem",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/interest_oracle/types/FeedInterestOracleRedeemer": {
+      "title": "FeedInterestOracleRedeemer",
+      "anyOf": [
+        {
+          "title": "FeedInterestOracleRedeemer",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "new_interest_rate",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "current_time",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/interest_oracle/types/InterestOracleDatum": {
+      "title": "InterestOracleDatum",
+      "anyOf": [
+        {
+          "title": "InterestOracleDatum",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "unitary_interest",
+              "description": "Interest accrued by a micro-iAsset (10^(-6) iAsset) since the time of reference.\n \n The integer represents a number with 18 decimal places.\n This is well above the precision needed to capture the most significant digits of the\n expected minimum increase in unitary interest (0.5% for a 5 days period would result \n in 0.005*5/365 = 0.000068493). However, having more decimal places ensures that no\n precision is lost when computing the interest for large amounts of iAsset (e.g. for a CDP\n with 1,000 iAsset, 6 decimal places of precision would result in 0.068000 iAsset to be\n paid, but 9 decimal places of precision would result in 0.068493 iAsset to be paid.\n The 18 decimal places ensure no precision is lost for CDPs with up to 10^12 iAsset.\n \n With the given precision even the lowest representable interest rate (0.0001%) \n can be recorded every millisecond, in practice allowing any interest update.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "interest_rate",
+              "$ref": "#/definitions/indigo~1types~1on_chain_decimal~1OnChainDecimal"
+            },
+            {
+              "title": "last_interest_update",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/interest_oracle/types/InterestOracleParams": {
+      "title": "InterestOracleParams",
+      "anyOf": [
+        {
+          "title": "InterestOracleParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "bias_time",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "oracle_owner",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/oracle/types/OracleAssetNft": {
+      "title": "OracleAssetNft",
+      "anyOf": [
+        {
+          "title": "OracleAssetNft",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll/types/PollDatum": {
+      "title": "PollDatum",
+      "description": "We're keeping this under the same sum type in comparison with PlutusTx implementation\n where manager and poll shard datum are separate types.\n Aiken misses a feature that would enable writing it the same way as our implementation\n in PlutusTx - https://github.com/aiken-lang/aiken/discussions/712#discussion-5526519\n \n Another inconsistency with the PlutusTx implementation is the `..Content` wrappers.\n This is done to achieve a better developer experience, so there is no need to pass\n individual fields one by one.\n \n This is the discussion tracking progress of an Aiken's feature proposal so no fields \n wrapper is necessary https://github.com/aiken-lang/aiken/discussions/711",
+      "anyOf": [
+        {
+          "title": "PollManager",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1poll~1types~1PollManagerContent"
+            }
+          ]
+        },
+        {
+          "title": "PollShard",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1poll~1types~1PollShardContent"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll/types/PollManagerContent": {
+      "title": "PollManagerContent",
+      "anyOf": [
+        {
+          "title": "PollManagerContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "poll_id",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "poll_owner",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "content",
+              "$ref": "#/definitions/indigo~1contracts~1gov~1types~1ProposalContent"
+            },
+            {
+              "title": "treasury_withdrawal",
+              "description": "Value proposed to be withdrawn from treasury as part of the proposal.",
+              "$ref": "#/definitions/Option$indigo~1contracts~1gov~1types~1TreasuryWithdrawal"
+            },
+            {
+              "title": "status",
+              "$ref": "#/definitions/indigo~1contracts~1poll~1types~1PollStatus"
+            },
+            {
+              "title": "voting_end_time",
+              "description": "The time when voting ends and shards can be merged.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "created_shards_count",
+              "description": "Number of shards already created.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "tallied_shards_count",
+              "description": "Number of shards merged into PollManager.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "total_shards_count",
+              "description": "Total number of shards.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "proposing_end_time",
+              "description": "End time by when all shards have to be created.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "expiration_time",
+              "description": "Time after which the proposal cannot pass.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "protocol_version",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "minimum_quorum",
+              "description": "The minimum number of votes (yes + no votes) for a proposal to be possible to pass.\n 1 vote = 1 micro INDY",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll/types/PollShardContent": {
+      "title": "PollShardContent",
+      "anyOf": [
+        {
+          "title": "PollShardContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "poll_id",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "status",
+              "$ref": "#/definitions/indigo~1contracts~1poll~1types~1PollStatus"
+            },
+            {
+              "title": "voting_end_time",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "manager_address",
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Address"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll/types/PollStatus": {
+      "title": "PollStatus",
+      "anyOf": [
+        {
+          "title": "PollStatus",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "yes_votes",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "no_votes",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll_manager/types/PollManagerRedeemer": {
+      "title": "PollManagerRedeemer",
+      "anyOf": [
+        {
+          "title": "EndPoll",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "CreateShards",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "MergeShardsManager",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": [
+            {
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll_manager/types/PollManagerScriptParams": {
+      "title": "PollManagerScriptParams",
+      "anyOf": [
+        {
+          "title": "PollManagerScriptParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "gov_nft",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "poll_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "upgrade_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "indy_asset",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "execute_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "bias_time",
+              "description": "Dictates the maximum length of transaction validity, which is symmetric around the\n time passed by redeemers as the claimed current time.\n It is expected that it has a value big enough for transactions to go through even\n in times of network congestion, making the accuracy of the claimed current times\n to be in the order of hours rather than minutes.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "shards_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "treasury_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "initial_indy_distribution",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll_shard/types/PollShardRedeemer": {
+      "title": "PollShardRedeemer",
+      "anyOf": [
+        {
+          "title": "Vote",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1poll_shard~1types~1VoteOption"
+            }
+          ]
+        },
+        {
+          "title": "MergeShards",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "current_time",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "poll_manager_ref",
+              "$ref": "#/definitions/aiken~1transaction~1OutputReference"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll_shard/types/PollShardScriptParams": {
+      "title": "PollShardScriptParams",
+      "anyOf": [
+        {
+          "title": "PollShardScriptParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "poll_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "staking_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "indy_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "staking_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/poll_shard/types/VoteOption": {
+      "title": "VoteOption",
+      "anyOf": [
+        {
+          "title": "Yes",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        },
+        {
+          "title": "No",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/sp_integer/SPInteger": {
+      "title": "SPInteger",
+      "description": "This type is used to represent numbers at the stability pool calculations.\n It wraps an Integer that represents a decimal with custom precision.",
+      "anyOf": [
+        {
+          "title": "SPInteger",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "get_sp_integer",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/AccountAction": {
+      "title": "AccountAction",
+      "anyOf": [
+        {
+          "title": "Create",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        },
+        {
+          "title": "Adjust",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "amount",
+              "description": "The deposit change amount: it is negative in case of withdrawal\n and positive in case of deposit, zero in case of claim reward.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "output_address",
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Address"
+            }
+          ]
+        },
+        {
+          "title": "Close",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": [
+            {
+              "title": "output_address",
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Address"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/AccountContent": {
+      "title": "AccountContent",
+      "anyOf": [
+        {
+          "title": "AccountContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "owner",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "iasset",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "snapshot",
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1types~1StabilityPoolSnapshot"
+            },
+            {
+              "title": "request",
+              "$ref": "#/definitions/Option$indigo~1contracts~1stability_pool~1types~1AccountAction"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/EpochToScaleKey": {
+      "title": "EpochToScaleKey",
+      "description": "This type is introduced for compatibility reasons with PlutusTx Data encoding.\n PlutusTx encodes key in the Map using a constructor instead of using a tuple.\n For that reason, the epoch and scale is wrapped into a constructor instead of tuple.",
+      "anyOf": [
+        {
+          "title": "EpochToScaleKey",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/SnapshotEpochToScaleToSumContent": {
+      "title": "SnapshotEpochToScaleToSumContent",
+      "anyOf": [
+        {
+          "title": "SnapshotEpochToScaleToSumContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "snapshot",
+              "description": "Underlying representation of the following mapping: EpochToScaleKey -> SPInteger",
+              "$ref": "#/definitions/List$Tuple$indigo~1contracts~1stability_pool~1types~1EpochToScaleKey_indigo~1contracts~1stability_pool~1sp_integer~1SPInteger"
+            },
+            {
+              "title": "asset",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/StabilityPoolContent": {
+      "title": "StabilityPoolContent",
+      "anyOf": [
+        {
+          "title": "StabilityPoolContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "iasset",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "snapshot",
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1types~1StabilityPoolSnapshot"
+            },
+            {
+              "title": "epoch2scale2sum",
+              "description": "Underlying representation of the following mapping: EpochToScaleKey -> SPInteger",
+              "$ref": "#/definitions/List$Tuple$indigo~1contracts~1stability_pool~1types~1EpochToScaleKey_indigo~1contracts~1stability_pool~1sp_integer~1SPInteger"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/StabilityPoolDatum": {
+      "title": "StabilityPoolDatum",
+      "anyOf": [
+        {
+          "title": "StabilityPool",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1types~1StabilityPoolContent"
+            }
+          ]
+        },
+        {
+          "title": "Account",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1types~1AccountContent"
+            }
+          ]
+        },
+        {
+          "title": "SnapshotEpochToScaleToSum",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1types~1SnapshotEpochToScaleToSumContent"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/StabilityPoolParams": {
+      "title": "StabilityPoolParams",
+      "anyOf": [
+        {
+          "title": "StabilityPoolParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "asset_symbol",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "stability_pool_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "snapshot_epoch2scale2sum_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "account_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "cdp_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "iasset_auth_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "version_record_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "collector_val_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "gov_nft",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "account_create_fee_lovelaces",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "account_adjustment_fee_lovelaces",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "request_collateral_lovelaces",
+              "description": "Request collateral will be the ADA that will be used to pay the TX fee of the\n processing TX. Additionally, it has to cover ADA amount for 2 UTXOs to exist.\n \n Recommendation:\n For the TX fee the lovelace amount should be 5_000_000 and for the min UTXO\n collateral 2_000_000 should be fine.\n i.e. the total amount should be 2 * 2_000_000 + 5_000_000 = 9_000_000",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/StabilityPoolRedeemer": {
+      "title": "StabilityPoolRedeemer",
+      "anyOf": [
+        {
+          "title": "RequestAction",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "action",
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1types~1AccountAction"
+            }
+          ]
+        },
+        {
+          "title": "ProcessRequest",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "request_ref",
+              "$ref": "#/definitions/aiken~1transaction~1OutputReference"
+            }
+          ]
+        },
+        {
+          "title": "AnnulRequest",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": []
+        },
+        {
+          "title": "LiquidateCDP",
+          "dataType": "constructor",
+          "index": 3,
+          "fields": []
+        },
+        {
+          "title": "RecordEpochToScaleToSum",
+          "dataType": "constructor",
+          "index": 4,
+          "fields": []
+        },
+        {
+          "title": "UpgradeVersion",
+          "dataType": "constructor",
+          "index": 5,
+          "fields": []
+        }
+      ]
+    },
+    "indigo/contracts/stability_pool/types/StabilityPoolSnapshot": {
+      "title": "StabilityPoolSnapshot",
+      "anyOf": [
+        {
+          "title": "StabilityPoolSnapshot",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "product_val",
+              "description": "Product snapshot - intermediate variable.",
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1sp_integer~1SPInteger"
+            },
+            {
+              "title": "deposit_val",
+              "description": "Deposit snapshot",
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1sp_integer~1SPInteger"
+            },
+            {
+              "title": "sum_val",
+              "description": "Sum snapshot - intermediate variable.",
+              "$ref": "#/definitions/indigo~1contracts~1stability_pool~1sp_integer~1SPInteger"
+            },
+            {
+              "title": "epoch",
+              "description": "Tracks pool emptying events.\n When a pool is emptied the epoch is incremented.",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "scale",
+              "description": "This is used to prevent change of `snapshotP` to 0 in a liquidation event.\n When the `snapshotP` would fall below a threshold,\n the `snapshotP` is scaled up and the scale is incremented.",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/staking/types/LockedAmountValue": {
+      "title": "LockedAmountValue",
+      "description": "This type is introduced for compatibility reasons with PlutusTx Data encoding.\n PlutusTx encodes value in the Map using a constructor instead of using a tuple.\n For that reason, these values are wrapped into a constructor instead of the tuple.",
+      "anyOf": [
+        {
+          "title": "LockedAmountValue",
+          "description": "(Vote Amount, Proposal/Poll end of voting period)",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/staking/types/RewardSnapshot": {
+      "title": "RewardSnapshot",
+      "anyOf": [
+        {
+          "title": "RewardSnapshot",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "snapshot_ada",
+              "description": "This represents a number with 12 decimal places.",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/staking/types/StakingDatum": {
+      "title": "StakingDatum",
+      "anyOf": [
+        {
+          "title": "StakingManager",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1staking~1types~1StakingManagerContent"
+            }
+          ]
+        },
+        {
+          "title": "StakingPosition",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "$ref": "#/definitions/indigo~1contracts~1staking~1types~1StakingPositionContent"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/staking/types/StakingManagerContent": {
+      "title": "StakingManagerContent",
+      "anyOf": [
+        {
+          "title": "StakingManagerContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "total_stake",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "manager_snapshot",
+              "$ref": "#/definitions/indigo~1contracts~1staking~1types~1RewardSnapshot"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/staking/types/StakingParams": {
+      "title": "StakingParams",
+      "anyOf": [
+        {
+          "title": "StakingParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "staking_manager_nft",
+              "description": "NFT identifying authentic Staking Manager output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "staking_token",
+              "description": "Token identifying authentic staking position output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "indy_token",
+              "description": "AssetClass of INDY token.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "poll_token",
+              "description": "Token identifying authentic Poll output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "version_record_token",
+              "description": "Token identifying the VersionRegistry output.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "collector_val_hash",
+              "description": "Hash of the Collector script.",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/staking/types/StakingPositionContent": {
+      "title": "StakingPositionContent",
+      "anyOf": [
+        {
+          "title": "StakingPositionContent",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "owner",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "locked_amount",
+              "description": "The INDY tokens being locked for voting.\n This field is an underlying representation of the following mapping:\n Proposal/Poll Id -> LockedAmountValue",
+              "$ref": "#/definitions/List$Tuple$Int_indigo~1contracts~1staking~1types~1LockedAmountValue"
+            },
+            {
+              "title": "position_snapshot",
+              "$ref": "#/definitions/indigo~1contracts~1staking~1types~1RewardSnapshot"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/staking/types/StakingRedeemer": {
+      "title": "StakingRedeemer",
+      "anyOf": [
+        {
+          "title": "CreateStakingPosition",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "creator_pkh",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        },
+        {
+          "title": "UpdateTotalStake",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        },
+        {
+          "title": "Distribute",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": []
+        },
+        {
+          "title": "AdjustStakedAmount",
+          "dataType": "constructor",
+          "index": 3,
+          "fields": [
+            {
+              "title": "adjust_amount",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "Unstake",
+          "dataType": "constructor",
+          "index": 4,
+          "fields": []
+        },
+        {
+          "title": "Lock",
+          "dataType": "constructor",
+          "index": 5,
+          "fields": []
+        },
+        {
+          "title": "UpgradeVersion",
+          "dataType": "constructor",
+          "index": 6,
+          "fields": []
+        }
+      ]
+    },
+    "indigo/contracts/treasury/types/TreasuryRedeemer": {
+      "title": "TreasuryRedeemer",
+      "anyOf": [
+        {
+          "title": "Withdraw",
+          "description": "Purpose is to spend funds from the treasury by a passed proposal.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        },
+        {
+          "title": "PrepareWithdrawal",
+          "description": "Purpose is to prepare a single UTXO that can be spent using the `Withdraw` redeemer.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        },
+        {
+          "title": "Split",
+          "description": "Purpose is to be able to explicitly split different assets compressed in a UTXO.",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": []
+        },
+        {
+          "title": "Merge",
+          "description": "Purpose is to defragment a single asset split across multiple UTXOs.",
+          "dataType": "constructor",
+          "index": 3,
+          "fields": []
+        },
+        {
+          "title": "CollectAda",
+          "description": "Purpose is to add ADA to the treasury script without creating a new UTXO.",
+          "dataType": "constructor",
+          "index": 4,
+          "fields": []
+        },
+        {
+          "title": "UpgradeVersion",
+          "dataType": "constructor",
+          "index": 5,
+          "fields": []
+        }
+      ]
+    },
+    "indigo/contracts/treasury/types/TreasuryScriptParams": {
+      "title": "TreasuryScriptParams",
+      "anyOf": [
+        {
+          "title": "TreasuryScriptParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "upgrade_token",
+              "description": "Token authenticating passed proposal.",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "version_record_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            },
+            {
+              "title": "treasury_utxos_stake_credential",
+              "$ref": "#/definitions/Option$aiken~1transaction~1credential~1Referenced$aiken~1transaction~1credential~1Credential"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/version_registry/types/VersionRecordDatum": {
+      "title": "VersionRecordDatum",
+      "anyOf": [
+        {
+          "title": "VersionRecordDatum",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "version_id",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "version_paths",
+              "description": "Underlying representation of the following mapping: ValidatorHash -> PolicyId",
+              "$ref": "#/definitions/List$Tuple$ByteArray_ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/contracts/version_registry/types/VersionRecordParams": {
+      "title": "VersionRecordParams",
+      "anyOf": [
+        {
+          "title": "VersionRecordParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "upgrade_token",
+              "$ref": "#/definitions/indigo~1types~1generic~1AssetClass"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/types/generic/AssetClass": {
+      "title": "AssetClass",
+      "anyOf": [
+        {
+          "title": "AssetClass",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "policy_id",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "asset_name",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "indigo/types/on_chain_decimal/OnChainDecimal": {
+      "title": "OnChainDecimal",
+      "anyOf": [
+        {
+          "title": "OnChainDecimal",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "get_on_chain_int",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "upgrade_cdpcreatorv2_to_cdpcreatorv21/CDPCreatorUpgradePolicyParams": {
+      "title": "CDPCreatorUpgradePolicyParams",
+      "anyOf": [
+        {
+          "title": "CDPCreatorUpgradePolicyParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "upgrade_old_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "upgrade_new_hash",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "upgrade_cdpv2_to_cdpv21/CDPUpgradePolicyParams": {
+      "title": "CDPUpgradePolicyParams",
+      "anyOf": [
+        {
+          "title": "CDPUpgradePolicyParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "cdp_old_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "cdp_new_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "interest_rate_oracles",
+              "$ref": "#/definitions/List$Tuple$ByteArray_indigo~1types~1generic~1AssetClass"
+            }
+          ]
+        }
+      ]
+    },
+    "upgrade_cdpv2_to_cdpv21/CDPUpgradeRedeemer": {
+      "title": "CDPUpgradeRedeemer",
+      "anyOf": [
+        {
+          "title": "UpgradeCDP",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": []
+        },
+        {
+          "title": "UpgradeIAsset",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "upgrade_govv2_to_govv21/GovUpgradeParams": {
+      "title": "GovUpgradeParams",
+      "anyOf": [
+        {
+          "title": "GovUpgradeParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "gov_old_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "gov_new_hash",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "upgrade_stabilitypoolv2_to_stabilitypoolv21/StabilityPoolUpgradePolicyParams": {
+      "title": "StabilityPoolUpgradePolicyParams",
+      "anyOf": [
+        {
+          "title": "StabilityPoolUpgradePolicyParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "upgrade_old_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "upgrade_new_hash",
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "upgrade_treasuryv2_to_treasuryv21/TreasuryUpgradePolicyParams": {
+      "title": "TreasuryUpgradePolicyParams",
+      "anyOf": [
+        {
+          "title": "TreasuryUpgradePolicyParams",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "upgrade_old_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "upgrade_new_hash",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "stake_credential",
+              "$ref": "#/definitions/Option$aiken~1transaction~1credential~1Referenced$aiken~1transaction~1credential~1Credential"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
