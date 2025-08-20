@@ -475,11 +475,7 @@ export class CDPContract {
       interestPayment,
     );
     const interestTreasuryPayment = interestPayment - interestCollectorPayment;
-    console.log(
-      interestPayment,
-      interestCollectorPayment,
-      interestTreasuryPayment,
-    );
+
     if (interestTreasuryPayment > 0) {
       await TreasuryContract.feeTx(
         interestTreasuryPayment,
@@ -628,11 +624,7 @@ export class CDPContract {
       interestPayment,
     );
     const interestTreasuryPayment = interestPayment - interestCollectorPayment;
-    console.log(
-      interestPayment,
-      interestCollectorPayment,
-      interestTreasuryPayment,
-    );
+
     if (interestTreasuryPayment > 0) {
       await TreasuryContract.feeTx(
         interestTreasuryPayment,

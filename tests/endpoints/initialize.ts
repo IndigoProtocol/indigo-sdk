@@ -268,6 +268,7 @@ export async function init(
     stakingToken: toSystemParamsAsset(stakingToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
   };
+  const collectorValidator = CollectorContract.validator(collectorParams);
   const collectorValHash = CollectorContract.validatorHash(collectorParams);
 
   const stakingParams: StakingParams = {
@@ -473,6 +474,9 @@ export async function init(
       },
       cdpValidatorRef: {
         input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
+      },
+      collectorValidatorRef: {
+        input: await initScriptRef(lucid, collectorValidator),
       },
       executeValidatorRef: {
         input: await initScriptRef(lucid, executeValidator),

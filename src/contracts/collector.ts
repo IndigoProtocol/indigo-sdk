@@ -6,6 +6,7 @@ import {
   fromText,
   LucidEvolution,
   OutRef,
+  paymentCredentialOf,
   SpendingValidator,
   TxBuilder,
   UTxO,
@@ -18,7 +19,7 @@ import {
   ScriptReferences,
   SystemParams,
 } from '../types/system-params';
-import { scriptRef } from '../helpers/lucid-utils';
+import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import { getRandomElement } from '../helpers/helpers';
 
 export class CollectorContract {
@@ -48,7 +49,7 @@ export class CollectorContract {
         { kind: 'inline', value: Data.to(new Constr(0, [])) },
         {
           ...collectorUtxo.assets,
-          lovelace: collectorUtxo.assets['lovelace'] + fee,
+          lovelace: collectorUtxo.assets.lovelace + fee,
         },
       )
       .readFrom([collectorScriptRefUtxo]);

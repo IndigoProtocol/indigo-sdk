@@ -1,4 +1,10 @@
-import { Data } from '@lucid-evolution/lucid';
+import {
+  credentialToAddress,
+  Credential as LucidCredential,
+  Data,
+  LucidEvolution,
+  getAddressDetails,
+} from '@lucid-evolution/lucid';
 
 export const AssetClassSchema = Data.Object({
   currencySymbol: Data.Bytes(),
@@ -50,6 +56,46 @@ export const AddressSchema = Data.Object({
 });
 export type Address = Data.Static<typeof AddressSchema>;
 export const Address = AddressSchema as unknown as Address;
+
+export function addressToBech32(
+  lucid: LucidEvolution,
+  address: Address,
+): string {
+  const paymentCredential: LucidCredential =
+    'PublicKeyCredential' in address.paymentCredential
+      ? { type: 'Key', hash: address.paymentCredential.PublicKeyCredential[0] }
+      : { type: 'Script', hash: address.paymentCredential.ScriptCredential[0] };
+  const stakeCredential: LucidCredential | undefined =
+    address.stakeCredential && 'Inline' in address.stakeCredential
+      ? 'PublicKeyCredential' in address.stakeCredential.Inline[0]
+        ? {
+            type: 'Key',
+            hash: address.stakeCredential.Inline[0].PublicKeyCredential[0],
+          }
+        : {
+            type: 'Script',
+            hash: address.stakeCredential.Inline[0].ScriptCredential[0],
+          }
+      : undefined;
+  
+  return credentialToAddress(
+    lucid.config().network,
+    paymentCredential,
+    stakeCredential,
+  );
+}
+
+export function addressFromBech32(
+  address: string,
+): Address {
+  const details = getAddressDetails(address);
+  return {
+    paymentCredential: {
+      PublicKeyCredential: [details.paymentCredential.hash],
+    },
+    stakeCredential: details.stakeCredential ? {Inline: [{PublicKeyCredential: [details.stakeCredential.hash]}]} : undefined,
+  };
+}
 
 export interface CurrencySymbol {
   unCurrencySymbol: string;

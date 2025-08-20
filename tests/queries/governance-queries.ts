@@ -7,22 +7,23 @@ import {
   import { createScriptAddress } from '../../src/helpers/lucid-utils';
   import { AssetClass } from '../../src/types/generic';
   import { assetClassToUnit } from '../../src/helpers/value-helpers';
-  import { matchSingle, parseIAssetDatum } from '../../src';
+  import { matchSingle, parseGovDatum } from '../../src';
   
   export async function findGov(
     lucid: LucidEvolution,
     govScriptHash: ScriptHash,
     govNft: AssetClass,
   ): Promise<UTxO> {
-    const iassetUtxos = await lucid.utxosAtWithUnit(
+    const govUtxos = await lucid.utxosAtWithUnit(
       createScriptAddress(lucid.config().network, govScriptHash),
       assetClassToUnit(govNft),
     );
   
     return matchSingle(
-      iassetUtxos.filter((utxo) => {
+      govUtxos.filter((utxo) => {
         if (utxo.datum != null) {
           try {
+            parseGovDatum(utxo.datum);
             return true; // TODO: implement Gov Datum
           } catch (_) {
             // when incompatible datum
