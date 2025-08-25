@@ -7,16 +7,17 @@ import {
   mintingPolicyToId,
   PolicyId,
   toUnit,
+  TxBuilder,
 } from '@lucid-evolution/lucid';
 import { OneShotParams } from '../types/one-shot';
 import { matchSingle } from '../helpers/helpers';
 import { mkOneShotPolicy } from '../scripts/one-shot-policy';
 import { reduce } from 'fp-ts/lib/Array';
 
-export async function runOneShotMintTx(
+export async function oneShotMintTx(
   lucid: LucidEvolution,
   params: OneShotParams,
-): Promise<PolicyId> {
+): Promise<[TxBuilder, PolicyId]> {
   const oneShotPolicy = mkOneShotPolicy(params);
   const policyId = mintingPolicyToId(oneShotPolicy);
 
@@ -32,16 +33,31 @@ export async function runOneShotMintTx(
     },
   );
 
-  const txHash = await lucid
-    .newTx()
-    .collectFrom([refUtxo])
-    .mintAssets(
-      reduce<{ tokenName: string; amount: bigint }, Assets>({}, (acc, entry) =>
-        addAssets(acc, { [toUnit(policyId, entry.tokenName)]: entry.amount }),
-      )(params.mintAmounts),
-      Data.to(new Constr(0, [])),
-    )
-    .attach.MintingPolicy(oneShotPolicy)
+  return [
+    lucid
+      .newTx()
+      .collectFrom([refUtxo])
+      .mintAssets(
+        reduce<{ tokenName: string; amount: bigint }, Assets>(
+          {},
+          (acc, entry) =>
+            addAssets(acc, {
+              [toUnit(policyId, entry.tokenName)]: entry.amount,
+            }),
+        )(params.mintAmounts),
+        Data.to(new Constr(0, [])),
+      )
+      .attach.MintingPolicy(oneShotPolicy),
+    policyId,
+  ];
+}
+
+export async function runOneShotMintTx(
+  lucid: LucidEvolution,
+  params: OneShotParams,
+): Promise<PolicyId> {
+  const [tx, policyId] = await oneShotMintTx(lucid, params);
+  const txHash = await tx
     .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
