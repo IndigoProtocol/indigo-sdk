@@ -42,6 +42,7 @@ import {
 import { _cdpValidator } from '../scripts/cdp-validator';
 import { parsePriceOracleDatum } from '../types/indigo/price-oracle';
 import { parseInterestOracleDatum } from '../types/indigo/interest-oracle';
+import { calculateAccruedInterest, calculateUnitaryInterestSinceOracleLastUpdated } from '../helpers/interest-oracle';
 
 export class CDPContract {
   static async openPosition(
@@ -117,7 +118,7 @@ export class CDPContract {
     };
     cdpValue[cdpToken] = 1n;
     const newSnapshot =
-      InterestOracleContract.calculateUnitaryInterestSinceOracleLastUpdated(
+      calculateUnitaryInterestSinceOracleLastUpdated(
         BigInt(now),
         interestOracleDatum,
       ) + interestOracleDatum.unitaryInterest;
@@ -381,7 +382,7 @@ export class CDPContract {
       throw 'Invalid CDP Fees';
 
     const newSnapshot =
-      InterestOracleContract.calculateUnitaryInterestSinceOracleLastUpdated(
+      calculateUnitaryInterestSinceOracleLastUpdated(
         BigInt(now),
         interestOracleDatum,
       ) + interestOracleDatum.unitaryInterest;
@@ -453,7 +454,7 @@ export class CDPContract {
     // Interest payment
 
     const interestPaymentAsset =
-      InterestOracleContract.calculateAccruedInterest(
+      calculateAccruedInterest(
         BigInt(now),
         cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
         cdpD.mintedAmt,
@@ -606,7 +607,7 @@ export class CDPContract {
 
     // Interest payment
     const interestPaymentAsset =
-      InterestOracleContract.calculateAccruedInterest(
+      calculateAccruedInterest(
         BigInt(now),
         cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
         cdpD.mintedAmt,

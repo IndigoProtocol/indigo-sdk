@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { InterestOracleContract } from '../src/contracts/interest-oracle';
 import { oneDay } from '../src/helpers/time-helpers';
+import { calculateAccruedInterest, calculateUnitaryInterestSinceOracleLastUpdated } from '../src/helpers/interest-oracle';
 
 describe('Interest Calculations', () => {
   describe('Calculate Unitary Interest', () => {
     it('Should calculate the unitary interest correctly, 0', () => {
       expect(
-        InterestOracleContract.calculateUnitaryInterestSinceOracleLastUpdated(
+        calculateUnitaryInterestSinceOracleLastUpdated(
           oneDay * 6n,
           {
             unitaryInterest: 684_931_506_849_315n,
@@ -19,7 +19,7 @@ describe('Interest Calculations', () => {
 
     it('Should calculate the unitary interest correctly, 1', () => {
       expect(
-        InterestOracleContract.calculateUnitaryInterestSinceOracleLastUpdated(
+        calculateUnitaryInterestSinceOracleLastUpdated(
           oneDay * 6n,
           {
             unitaryInterest: 0n,
@@ -32,7 +32,7 @@ describe('Interest Calculations', () => {
 
     it('Should calculate the unitary interest correctly, 2', () => {
       expect(
-        InterestOracleContract.calculateUnitaryInterestSinceOracleLastUpdated(
+        calculateUnitaryInterestSinceOracleLastUpdated(
           1n,
           {
             unitaryInterest: 0n,
@@ -47,7 +47,7 @@ describe('Interest Calculations', () => {
   describe('Calculate Accumulated Interest', () => {
     it('Should calculate the accumulated interest correctly, 0', () => {
       expect(
-        InterestOracleContract.calculateAccruedInterest(
+        calculateAccruedInterest(
           oneDay,
           0n,
           1_000_000n,
@@ -63,7 +63,7 @@ describe('Interest Calculations', () => {
 
     it('Should calculate the accumulated interest correctly, 1', () => {
       expect(
-        InterestOracleContract.calculateAccruedInterest(
+        calculateAccruedInterest(
           oneDay * 6n,
           0n,
           1_000_000n,
@@ -79,7 +79,7 @@ describe('Interest Calculations', () => {
 
     it('Should calculate the accumulated interest correctly, 2', () => {
       expect(
-        InterestOracleContract.calculateAccruedInterest(
+        calculateAccruedInterest(
           oneDay * 17n,
           0n,
           1_000_000n,
@@ -95,7 +95,7 @@ describe('Interest Calculations', () => {
 
     it('Should calculate the accumulated interest correctly, 3', () => {
       expect(
-        InterestOracleContract.calculateAccruedInterest(
+        calculateAccruedInterest(
           oneDay * 17n,
           410_958_904_109_589n,
           1_000_000n,
@@ -111,7 +111,7 @@ describe('Interest Calculations', () => {
 
     it('Should calculate the accumulated interest correctly, 4', () => {
       expect(
-        InterestOracleContract.calculateAccruedInterest(
+        calculateAccruedInterest(
           oneDay * 17n,
           767_123_287_671_232n,
           1_000_000n,
@@ -127,7 +127,7 @@ describe('Interest Calculations', () => {
 
     it('Should calculate the accumulated interest correctly, 5', () => {
       expect(
-        InterestOracleContract.calculateAccruedInterest(
+        calculateAccruedInterest(
           oneDay * 10n,
           821_917_808_219_178n,
           1_000_000n,
