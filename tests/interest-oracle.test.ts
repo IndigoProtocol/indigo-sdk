@@ -40,5 +40,8 @@ test<LucidContext>('Interest Oracle - Launch', async ({
         lucid
     );
 
-  await runAndAwaitTx(lucid, tx);
+  await tx.complete()
+    .then((tx) => tx.sign.withWallet().complete())
+    .then((tx) => tx.submit())
+    .then((tx) => lucid.awaitTx(tx));
 });

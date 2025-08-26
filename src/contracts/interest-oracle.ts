@@ -2,7 +2,6 @@ import {
   fromText,
   LucidEvolution,
   OutRef,
-  PolicyId,
   toUnit,
   TxBuilder,
   validatorToAddress,
@@ -12,7 +11,6 @@ import {
   InterestOracleParams,
   serialiseInterestOracleDatum,
 } from '../types/indigo/interest-oracle';
-import { addrDetails } from '../helpers/lucid-utils';
 import { oneShotMintTx } from './one-shot';
 import { mkInterestOracleValidator } from '../scripts/interest-oracle-validator';
 
@@ -28,6 +26,10 @@ export class InterestOracleContract {
     interestTokenName?: string,
   ): Promise<[TxBuilder, AssetClass]> {
     const tokenName = interestTokenName ?? 'INTEREST_ORACLE';
+    if (!refOutRef) {
+      refOutRef = (await lucid.wallet().getUtxos())[0];
+    }
+    
     const [tx, policyId] = await oneShotMintTx(lucid, {
       referenceOutRef: {
         txHash: refOutRef.txHash,
@@ -35,7 +37,7 @@ export class InterestOracleContract {
       },
       mintAmounts: [
         {
-          tokenName: tokenName,
+          tokenName: fromText(tokenName),
           amount: 1n,
         },
       ],
