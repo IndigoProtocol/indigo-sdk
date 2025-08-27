@@ -7,7 +7,6 @@ import { castGovParams, GovParams } from '../types/indigo/gov';
 import {
   GovParamsSP,
   fromSystemParamsAsset,
-  toSystemParamsAsset,
 } from '../types/system-params';
 
 const govValidatorData = {

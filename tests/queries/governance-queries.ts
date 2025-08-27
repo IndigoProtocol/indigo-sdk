@@ -1,5 +1,4 @@
 import {
-  fromText,
   LucidEvolution,
   ScriptHash,
   UTxO,

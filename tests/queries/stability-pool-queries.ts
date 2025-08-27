@@ -1,7 +1,6 @@
 import {
   fromText,
   LucidEvolution,
-  Network,
   ScriptHash,
   UTxO,
 } from '@lucid-evolution/lucid';

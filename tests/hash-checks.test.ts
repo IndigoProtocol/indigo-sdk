@@ -2,16 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   loadSystemParamsFromFile,
   StakingContract,
-  StabilityPoolContract,
   CollectorContract,
   CDPContract,
   mkCDPCreatorValidatorFromSP,
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
-import { mkExecuteValidatorFromSP } from '../src/scripts/execute-validator';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
 import {
-  mkGovValidator,
   mkGovValidatorFromSP,
 } from '../src/scripts/gov-validator';
 

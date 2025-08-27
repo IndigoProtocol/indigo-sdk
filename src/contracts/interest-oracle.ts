@@ -1,4 +1,3 @@
-import { Constr, Data } from '@lucid-evolution/lucid';
 import { InterestOracleDatum } from '../types/indigo/interest-oracle';
 import { oneYear } from '../helpers/time-helpers';
 

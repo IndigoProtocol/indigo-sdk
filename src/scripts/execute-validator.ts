@@ -1,8 +1,6 @@
 import {
-  applyDoubleCborEncoding,
   applyParamsToScript,
   applySingleCborEncoding,
-  Data,
   ScriptType,
   SpendingValidator,
 } from '@lucid-evolution/lucid';

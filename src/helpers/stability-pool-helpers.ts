@@ -1,11 +1,10 @@
-import { OutRef, UTxO } from '@lucid-evolution/lucid';
+import { UTxO } from '@lucid-evolution/lucid';
 import {
   EpochToScaleToSum,
   fromSPInteger,
   mkSPInteger,
   parseSnapshotEpochToScaleToSumDatum,
   parseStabilityPoolDatum,
-  SnapshotEpochToScaleToSumContent,
   spAdd,
   spDiv,
   SPInteger,
@@ -15,6 +14,37 @@ import {
 } from '../types/indigo/stability-pool';
 
 const newScaleMultiplier = 1000000000n;
+
+export function getSumFromEpochToScaleToSum(
+  e2s2s: EpochToScaleToSum,
+  epoch: bigint,
+  scale: bigint,
+): SPInteger | undefined {
+  for (const [key, value] of e2s2s.entries()) {
+    if (key.epoch === epoch && key.scale === scale) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+export function setSumInEpochToScaleToSum(
+  e2s2s: EpochToScaleToSum,
+  epoch: bigint,
+  scale: bigint,
+  sum: SPInteger,
+): EpochToScaleToSum {
+  const map = new Map<{ epoch: bigint; scale: bigint }, SPInteger>();
+  for (const [key, value] of e2s2s.entries()) {
+    if (!(key.epoch === epoch && key.scale === scale)) {
+      map.set(key, value);
+    }
+  }
+
+  map.set({ epoch, scale }, sum);
+
+  return map;
+}
 
 export function getAccountReward(
   account: StabilityPoolSnapshot,
@@ -71,12 +101,12 @@ function findEpochToScaleToSum(
   snapshotEpochToScaleToSumTokenRef1: UTxO,
   snapshotEpochToScaleToSumTokenRef2: UTxO | undefined,
 ): [SnapshotESSSearchResult, SnapshotESSSearchResult | undefined] {
-  let ess1;
+  let ess1: EpochToScaleToSum;
   try {
     ess1 = parseSnapshotEpochToScaleToSumDatum(
       snapshotEpochToScaleToSumTokenRef1.datum,
     ).snapshot;
-  } catch (e) {
+  } catch (_) {
     ess1 = parseStabilityPoolDatum(
       snapshotEpochToScaleToSumTokenRef1.datum,
     ).epochToScaleToSum;
@@ -174,35 +204,4 @@ export function updatePoolSnapshotWithdrawalFee(
         );
 
   return [newPoolDepositVal, newPoolProduct];
-}
-
-export function getSumFromEpochToScaleToSum(
-  e2s2s: EpochToScaleToSum,
-  epoch: bigint,
-  scale: bigint,
-): SPInteger | undefined {
-  for (const [key, value] of e2s2s.entries()) {
-    if (key.epoch === epoch && key.scale === scale) {
-      return value;
-    }
-  }
-  return undefined;
-}
-
-export function setSumInEpochToScaleToSum(
-  e2s2s: EpochToScaleToSum,
-  epoch: bigint,
-  scale: bigint,
-  sum: SPInteger,
-): EpochToScaleToSum {
-  const map = new Map<{ epoch: bigint; scale: bigint }, SPInteger>();
-  for (const [key, value] of e2s2s.entries()) {
-    if (!(key.epoch === epoch && key.scale === scale)) {
-      map.set(key, value);
-    }
-  }
-
-  map.set({ epoch, scale }, sum);
-
-  return map;
 }

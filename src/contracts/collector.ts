@@ -6,7 +6,6 @@ import {
   fromText,
   LucidEvolution,
   OutRef,
-  paymentCredentialOf,
   SpendingValidator,
   TxBuilder,
   UTxO,
@@ -19,7 +18,7 @@ import {
   ScriptReferences,
   SystemParams,
 } from '../types/system-params';
-import { addrDetails, scriptRef } from '../helpers/lucid-utils';
+import { scriptRef } from '../helpers/lucid-utils';
 import { getRandomElement } from '../helpers/helpers';
 
 export class CollectorContract {

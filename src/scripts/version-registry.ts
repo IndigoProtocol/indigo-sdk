@@ -1,10 +1,7 @@
 import {
-  applyParamsToScript,
   ScriptType,
   SpendingValidator,
 } from '@lucid-evolution/lucid';
-import { castLrpParams, LRPParams } from '../types/indigo/lrp';
-import { castExecuteParams, ExecuteParams } from '../types/indigo/execute';
 
 const versionRegistryValidatorData = {
   type: 'PlutusV2' as ScriptType,

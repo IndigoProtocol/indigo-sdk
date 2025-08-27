@@ -1,16 +1,11 @@
 import {
-  applyParamsToScript,
   Constr,
   fromText,
   LucidEvolution,
   TxBuilder,
   validatorToScriptHash,
-  SpendingValidator,
   Data,
-  validatorToAddress,
-  Address,
   UTxO,
-  paymentCredentialOf,
   credentialToAddress,
 } from '@lucid-evolution/lucid';
 import {
@@ -33,8 +28,6 @@ import {
   spSub,
 } from '../types/indigo/stability-pool';
 import {
-  ScriptReferences,
-  StabilityPoolParamsSP,
   SystemParams,
 } from '../types/system-params';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
@@ -107,7 +100,7 @@ export class StabilityPoolContract {
     params: SystemParams,
     lucid: LucidEvolution,
   ): Promise<TxBuilder> {
-    const [pkh, skh] = await addrDetails(lucid);
+    const [pkh, _] = await addrDetails(lucid);
     const myAddress = await lucid.wallet().address();
 
     const stabilityPoolScriptRef = await scriptRef(
@@ -169,12 +162,11 @@ export class StabilityPoolContract {
   }
 
   static async closeAccount(
-    asset: string,
     accountUtxo: UTxO,
     params: SystemParams,
     lucid: LucidEvolution,
   ): Promise<TxBuilder> {
-    const [pkh, skh] = await addrDetails(lucid);
+    const [pkh, _] = await addrDetails(lucid);
     const myAddress = await lucid.wallet().address();
 
     const stabilityPoolScriptRef = await scriptRef(
@@ -267,8 +259,8 @@ export class StabilityPoolContract {
       .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
       .readFrom([iAssetUtxo, govUtxo, stabilityPoolScriptRef]);
 
-    if (!accountDatum.request) throw 'Account Request is null';
-    if (accountDatum.request == 'Create' || 'Create' in accountDatum.request) {
+    if (!accountDatum.request) throw new Error('Account Request is null');
+    if ('Create' in accountDatum.request) {
       const accountTokenScriptRef = await scriptRef(
         params.scriptReferences.authTokenPolicies.accountTokenRef,
         lucid,
@@ -404,7 +396,7 @@ export class StabilityPoolContract {
         reward,
       );
       const isDepositOrRewardWithdrawal: boolean = amount > 0n;
-      const bigIntMax = (...args) => args.reduce((m, e) => (e > m ? e : m));
+      const bigIntMax = (...args: bigint[]): bigint => args.reduce((m, e) => (e > m ? e : m));
       const balanceChange: bigint = isDepositOrRewardWithdrawal
         ? amount
         : bigIntMax(amount, fromSPInteger(accountDatum.snapshot.depositVal));
