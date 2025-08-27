@@ -23,3 +23,16 @@ export async function runAndAwaitTx(
   await lucid.awaitTx(txHash);
   return txHash;
 }
+
+export async function runAndAwaitTxBuilder(
+  lucid: LucidEvolution,
+  transaction: TxBuilder,
+): Promise<string> {
+  const txHash = await transaction
+    .complete()
+    .then((tx) => tx.sign.withWallet().complete())
+    .then((tx) => tx.submit());
+
+  await lucid.awaitTx(txHash);
+  return txHash;
+}

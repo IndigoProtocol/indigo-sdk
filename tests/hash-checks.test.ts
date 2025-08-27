@@ -5,6 +5,7 @@ import {
   CollectorContract,
   CDPContract,
   mkCDPCreatorValidatorFromSP,
+  mkInterestOracleValidator,
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
@@ -57,5 +58,16 @@ describe('Validator Hash checks', () => {
         mkStabilityPoolValidatorFromSP(systemParams.stabilityPoolParams),
       ),
     ).toBe(systemParams.validatorHashes.stabilityPoolHash);
+  });
+
+  it('Interest Oracle validator hash', () => {
+    expect(
+      validatorToScriptHash(
+        mkInterestOracleValidator({
+          biasTime: 1_200_000n,
+          owner: 'a962c79bd58fc9fcecd78f8a963e0ce80e907264cd86cd5814d87333',
+        }),
+      ),
+    ).toBe('b970b3e0e1b591840627e6919898c12ee57e2f0225ab03e056d10d52');
   });
 });

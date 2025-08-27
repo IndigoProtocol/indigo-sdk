@@ -21,7 +21,6 @@ import {
 } from '../types/system-params';
 import { IAssetHelpers, IAssetOutput } from '../helpers/asset-helpers';
 import { CollectorContract } from './collector';
-import { InterestOracleContract } from './interest-oracle';
 import { TreasuryContract } from './treasury';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import {
@@ -38,6 +37,10 @@ import { parsePriceOracleDatum } from '../types/indigo/price-oracle';
 import { parseInterestOracleDatum } from '../types/indigo/interest-oracle';
 import { castCDPCreatorRedeemer } from '../types/indigo/cdp-creator';
 import { parseGovDatum } from '../types/indigo/gov';
+import {
+  calculateAccruedInterest,
+  calculateUnitaryInterestSinceOracleLastUpdated,
+} from '../helpers/interest-oracle';
 
 export class CDPContract {
   static async openPosition(
@@ -123,7 +126,7 @@ export class CDPContract {
     };
     cdpValue[cdpToken] = 1n;
     const newSnapshot =
-      InterestOracleContract.calculateUnitaryInterestSinceOracleLastUpdated(
+      calculateUnitaryInterestSinceOracleLastUpdated(
         BigInt(now),
         interestOracleDatum,
       ) + interestOracleDatum.unitaryInterest;
@@ -380,7 +383,7 @@ export class CDPContract {
       throw new Error('Invalid CDP Fees');
 
     const newSnapshot =
-      InterestOracleContract.calculateUnitaryInterestSinceOracleLastUpdated(
+      calculateUnitaryInterestSinceOracleLastUpdated(
         BigInt(now),
         interestOracleDatum,
       ) + interestOracleDatum.unitaryInterest;
@@ -452,14 +455,13 @@ export class CDPContract {
 
     // Interest payment
 
-    const interestPaymentAsset =
-      InterestOracleContract.calculateAccruedInterest(
-        BigInt(now),
-        cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
-        cdpD.mintedAmt,
-        cdpD.cdpFees.ActiveCDPInterestTracking.lastSettled,
-        interestOracleDatum,
-      );
+    const interestPaymentAsset = calculateAccruedInterest(
+      BigInt(now),
+      cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
+      cdpD.mintedAmt,
+      cdpD.cdpFees.ActiveCDPInterestTracking.lastSettled,
+      interestOracleDatum,
+    );
     const interestPayment =
       (interestPaymentAsset * od.price.getOnChainInt) / 1_000_000n;
     const interestCollectorPayment = calculateFeeFromPercentage(
@@ -595,14 +597,13 @@ export class CDPContract {
     let fee = 0n;
 
     // Interest payment
-    const interestPaymentAsset =
-      InterestOracleContract.calculateAccruedInterest(
-        BigInt(now),
-        cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
-        cdpD.mintedAmt,
-        cdpD.cdpFees.ActiveCDPInterestTracking.lastSettled,
-        interestOracleDatum,
-      );
+    const interestPaymentAsset = calculateAccruedInterest(
+      BigInt(now),
+      cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
+      cdpD.mintedAmt,
+      cdpD.cdpFees.ActiveCDPInterestTracking.lastSettled,
+      interestOracleDatum,
+    );
     const interestPayment =
       (interestPaymentAsset * od.price.getOnChainInt) / 1_000_000n;
     const interestCollectorPayment = calculateFeeFromPercentage(

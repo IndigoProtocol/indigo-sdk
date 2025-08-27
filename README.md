@@ -34,6 +34,7 @@ npm install @indigo-labs/indigo-sdk
 ### Code Quality
 
 This project uses:
+
 - **ESLint** for code linting and quality checks
 - **Prettier** for code formatting
 - **TypeScript** for type safety
