@@ -20,8 +20,8 @@ beforeEach<LucidContext>(async (context: LucidContext) => {
 test<LucidContext>('Initialize Protocol - can initialize', async ({
   lucid,
   users,
-  emulator,
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid);
+
+  await init(lucid);
 });

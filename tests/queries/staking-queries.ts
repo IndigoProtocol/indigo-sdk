@@ -7,7 +7,7 @@ import {
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
-import { matchSingle, parseIAssetDatum } from '../../src';
+import { matchSingle } from '../../src';
 import { parseStakingPositionDatum } from '../../src/types/indigo/staking';
 
 export async function findStakingPosition(

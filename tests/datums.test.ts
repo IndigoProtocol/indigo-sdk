@@ -1,30 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { StakingContract } from '../src/contracts/staking';
 import {
-  AccountContent,
   CDPContent,
   IAssetContent,
-  parseAccountDatum,
   parseCDPDatum,
   parseIAssetDatum,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
-  parseSnapshotEpochToScaleToSumDatum,
   parseStabilityPoolDatum,
   serialiseCDPDatum,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
   serialiseStabilityPoolDatum,
-  SnapshotEpochToScaleToSumContent,
   StabilityPoolContent,
-  StabilityPoolContract,
 } from '../src/index';
 import {
   parseStakingManagerDatum,
   parseStakingPositionDatum,
   serialiseStakingDatum,
-  StakingDatum,
   StakingManagerContent,
   StakingPositionContent,
 } from '../src/types/indigo/staking';
@@ -192,8 +185,8 @@ describe('Datum checks', () => {
         scale: 0n,
       },
       epochToScaleToSum: new Map([
-        [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
-        [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
+        [{ epoch: 0n, scale: 0n }, { value: 595764752630360958n }],
+        [{ epoch: 1n, scale: 0n }, { value: 1143417026613401054n }],
       ]),
     };
     expect(parseStabilityPoolDatum(stabilityPoolDatum)).toEqual(

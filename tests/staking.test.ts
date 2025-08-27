@@ -1,6 +1,6 @@
 import { beforeEach, test } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
-import { credentialToAddress, fromText, Lucid } from '@lucid-evolution/lucid';
+import { fromText, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { StakingContract } from '../src/contracts/staking';
@@ -23,7 +23,6 @@ beforeEach<LucidContext>(async (context: LucidContext) => {
 test<LucidContext>('Staking - Create Position', async ({
   lucid,
   users,
-  emulator,
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid);
@@ -37,7 +36,6 @@ test<LucidContext>('Staking - Create Position', async ({
 test<LucidContext>('Staking - Adjust Position', async ({
   lucid,
   users,
-  emulator,
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid);
@@ -76,7 +74,6 @@ test<LucidContext>('Staking - Adjust Position', async ({
 test<LucidContext>('Staking - Close Position', async ({
   lucid,
   users,
-  emulator,
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid);

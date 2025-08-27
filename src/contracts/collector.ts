@@ -48,7 +48,7 @@ export class CollectorContract {
         { kind: 'inline', value: Data.to(new Constr(0, [])) },
         {
           ...collectorUtxo.assets,
-          lovelace: collectorUtxo.assets['lovelace'] + fee,
+          lovelace: collectorUtxo.assets.lovelace + fee,
         },
       )
       .readFrom([collectorScriptRefUtxo]);

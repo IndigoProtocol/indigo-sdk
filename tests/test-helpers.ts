@@ -1,8 +1,13 @@
-import { Emulator, LucidEvolution, TxBuilder } from '@lucid-evolution/lucid';
+import {
+  Emulator,
+  EmulatorAccount,
+  LucidEvolution,
+  TxBuilder,
+} from '@lucid-evolution/lucid';
 
 export type LucidContext = {
   lucid: LucidEvolution;
-  users: any;
+  users: { [key: string]: EmulatorAccount };
   emulator: Emulator;
 };
 
