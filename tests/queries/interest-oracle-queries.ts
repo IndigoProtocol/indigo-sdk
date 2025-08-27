@@ -11,4 +11,3 @@ export async function findInterestOracle(
   if (!interestUtxo.datum) throw new Error('No interest oracle utxo found');
   return [interestUtxo, parseInterestOracleDatum(interestUtxo.datum)];
 }
-

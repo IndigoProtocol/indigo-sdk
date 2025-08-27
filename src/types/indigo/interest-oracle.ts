@@ -33,7 +33,10 @@ const FeedInterestOracleRedeemer =
 export function serialiseFeedInterestOracleRedeemer(
   redeemer: FeedInterestOracleRedeemer,
 ): Datum {
-  return Data.to<FeedInterestOracleRedeemer>(redeemer, FeedInterestOracleRedeemer);
+  return Data.to<FeedInterestOracleRedeemer>(
+    redeemer,
+    FeedInterestOracleRedeemer,
+  );
 }
 
 export const InterestOracleParamsSchema = Data.Object({

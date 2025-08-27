@@ -95,7 +95,8 @@ export class InterestOracleContract {
     utxo?: UTxO,
     scriptRef?: UTxO,
   ): Promise<TxBuilder> {
-    if (!assetClass && !utxo) throw new Error('Either interest oracle nft or utxo must be provided');
+    if (!assetClass && !utxo)
+      throw new Error('Either interest oracle nft or utxo must be provided');
     if (assetClass && !utxo) {
       const [ioUtxo, _datum] = await findInterestOracle(lucid, assetClass);
       utxo = ioUtxo;
@@ -111,23 +112,32 @@ export class InterestOracleContract {
       tx.attach.Script(mkInterestOracleValidator(params));
     }
 
-    tx.collectFrom([utxo], serialiseFeedInterestOracleRedeemer({
-      newInterestRate: {
-        getOnChainInt: newInterestRate,
-      },
-      currentTime: now,
-    }));
-
-    tx.pay.ToContract(utxo.address, {
-      kind: 'inline',
-      value: serialiseInterestOracleDatum({
-        unitaryInterest: datum.unitaryInterest + calculateUnitaryInterestSinceOracleLastUpdated(now, datum),
-        interestRate: {
+    tx.collectFrom(
+      [utxo],
+      serialiseFeedInterestOracleRedeemer({
+        newInterestRate: {
           getOnChainInt: newInterestRate,
         },
-        lastUpdated: now,
+        currentTime: now,
       }),
-    }, utxo.assets);
+    );
+
+    tx.pay.ToContract(
+      utxo.address,
+      {
+        kind: 'inline',
+        value: serialiseInterestOracleDatum({
+          unitaryInterest:
+            datum.unitaryInterest +
+            calculateUnitaryInterestSinceOracleLastUpdated(now, datum),
+          interestRate: {
+            getOnChainInt: newInterestRate,
+          },
+          lastUpdated: now,
+        }),
+      },
+      utxo.assets,
+    );
 
     tx.validFrom(Number(now) - ONE_SECOND);
     tx.validTo(Number(now + params.biasTime) - ONE_SECOND);
