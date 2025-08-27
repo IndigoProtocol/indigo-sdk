@@ -65,9 +65,7 @@ export class StabilityPoolContract {
             epoch: 0n,
             scale: 0n,
           },
-          request: {
-            Create: {},
-          },
+          request: 'Create',
         },
       },
     };
@@ -371,10 +369,7 @@ export class StabilityPoolContract {
           fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
         },
       );
-    } else if (
-      accountDatum.request.Adjust !== undefined &&
-      'Adjust' in accountDatum.request
-    ) {
+    } else if ('Adjust' in accountDatum.request) {
       const amount = accountDatum.request.Adjust.amount;
       const outputAddress = addressToBech32(
         lucid,
@@ -557,10 +552,7 @@ export class StabilityPoolContract {
       } else {
         // TODO: User is self-handling the process request, so we will need to handle the change datum
       }
-    } else if (
-      accountDatum.request.Close !== undefined &&
-      'Close' in accountDatum.request
-    ) {
+    } else if ('Close' in accountDatum.request) {
       const outputAddress = addressToBech32(
         lucid,
         accountDatum.request.Close.outputAddress,
