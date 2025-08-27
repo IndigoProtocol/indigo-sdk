@@ -44,7 +44,6 @@ import { mkAuthTokenPolicy } from '../../src/scripts/auth-token-policy';
 import { StakingContract } from '../../src/contracts/staking';
 import { serialiseStakingDatum } from '../../src/types/indigo/staking';
 import { mkIAssetTokenPolicy } from '../../src/scripts/iasset-policy';
-import { runAndAwaitTx } from '../test-helpers';
 import { mkPriceOracleValidator } from '../../src/scripts/price-oracle-validator';
 
 const indyTokenName = 'INDY';

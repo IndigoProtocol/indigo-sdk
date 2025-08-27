@@ -1,15 +1,10 @@
 import { beforeEach, test } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
-import { fromText, Lucid } from '@lucid-evolution/lucid';
+import { Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { init } from './endpoints/initialize';
-import { addrDetails, CDPContract, StabilityPoolContract } from '../src';
-import {
-  findStabilityPool,
-  findStabilityPoolAccount,
-} from './queries/stability-pool-queries';
-import { findIAsset } from './queries/iasset-queries';
+import { CDPContract, StabilityPoolContract } from '../src';
 
 beforeEach<LucidContext>(async (context: LucidContext) => {
   context.users = {
@@ -30,7 +25,6 @@ test<LucidContext>('Stability Pool - Create Account', async ({
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid, emulator.now());
-  const [pkh, _] = await addrDetails(lucid);
 
   await runAndAwaitTx(
     lucid,
