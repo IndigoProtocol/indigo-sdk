@@ -1,10 +1,17 @@
 import { Data, Datum } from '@lucid-evolution/lucid';
 import { match, P } from 'ts-pattern';
-import { AddressSchema, OutputReferenceSchema } from '../generic';
+import {
+  AddressSchema,
+  AssetClassSchema,
+  OutputReferenceSchema,
+} from '../generic';
 
 export const SPIntegerSchema = Data.Object({
   value: Data.Integer(),
 });
+
+export type SPInteger = Data.Static<typeof SPIntegerSchema>;
+export const SPInteger = SPIntegerSchema as unknown as SPInteger;
 
 const StabilityPoolSnapshotSchema = Data.Object({
   productVal: SPIntegerSchema,
@@ -22,7 +29,7 @@ export const StabilityPoolSnapshot =
 
 export const EpochToScaleToSumSchema = Data.Map(
   Data.Object({ epoch: Data.Integer(), scale: Data.Integer() }),
-  Data.Object({ sum: Data.Integer() }),
+  SPIntegerSchema,
   { minItems: 0 },
 );
 
@@ -43,7 +50,7 @@ export const StabilityPoolContent =
   StabilityPoolContentSchema as unknown as StabilityPoolContent;
 
 export const AccountActionSchema = Data.Enum([
-  Data.Object({ Create: Data.Object({}) }),
+  Data.Literal('Create'),
   Data.Object({
     Adjust: Data.Object({
       amount: Data.Integer(),
@@ -93,6 +100,23 @@ export type StabilityPoolDatum = Data.Static<typeof StabilityPoolDatumSchema>;
 export const StabilityPoolDatum =
   StabilityPoolDatumSchema as unknown as StabilityPoolDatum;
 
+export const ActionReturnDatumSchema = Data.Enum([
+  Data.Object({
+    IndigoStabilityPoolAccountAdjustment: Data.Object({
+      spent_account: OutputReferenceSchema,
+    }),
+  }),
+  Data.Object({
+    IndigoStabilityPoolAccountClosure: Data.Object({
+      closed_account: OutputReferenceSchema,
+    }),
+  }),
+]);
+
+export type ActionReturnDatum = Data.Static<typeof ActionReturnDatumSchema>;
+export const ActionReturnDatum =
+  ActionReturnDatumSchema as unknown as ActionReturnDatum;
+
 export const StabilityPoolRedeemerSchema = Data.Enum([
   Data.Object({ RequestAction: Data.Object({ action: AccountActionSchema }) }),
   Data.Object({
@@ -132,7 +156,7 @@ export function parseSnapshotEpochToScaleToSumDatum(
   return match(Data.from<StabilityPoolDatum>(datum, StabilityPoolDatum))
     .with({ SnapshotEpochToScaleToSum: { content: P.select() } }, (res) => res)
     .otherwise(() => {
-      throw new Error('Expected a StakingPosition datum.');
+      throw new Error('Expected a SnapshotEpochToScaleToSum datum.');
     });
 }
 
@@ -158,16 +182,52 @@ export function serialiseStabilityPoolRedeemer(
   return Data.to<StabilityPoolRedeemer>(params, StabilityPoolRedeemer);
 }
 
+/** SP Parameters */
+const StabilityPoolParamsSchema = Data.Object({
+  assetSymbol: Data.Bytes(),
+  stabilityPoolToken: AssetClassSchema,
+  snapshotEpochToScaleToSumToken: AssetClassSchema,
+  accountToken: AssetClassSchema,
+  cdpToken: AssetClassSchema,
+  iAssetAuthToken: AssetClassSchema,
+  versionRecordToken: AssetClassSchema,
+  collectorValHash: Data.Bytes(),
+  govNFT: AssetClassSchema,
+  accountCreateFeeLovelaces: Data.Integer(),
+  accountAdjustmentFeeLovelaces: Data.Integer(),
+  requestCollateralLovelaces: Data.Integer(),
+});
+export type StabilityPoolParams = Data.Static<typeof StabilityPoolParamsSchema>;
+export const StabilityPoolParams =
+  StabilityPoolParamsSchema as unknown as StabilityPoolParams;
+
+export function castStabilityPoolParams(params: StabilityPoolParams): Data {
+  return Data.castTo(params, StabilityPoolParams);
+}
+
+/** SP Integer */
 const spPrecision: bigint = 1000000000000000000n;
 
-export function mkSPInteger(value: bigint): bigint {
-  return value * spPrecision;
+export function mkSPInteger(value: bigint): SPInteger {
+  return { value: value * spPrecision };
 }
 
-export function spMul(a: bigint, b: bigint): bigint {
-  return (a * b) / spPrecision;
+export function fromSPInteger(value: SPInteger): bigint {
+  return value.value / spPrecision;
 }
 
-export function spDiv(a: bigint, b: bigint): bigint {
-  return (a * 1000000000000000000n) / b;
+export function spAdd(a: SPInteger, b: SPInteger): SPInteger {
+  return { value: a.value + b.value };
+}
+
+export function spSub(a: SPInteger, b: SPInteger): SPInteger {
+  return { value: a.value - b.value };
+}
+
+export function spMul(a: SPInteger, b: SPInteger): SPInteger {
+  return { value: (a.value * b.value) / spPrecision };
+}
+
+export function spDiv(a: SPInteger, b: SPInteger): SPInteger {
+  return { value: (a.value * spPrecision) / b.value };
 }

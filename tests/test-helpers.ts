@@ -1,8 +1,13 @@
-import { Emulator, EmulatorAccount, LucidEvolution, TxBuilder } from '@lucid-evolution/lucid';
+import {
+  Emulator,
+  EmulatorAccount,
+  LucidEvolution,
+  TxBuilder,
+} from '@lucid-evolution/lucid';
 
 export type LucidContext = {
   lucid: LucidEvolution;
-  users: {[key:string]: EmulatorAccount};
+  users: { [key: string]: EmulatorAccount };
   emulator: Emulator;
 };
 
@@ -23,7 +28,8 @@ export async function runAndAwaitTxBuilder(
   lucid: LucidEvolution,
   transaction: TxBuilder,
 ): Promise<string> {
-  const txHash = await transaction.complete()
+  const txHash = await transaction
+    .complete()
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 
