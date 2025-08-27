@@ -77,7 +77,7 @@ export function addressToBech32(
             hash: address.stakeCredential.Inline[0].ScriptCredential[0],
           }
       : undefined;
-  
+
   return credentialToAddress(
     lucid.config().network,
     paymentCredential,
@@ -85,15 +85,15 @@ export function addressToBech32(
   );
 }
 
-export function addressFromBech32(
-  address: string,
-): Address {
+export function addressFromBech32(address: string): Address {
   const details = getAddressDetails(address);
   return {
     paymentCredential: {
       PublicKeyCredential: [details.paymentCredential.hash],
     },
-    stakeCredential: details.stakeCredential ? {Inline: [{PublicKeyCredential: [details.stakeCredential.hash]}]} : undefined,
+    stakeCredential: details.stakeCredential
+      ? { Inline: [{ PublicKeyCredential: [details.stakeCredential.hash] }] }
+      : undefined,
   };
 }
 

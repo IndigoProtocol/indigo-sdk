@@ -4,7 +4,11 @@ import {
   SpendingValidator,
 } from '@lucid-evolution/lucid';
 import { castGovParams, GovParams } from '../types/indigo/gov';
-import { GovParamsSP, fromSystemParamsAsset, toSystemParamsAsset } from '../types/system-params';
+import {
+  GovParamsSP,
+  fromSystemParamsAsset,
+  toSystemParamsAsset,
+} from '../types/system-params';
 
 const govValidatorData = {
   type: 'PlutusV2' as ScriptType,
@@ -22,7 +26,9 @@ export const mkGovValidator = (params: GovParams): SpendingValidator => {
   };
 };
 
-export const mkGovValidatorFromSP = (params: GovParamsSP): SpendingValidator => {
+export const mkGovValidatorFromSP = (
+  params: GovParamsSP,
+): SpendingValidator => {
   return {
     type: govValidatorData.type,
     script: applyParamsToScript(govValidatorData.cborHex, [
@@ -39,4 +45,4 @@ export const mkGovValidatorFromSP = (params: GovParamsSP): SpendingValidator => 
       }),
     ]),
   };
-}
+};

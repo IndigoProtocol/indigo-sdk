@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { loadSystemParamsFromFile, StakingContract, StabilityPoolContract, CollectorContract, CDPContract, mkCDPCreatorValidatorFromSP } from '../src';
+import {
+  loadSystemParamsFromFile,
+  StakingContract,
+  StabilityPoolContract,
+  CollectorContract,
+  CDPContract,
+  mkCDPCreatorValidatorFromSP,
+} from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkExecuteValidatorFromSP } from '../src/scripts/execute-validator';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
-import { mkGovValidator, mkGovValidatorFromSP } from '../src/scripts/gov-validator';
+import {
+  mkGovValidator,
+  mkGovValidatorFromSP,
+} from '../src/scripts/gov-validator';
 
 const systemParams = loadSystemParamsFromFile(
   './tests/data/system-params.json',
@@ -12,7 +22,9 @@ const systemParams = loadSystemParamsFromFile(
 describe('Validator Hash checks', () => {
   it('CDP Creator validator hash', () => {
     expect(
-      validatorToScriptHash(mkCDPCreatorValidatorFromSP(systemParams.cdpCreatorParams)),
+      validatorToScriptHash(
+        mkCDPCreatorValidatorFromSP(systemParams.cdpCreatorParams),
+      ),
     ).toBe(systemParams.validatorHashes.cdpCreatorHash);
   });
   it('CDP validator hash', () => {
@@ -46,7 +58,9 @@ describe('Validator Hash checks', () => {
   });
   it('Stability Pool validator hash', () => {
     expect(
-      validatorToScriptHash(mkStabilityPoolValidatorFromSP(systemParams.stabilityPoolParams)),
+      validatorToScriptHash(
+        mkStabilityPoolValidatorFromSP(systemParams.stabilityPoolParams),
+      ),
     ).toBe(systemParams.validatorHashes.stabilityPoolHash);
   });
 });

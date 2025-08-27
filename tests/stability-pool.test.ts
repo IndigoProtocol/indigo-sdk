@@ -5,7 +5,10 @@ import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { init } from './endpoints/initialize';
 import { addrDetails, CDPContract, StabilityPoolContract } from '../src';
-import { findStabilityPool, findStabilityPoolAccount } from './queries/stability-pool-queries';
+import {
+  findStabilityPool,
+  findStabilityPoolAccount,
+} from './queries/stability-pool-queries';
 import { findIAsset } from './queries/iasset-queries';
 import { findGov } from './queries/governance-queries';
 
@@ -45,15 +48,8 @@ test<LucidContext>('Stability Pool - Create Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    CDPContract.openPosition(
-      'iUSD',
-      1_000_000_000n,
-      20n,
-      systemParams,
-      lucid
-    ),
+    CDPContract.openPosition('iUSD', 1_000_000_000n, 20n, systemParams, lucid),
   );
-
 
   await runAndAwaitTx(
     lucid,
@@ -64,8 +60,11 @@ test<LucidContext>('Stability Pool - Create Account', async ({
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     {
-      currencySymbol: systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName),
+      currencySymbol:
+        systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
+      ),
     },
     'iUSD',
   );
@@ -81,20 +80,19 @@ test<LucidContext>('Stability Pool - Create Account', async ({
     lucid,
     systemParams.validatorHashes.cdpHash,
     {
-      currencySymbol: systemParams.cdpParams.iAssetAuthToken[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.cdpParams.iAssetAuthToken[1].unTokenName),
+      currencySymbol:
+        systemParams.cdpParams.iAssetAuthToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.cdpParams.iAssetAuthToken[1].unTokenName,
+      ),
     },
     'iUSD',
   );
 
-  const govUtxo = await findGov(
-    lucid,
-    systemParams.validatorHashes.govHash,
-    {
-      currencySymbol: systemParams.govParams.govNFT[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.govParams.govNFT[1].unTokenName),
-    }
-  );
+  const govUtxo = await findGov(lucid, systemParams.validatorHashes.govHash, {
+    currencySymbol: systemParams.govParams.govNFT[0].unCurrencySymbol,
+    tokenName: fromText(systemParams.govParams.govNFT[1].unTokenName),
+  });
 
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
 
@@ -109,7 +107,7 @@ test<LucidContext>('Stability Pool - Create Account', async ({
       undefined,
       systemParams,
       lucid,
-    )
+    ),
   );
 });
 
@@ -125,13 +123,7 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    CDPContract.openPosition(
-      'iUSD',
-      1_000_000_000n,
-      20n,
-      systemParams,
-      lucid
-    ),
+    CDPContract.openPosition('iUSD', 1_000_000_000n, 20n, systemParams, lucid),
   );
 
   await runAndAwaitTx(
@@ -145,8 +137,11 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     {
-      currencySymbol: systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName),
+      currencySymbol:
+        systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
+      ),
     },
     'iUSD',
   );
@@ -162,20 +157,19 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
     lucid,
     systemParams.validatorHashes.cdpHash,
     {
-      currencySymbol: systemParams.cdpParams.iAssetAuthToken[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.cdpParams.iAssetAuthToken[1].unTokenName),
+      currencySymbol:
+        systemParams.cdpParams.iAssetAuthToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.cdpParams.iAssetAuthToken[1].unTokenName,
+      ),
     },
     'iUSD',
   );
 
-  const govUtxo = await findGov(
-    lucid,
-    systemParams.validatorHashes.govHash,
-    {
-      currencySymbol: systemParams.govParams.govNFT[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.govParams.govNFT[1].unTokenName),
-    }
-  );
+  const govUtxo = await findGov(lucid, systemParams.validatorHashes.govHash, {
+    currencySymbol: systemParams.govParams.govNFT[0].unCurrencySymbol,
+    tokenName: fromText(systemParams.govParams.govNFT[1].unTokenName),
+  });
 
   await runAndAwaitTx(
     lucid,
@@ -188,7 +182,7 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
       undefined,
       systemParams,
       lucid,
-    )
+    ),
   );
 
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
@@ -197,8 +191,11 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     {
-      currencySymbol: systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName),
+      currencySymbol:
+        systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
+      ),
     },
     'iUSD',
   );
@@ -212,7 +209,13 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.adjustAccount('iUSD', 10n, accountUtxo, systemParams, lucid),
+    StabilityPoolContract.adjustAccount(
+      'iUSD',
+      10n,
+      accountUtxo,
+      systemParams,
+      lucid,
+    ),
   );
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
 
@@ -234,7 +237,7 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
       undefined,
       systemParams,
       lucid,
-    )
+    ),
   );
 });
 
@@ -250,13 +253,7 @@ test<LucidContext>('Stability Pool - Close Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    CDPContract.openPosition(
-      'iUSD',
-      1_000_000_000n,
-      20n,
-      systemParams,
-      lucid
-    ),
+    CDPContract.openPosition('iUSD', 1_000_000_000n, 20n, systemParams, lucid),
   );
 
   await runAndAwaitTx(
@@ -270,8 +267,11 @@ test<LucidContext>('Stability Pool - Close Account', async ({
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     {
-      currencySymbol: systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName),
+      currencySymbol:
+        systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
+      ),
     },
     'iUSD',
   );
@@ -287,20 +287,19 @@ test<LucidContext>('Stability Pool - Close Account', async ({
     lucid,
     systemParams.validatorHashes.cdpHash,
     {
-      currencySymbol: systemParams.cdpParams.iAssetAuthToken[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.cdpParams.iAssetAuthToken[1].unTokenName),
+      currencySymbol:
+        systemParams.cdpParams.iAssetAuthToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.cdpParams.iAssetAuthToken[1].unTokenName,
+      ),
     },
     'iUSD',
   );
 
-  const govUtxo = await findGov(
-    lucid,
-    systemParams.validatorHashes.govHash,
-    {
-      currencySymbol: systemParams.govParams.govNFT[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.govParams.govNFT[1].unTokenName),
-    }
-  );
+  const govUtxo = await findGov(lucid, systemParams.validatorHashes.govHash, {
+    currencySymbol: systemParams.govParams.govNFT[0].unCurrencySymbol,
+    tokenName: fromText(systemParams.govParams.govNFT[1].unTokenName),
+  });
 
   await runAndAwaitTx(
     lucid,
@@ -313,7 +312,7 @@ test<LucidContext>('Stability Pool - Close Account', async ({
       undefined,
       systemParams,
       lucid,
-    )
+    ),
   );
 
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
@@ -322,8 +321,11 @@ test<LucidContext>('Stability Pool - Close Account', async ({
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     {
-      currencySymbol: systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
-      tokenName: fromText(systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName),
+      currencySymbol:
+        systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
+      ),
     },
     'iUSD',
   );
@@ -337,7 +339,12 @@ test<LucidContext>('Stability Pool - Close Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.closeAccount('iUSD', accountUtxo, systemParams, lucid),
+    StabilityPoolContract.closeAccount(
+      'iUSD',
+      accountUtxo,
+      systemParams,
+      lucid,
+    ),
   );
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
 
@@ -359,6 +366,6 @@ test<LucidContext>('Stability Pool - Close Account', async ({
       undefined,
       systemParams,
       lucid,
-    )
+    ),
   );
 });

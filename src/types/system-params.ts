@@ -238,7 +238,6 @@ export function toSystemParamsAsset(asset: AssetClass): AssetClassSP {
   ];
 }
 
-
 export function fromSystemParamsAsset(asset: AssetClassSP): AssetClass {
   return {
     currencySymbol: asset[0].unCurrencySymbol,

@@ -8,7 +8,8 @@ const PollShardParamsSchema = Data.Object({
   stakingValHash: Data.Bytes(),
 });
 export type PollShardParams = Data.Static<typeof PollShardParamsSchema>;
-export const PollShardParams = PollShardParamsSchema as unknown as PollShardParams;
+export const PollShardParams =
+  PollShardParamsSchema as unknown as PollShardParams;
 
 export function castPollShardParams(params: PollShardParams): Data {
   return Data.castTo(params, PollShardParams);

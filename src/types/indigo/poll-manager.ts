@@ -13,7 +13,8 @@ const PollManagerParamsSchema = Data.Object({
   initialIndyDistribution: Data.Integer(),
 });
 export type PollManagerParams = Data.Static<typeof PollManagerParamsSchema>;
-export const PollManagerParams = PollManagerParamsSchema as unknown as PollManagerParams;
+export const PollManagerParams =
+  PollManagerParamsSchema as unknown as PollManagerParams;
 
 export function castPollManagerParams(params: PollManagerParams): Data {
   return Data.castTo(params, PollManagerParams);

@@ -3,7 +3,10 @@ import {
   MintingPolicy,
   ScriptType,
 } from '@lucid-evolution/lucid';
-import { castVersionRecordTokenParams, VersionRecordTokenParams } from '../types/indigo/version-record';
+import {
+  castVersionRecordTokenParams,
+  VersionRecordTokenParams,
+} from '../types/indigo/version-record';
 
 const versionRecordPolicyData = {
   type: 'PlutusV2' as ScriptType,
@@ -11,11 +14,13 @@ const versionRecordPolicyData = {
     '5901bd5901ba010000323232323232322225333004323253330063370e900018039baa300b300c00215333009300c32333232322232323300100100422533301200114bd700991929998089802980418099baa0021330150023300400400113300400400130160023014001533300c3370e900018069baa4c103d879800012300633300537566008601e6ea8004dd7180398079baa002375c6008601e6ea800848cdc42400066600a6eacc010c03cdd50009bae3007300f37540046eb8c010c03cdd5001118079808000911192999806180298069baa0011480004dd6980898071baa00132533300c3005300d3754002298103d87a80001323300100137566024601e6ea8008894ccc044004530103d87a8000132323253330113371e00e6eb8c04800c4cdd2a40006602a6ea00052f5c026600a00a0046eb4c048008c054008c04c004c8cc004004010894ccc040004530103d87a8000132323253330103371e00e6eb8c04400c4cdd2a4000660286e980052f5c026600a00a0046eacc044008c050008c048004dc3a40046eb0c004c024dd5001180098049baa0062300c00114a22c2c6014002600c6ea8004526136565734aae7555cf2ab9f5740ae855d11',
 };
 
-export function mkVersionRecordTokenPolicy(params: VersionRecordTokenParams): MintingPolicy {
+export function mkVersionRecordTokenPolicy(
+  params: VersionRecordTokenParams,
+): MintingPolicy {
   return {
     type: versionRecordPolicyData.type,
     script: applyParamsToScript(versionRecordPolicyData.cborHex, [
-      castVersionRecordTokenParams(params)
+      castVersionRecordTokenParams(params),
     ]),
   };
 }

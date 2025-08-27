@@ -61,8 +61,14 @@ import { runAndAwaitTx } from '../test-helpers';
 import { mkPriceOracleValidator } from '../../src/scripts/price-oracle-validator';
 import { mkVersionRecordTokenPolicy } from '../../src/scripts/version-record-policy';
 import { mkVersionRegistryValidator } from '../../src/scripts/version-registry';
-import { mkExecuteValidator, mkExecuteValidatorFromSP } from '../../src/scripts/execute-validator';
-import { mkGovValidator, mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
+import {
+  mkExecuteValidator,
+  mkExecuteValidatorFromSP,
+} from '../../src/scripts/execute-validator';
+import {
+  mkGovValidator,
+  mkGovValidatorFromSP,
+} from '../../src/scripts/gov-validator';
 import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool-validator';
 
 const indyTokenName = 'INDY';
@@ -225,7 +231,9 @@ export async function init(
   };
 
   const versionRegistryValidator = mkVersionRegistryValidator();
-  const versionRegistryValHash = validatorToScriptHash(versionRegistryValidator)
+  const versionRegistryValHash = validatorToScriptHash(
+    versionRegistryValidator,
+  );
 
   const cdpCreatorAsset: AssetClass = {
     currencySymbol: await mintOneTimeToken(
@@ -320,7 +328,8 @@ export async function init(
     accountAdjustmentFeeLovelaces: 5_000_000n,
     requestCollateralLovelaces: 5_000_000n,
   };
-  const stabilityPoolValidator = mkStabilityPoolValidatorFromSP(stabilityPoolParams);
+  const stabilityPoolValidator =
+    mkStabilityPoolValidatorFromSP(stabilityPoolParams);
   const stabilityPoolValHash = validatorToScriptHash(stabilityPoolValidator);
 
   const treasuryParams: TreasuryParams = {
@@ -422,7 +431,7 @@ export async function init(
     stakingToken: toSystemParamsAsset(stakingToken),
     indyAsset: toSystemParamsAsset(indyAsset),
     stakingValHash: stakingValHash,
-  }
+  };
   const pollShardValidator = mkPollShardValidatorFromSP(pollShardParams);
   const pollShardValHash = validatorToScriptHash(pollShardValidator);
 
@@ -436,7 +445,7 @@ export async function init(
     shardsValHash: pollShardValHash,
     treasuryValHash: treasuryValHash,
     initialIndyDistribution: 1_575_000_000_000n,
-  }
+  };
   const pollManagerValidator = mkPollManagerValidatorFromSP(pollManagerParams);
   const pollManagerValHash = validatorToScriptHash(pollManagerValidator);
 
@@ -450,7 +459,7 @@ export async function init(
     pollManagerValHash: pollManagerValHash,
     daoIdentityToken: toSystemParamsAsset(daoAsset),
     iAssetAuthToken: toSystemParamsAsset(iassetToken),
-  }
+  };
   const govValidator = mkGovValidatorFromSP(govParams);
   const govValHash = validatorToScriptHash(govValidator);
 
@@ -467,10 +476,7 @@ export async function init(
     treasuryParams: treasuryParams,
     scriptReferences: {
       cdpCreatorValidatorRef: {
-        input: await initScriptRef(
-          lucid,
-          cdpCreatorValidator,
-        ),
+        input: await initScriptRef(lucid, cdpCreatorValidator),
       },
       cdpValidatorRef: {
         input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
@@ -484,7 +490,7 @@ export async function init(
       govValidatorRef: {
         input: await initScriptRef(lucid, govValidator),
       },
-      pollShardValidatorRef: {  
+      pollShardValidatorRef: {
         input: await initScriptRef(lucid, pollShardValidator),
       },
       pollManagerValidatorRef: {
@@ -612,7 +618,9 @@ async function initCDPCreator(
   for (let i = 0; i < Number(numCdpCreators); i++) {
     tx.pay.ToContract(
       credentialToAddress(lucid.config().network, {
-        hash: validatorToScriptHash(mkCDPCreatorValidatorFromSP(cdpCreatorParams)),
+        hash: validatorToScriptHash(
+          mkCDPCreatorValidatorFromSP(cdpCreatorParams),
+        ),
         type: 'Script',
       }),
       { kind: 'inline', value: Data.to(new Constr(0, [])) },
@@ -861,7 +869,9 @@ async function initializeAsset(
 
   const spTx = lucid.newTx().pay.ToContract(
     credentialToAddress(lucid.config().network, {
-      hash: validatorToScriptHash(mkStabilityPoolValidatorFromSP(stabilityPoolParams)),
+      hash: validatorToScriptHash(
+        mkStabilityPoolValidatorFromSP(stabilityPoolParams),
+      ),
       type: 'Script',
     }),
     {
@@ -884,49 +894,49 @@ async function initializeAsset(
 }
 
 async function initGovernance(
-    lucid: LucidEvolution,
-    governanceParams: GovParamsSP,
-    govToken: AssetClass,
-  ): Promise<void> {
-    const datum: GovDatum = {
-        currentProposal: 0n,
-        currentVersion: 0n,
-        protocolParams: {
-            effectiveDelay: 1_000n,
-            expirationPeriod: 180_000n,
-            proposalDeposit: 0n,
-            proposingPeriod: 8_000n,
-            collateralFeePercentage: {
-                getOnChainInt: 1_500_000n,
-            },
-            votingPeriod: 10_000n,
-            totalShards: 4n,
-            minimumQuorum: 100_000n,
-            maxTreasuryLovelaceSpend: 10_000_000n,
-            maxTreasuryIndySpend: 10_000_000n,
-        },
-        activeProposals: 0n,
-        treasuryIndyWithdrawnAmt: 0n,
-        iassetsCount: BigInt(initialAssets.length),
-    };
-    const tx = lucid.newTx().pay.ToContract(
-      credentialToAddress(lucid.config().network, {
-        hash:validatorToScriptHash(mkGovValidatorFromSP(governanceParams)),
-        type: 'Script',
-      }),
-      { kind: 'inline', value: serialiseGovDatum(datum) },
-      {
-        [govToken.currencySymbol + govToken.tokenName]: 1n,
+  lucid: LucidEvolution,
+  governanceParams: GovParamsSP,
+  govToken: AssetClass,
+): Promise<void> {
+  const datum: GovDatum = {
+    currentProposal: 0n,
+    currentVersion: 0n,
+    protocolParams: {
+      effectiveDelay: 1_000n,
+      expirationPeriod: 180_000n,
+      proposalDeposit: 0n,
+      proposingPeriod: 8_000n,
+      collateralFeePercentage: {
+        getOnChainInt: 1_500_000n,
       },
-    );
-  
-    const txHash = await tx
-      .complete()
-      .then((tx) => tx.sign.withWallet().complete())
-      .then((tx) => tx.submit());
-  
-    await lucid.awaitTx(txHash);
-  }
+      votingPeriod: 10_000n,
+      totalShards: 4n,
+      minimumQuorum: 100_000n,
+      maxTreasuryLovelaceSpend: 10_000_000n,
+      maxTreasuryIndySpend: 10_000_000n,
+    },
+    activeProposals: 0n,
+    treasuryIndyWithdrawnAmt: 0n,
+    iassetsCount: BigInt(initialAssets.length),
+  };
+  const tx = lucid.newTx().pay.ToContract(
+    credentialToAddress(lucid.config().network, {
+      hash: validatorToScriptHash(mkGovValidatorFromSP(governanceParams)),
+      type: 'Script',
+    }),
+    { kind: 'inline', value: serialiseGovDatum(datum) },
+    {
+      [govToken.currencySymbol + govToken.tokenName]: 1n,
+    },
+  );
+
+  const txHash = await tx
+    .complete()
+    .then((tx) => tx.sign.withWallet().complete())
+    .then((tx) => tx.submit());
+
+  await lucid.awaitTx(txHash);
+}
 
 async function mintAuthTokenDirect(
   lucid: LucidEvolution,

@@ -16,6 +16,6 @@ const versionRegistryValidatorData = {
 export const mkVersionRegistryValidator = (): SpendingValidator => {
   return {
     type: versionRegistryValidatorData.type,
-    script: versionRegistryValidatorData.cborHex
+    script: versionRegistryValidatorData.cborHex,
   };
 };

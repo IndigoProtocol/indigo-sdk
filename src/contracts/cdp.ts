@@ -94,7 +94,7 @@ export class CDPContract {
         : await lucid.utxosAtWithUnit(
             credentialToAddress(lucid.config().network, {
               type: 'Script',
-              hash: params.validatorHashes.cdpCreatorHash
+              hash: params.validatorHashes.cdpCreatorHash,
             }),
             params.cdpCreatorParams.cdpCreatorNft[0].unCurrencySymbol +
               fromText(params.cdpCreatorParams.cdpCreatorNft[1].unTokenName),
@@ -109,7 +109,7 @@ export class CDPContract {
         currentTime: BigInt(now),
       },
     });
-    
+
     const cdpCreatorScriptRefUtxo = await scriptRef(
       params.scriptReferences.cdpCreatorValidatorRef,
       lucid,

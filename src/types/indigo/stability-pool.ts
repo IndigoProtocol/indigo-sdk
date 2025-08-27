@@ -101,8 +101,16 @@ export const StabilityPoolDatum =
   StabilityPoolDatumSchema as unknown as StabilityPoolDatum;
 
 export const ActionReturnDatumSchema = Data.Enum([
-  Data.Object({ IndigoStabilityPoolAccountAdjustment: Data.Object({ spent_account: OutputReferenceSchema })}),
-  Data.Object({ IndigoStabilityPoolAccountClosure: Data.Object({ closed_account: OutputReferenceSchema })}),
+  Data.Object({
+    IndigoStabilityPoolAccountAdjustment: Data.Object({
+      spent_account: OutputReferenceSchema,
+    }),
+  }),
+  Data.Object({
+    IndigoStabilityPoolAccountClosure: Data.Object({
+      closed_account: OutputReferenceSchema,
+    }),
+  }),
 ]);
 
 export type ActionReturnDatum = Data.Static<typeof ActionReturnDatumSchema>;

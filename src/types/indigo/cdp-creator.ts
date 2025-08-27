@@ -14,24 +14,28 @@ const CDPCreatorParamsSchema = Data.Object({
 });
 
 export type CDPCreatorParams = Data.Static<typeof CDPCreatorParamsSchema>;
-export const CDPCreatorParams = CDPCreatorParamsSchema as unknown as CDPCreatorParams;
+export const CDPCreatorParams =
+  CDPCreatorParamsSchema as unknown as CDPCreatorParams;
 
 export function castCDPCreatorParams(params: CDPCreatorParams): Data {
   return Data.castTo(params, CDPCreatorParams);
 }
 
 const CDPCreatorRedeemerSchema = Data.Enum([
-  Data.Object({ CreateCDP: Data.Object({
-    cdpOwner: Data.Bytes(),
-    minted: Data.Integer(),
-    collateral: Data.Integer(),
-    currentTime: Data.Integer(),
-  })}),
-  Data.Object({ UpgradeCreatorVersion: Data.Object({})}),
+  Data.Object({
+    CreateCDP: Data.Object({
+      cdpOwner: Data.Bytes(),
+      minted: Data.Integer(),
+      collateral: Data.Integer(),
+      currentTime: Data.Integer(),
+    }),
+  }),
+  Data.Object({ UpgradeCreatorVersion: Data.Object({}) }),
 ]);
 
 export type CDPCreatorRedeemer = Data.Static<typeof CDPCreatorRedeemerSchema>;
-export const CDPCreatorRedeemer = CDPCreatorRedeemerSchema as unknown as CDPCreatorRedeemer;
+export const CDPCreatorRedeemer =
+  CDPCreatorRedeemerSchema as unknown as CDPCreatorRedeemer;
 
 export function castCDPCreatorRedeemer(params: CDPCreatorRedeemer): Data {
   return Data.castTo(params, CDPCreatorRedeemer);

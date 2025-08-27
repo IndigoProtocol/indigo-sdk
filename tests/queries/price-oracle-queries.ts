@@ -16,7 +16,10 @@ export async function findPriceOracle(
   return matchSingle(
     await lucid.utxosAtWithUnit(
       createScriptAddress(network, oracleScriptHash),
-      toUnit(oracleNft.oracleNft.asset.currencySymbol, oracleNft.oracleNft.asset.tokenName),
+      toUnit(
+        oracleNft.oracleNft.asset.currencySymbol,
+        oracleNft.oracleNft.asset.tokenName,
+      ),
     ),
     (res) =>
       new Error('Expected a single Oracle UTXO.: ' + JSON.stringify(res)),

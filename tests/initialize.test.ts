@@ -22,6 +22,6 @@ test<LucidContext>('Initialize Protocol - can initialize', async ({
   users,
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  
+
   await init(lucid);
 });

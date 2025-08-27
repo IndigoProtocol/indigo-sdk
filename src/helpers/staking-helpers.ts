@@ -33,7 +33,9 @@ export class StakingHelpers {
       )
       .then((result) => {
         if (!result)
-          throw new Error('Unable to locate Staking Manager by output reference.');
+          throw new Error(
+            'Unable to locate Staking Manager by output reference.',
+          );
         return result;
       });
   }
@@ -59,7 +61,9 @@ export class StakingHelpers {
       )
       .then((result) => {
         if (!result)
-          throw new Error('Unable to locate Staking Manager by output reference.');
+          throw new Error(
+            'Unable to locate Staking Manager by output reference.',
+          );
         return result;
       });
   }
@@ -81,7 +85,9 @@ export class StakingHelpers {
       )
       .then((result) => {
         if (!result)
-          throw new Error('Unable to locate Staking Position by output reference.');
+          throw new Error(
+            'Unable to locate Staking Position by output reference.',
+          );
         return result;
       });
   }
