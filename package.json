@@ -12,7 +12,18 @@
     "repack": "pnpm run build  && pnpm pack",
     "format": "npx prettier --write src/ tests/",
     "format:check": "npx prettier --check src/ tests/",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepare": "husky",
+    "lint-staged": "lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,ts,jsx,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "repository": {
     "type": "git",
@@ -41,6 +52,8 @@
     "@eslint/js": "^9.32.0",
     "@types/node": "^24.3.0",
     "eslint": "^9.32.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
     "tsup": "^8.3.6",
     "typescript": "^5.9.2",
