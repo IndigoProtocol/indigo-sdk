@@ -50,11 +50,11 @@ const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
 const govNftTokenName = 'GOV_NFT';
 const pollManagerTokenName = 'POLL_MANAGER';
-const pollShardTokenName = 'POLL_SHARD';
+// const pollShardTokenName = 'POLL_SHARD';
 const upgradeTokenName = 'UPGRADE';
 const iassetTokenName = 'IASSET';
 const stabilityPoolTokenName = 'STABILITY_POOL';
-const versionRecordTokenName = 'VERSION_RECORD';
+// const versionRecordTokenName = 'VERSION_RECORD';
 const cdpCreatorTokenName = 'CDP_CREATOR';
 const cdpTokenName = 'CDP';
 const stakingManagerTokenName = 'STAKING_MANAGER';
@@ -63,7 +63,7 @@ const snapshotEpochToScaleToSumTokenName = 'SNAPSHOT_EPOCH_TO_SCALE_TO_SUM';
 const accountTokenName = 'SP_ACCOUNT';
 
 const totalIndySupply = 35000000000000n;
-const totalIndyDistribution = 0n;
+// const totalIndyDistribution = 0n;
 const treasuryIndyAmount = 0n;
 
 const numCdpCreators = 2n;
@@ -134,299 +134,6 @@ const initialAssets: InitialAsset[] = [
 const alwaysFailValidatorHash =
   'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
 
-export async function init(
-  lucid: LucidEvolution,
-  now: number = Date.now(),
-): Promise<SystemParams> {
-  const indyAsset: AssetClass = {
-    currencySymbol: await mintOneTimeToken(
-      lucid,
-      fromText(indyTokenName),
-      totalIndySupply,
-    ),
-    tokenName: fromText(indyTokenName),
-  };
-
-  const daoAsset: AssetClass = {
-    currencySymbol: await mintOneTimeToken(lucid, fromText(daoTokenName), 1n),
-    tokenName: fromText(daoTokenName),
-  };
-
-  const govNftAsset: AssetClass = {
-    currencySymbol: await mintOneTimeToken(
-      lucid,
-      fromText(govNftTokenName),
-      1n,
-    ),
-    tokenName: fromText(govNftTokenName),
-  };
-
-  const pollTokenPolicy = mkAuthTokenPolicy(
-    govNftAsset,
-    fromText(pollManagerTokenName),
-  );
-  const pollToken: AssetClass = {
-    currencySymbol: mintingPolicyToId(pollTokenPolicy),
-    tokenName: fromText(pollManagerTokenName),
-  };
-
-  const upgradeTokenPolicy = mkAuthTokenPolicy(
-    pollToken,
-    fromText(upgradeTokenName),
-  );
-  const upgradeToken: AssetClass = {
-    currencySymbol: mintingPolicyToId(upgradeTokenPolicy),
-    tokenName: fromText(upgradeTokenName),
-  };
-
-  const iassetTokenPolicy = mkAuthTokenPolicy(
-    upgradeToken,
-    fromText(iassetTokenName),
-  );
-  const iassetToken: AssetClass = {
-    currencySymbol: mintingPolicyToId(iassetTokenPolicy),
-    tokenName: fromText(iassetTokenName),
-  };
-
-  const stabilityPoolTokenPolicy = mkAuthTokenPolicy(
-    upgradeToken,
-    fromText(stabilityPoolTokenName),
-  );
-  const stabilityPoolToken: AssetClass = {
-    currencySymbol: mintingPolicyToId(stabilityPoolTokenPolicy),
-    tokenName: fromText(stabilityPoolTokenName),
-  };
-
-  // TODO: Create Version Record Token Policy
-  const versionRecordToken: AssetClass = govNftAsset;
-
-  const cdpCreatorAsset: AssetClass = {
-    currencySymbol: await mintOneTimeToken(
-      lucid,
-      fromText(cdpCreatorTokenName),
-      numCdpCreators,
-    ),
-    tokenName: fromText(cdpCreatorTokenName),
-  };
-
-  const cdpTokenPolicy = mkAuthTokenPolicy(
-    cdpCreatorAsset,
-    fromText(cdpTokenName),
-  );
-  const cdpToken: AssetClass = {
-    currencySymbol: mintingPolicyToId(cdpTokenPolicy),
-    tokenName: fromText(cdpTokenName),
-  };
-
-  const stakingManagerAsset: AssetClass = {
-    currencySymbol: await mintOneTimeToken(
-      lucid,
-      fromText(stakingManagerTokenName),
-      1n,
-    ),
-    tokenName: fromText(stakingManagerTokenName),
-  };
-
-  const stakingTokenPolicy = mkAuthTokenPolicy(
-    stakingManagerAsset,
-    fromText(stakingTokenName),
-  );
-  const stakingToken: AssetClass = {
-    currencySymbol: mintingPolicyToId(stakingTokenPolicy),
-    tokenName: fromText(stakingTokenName),
-  };
-
-  const collectorParams: CollectorParams = {
-    stakingManagerNFT: toSystemParamsAsset(stakingManagerAsset),
-    stakingToken: toSystemParamsAsset(stakingToken),
-    versionRecordToken: toSystemParamsAsset(versionRecordToken),
-  };
-  const collectorValHash = CollectorContract.validatorHash(collectorParams);
-
-  const stakingParams: StakingParams = {
-    stakingManagerNFT: toSystemParamsAsset(stakingManagerAsset),
-    stakingToken: toSystemParamsAsset(stakingToken),
-    versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    pollToken: toSystemParamsAsset(pollToken),
-    indyToken: toSystemParamsAsset(indyAsset),
-    collectorValHash: collectorValHash,
-  };
-
-  await initStakingManager(lucid, stakingParams);
-
-  const assetSymbolPolicy = mkIAssetTokenPolicy(cdpToken);
-  const assetSymbol = mintingPolicyToId(assetSymbolPolicy);
-
-  const snapshotEpochToScaleToSumTokenPolicy = mkAuthTokenPolicy(
-    stabilityPoolToken,
-    fromText(snapshotEpochToScaleToSumTokenName),
-  );
-  const snapshotEpochToScaleToSumToken: AssetClass = {
-    currencySymbol: mintingPolicyToId(snapshotEpochToScaleToSumTokenPolicy),
-    tokenName: fromText(snapshotEpochToScaleToSumTokenName),
-  };
-
-  const accountTokenPolicy = mkAuthTokenPolicy(
-    stabilityPoolToken,
-    fromText(accountTokenName),
-  );
-  const accountToken: AssetClass = {
-    currencySymbol: mintingPolicyToId(accountTokenPolicy),
-    tokenName: fromText(accountTokenName),
-  };
-
-  const stabilityPoolParams: StabilityPoolParams = {
-    assetSymbol: { unCurrencySymbol: assetSymbol },
-    stabilityPoolToken: toSystemParamsAsset(stabilityPoolToken),
-    snapshotEpochToScaleToSumToken: toSystemParamsAsset(
-      snapshotEpochToScaleToSumToken,
-    ),
-    accountToken: toSystemParamsAsset(accountToken),
-    cdpToken: toSystemParamsAsset(cdpToken),
-    iAssetAuthToken: toSystemParamsAsset(iassetToken),
-    versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    collectorValHash: collectorValHash,
-    govNFT: toSystemParamsAsset(govNftAsset),
-    accountCreateFeeLovelaces: 5_000_000,
-    accountAdjustmentFeeLovelaces: 5_000_000,
-    requestCollateralLovelaces: 5_000_000,
-  };
-  const stabilityPoolValHash =
-    StabilityPoolContract.validatorHash(stabilityPoolParams);
-
-  const treasuryParams: TreasuryParams = {
-    upgradeToken: toSystemParamsAsset(upgradeToken),
-    versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    treasuryUtxosStakeCredential: null,
-  };
-
-  await initTreasury(
-    lucid,
-    treasuryParams,
-    daoAsset,
-    indyAsset,
-    treasuryIndyAmount,
-  );
-
-  const cdpParams: CdpParams = {
-    cdpAuthToken: toSystemParamsAsset(cdpToken),
-    cdpAssetSymbol: { unCurrencySymbol: assetSymbol },
-    iAssetAuthToken: toSystemParamsAsset(iassetToken),
-    stabilityPoolAuthToken: toSystemParamsAsset(stabilityPoolToken),
-    versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    upgradeToken: toSystemParamsAsset(upgradeToken),
-    collectorValHash: collectorValHash,
-    spValHash: stabilityPoolValHash,
-    govNFT: toSystemParamsAsset(govNftAsset),
-    minCollateralInLovelace: 10_000_000,
-    partialRedemptionExtraFeeLovelace: 10_000_000,
-    biasTime: 120_000,
-    treasuryValHash: collectorValHash,
-  };
-  const cdpValHash = CDPContract.validatorHash(cdpParams);
-
-  const cdpCreatorParams: CdpCreatorParams = {
-    cdpCreatorNft: toSystemParamsAsset(cdpCreatorAsset),
-    cdpAssetCs: { unCurrencySymbol: assetSymbol },
-    cdpAuthTk: toSystemParamsAsset(cdpToken),
-    iAssetAuthTk: toSystemParamsAsset(iassetToken),
-    versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    cdpScriptHash: cdpValHash,
-    collectorValHash: collectorValHash,
-    minCollateralInLovelace: 10_000_000,
-    biasTime: 8_000,
-  };
-  const cdpCreatorValHash = CDPCreatorContract.validatorHash(cdpCreatorParams);
-
-  await initCDPCreator(lucid, cdpCreatorParams);
-  await initCollector(lucid, collectorParams);
-
-  if (initialAssets.length > 0) {
-    await mintAuthTokenDirect(lucid, govNftAsset, pollManagerTokenName, 1n);
-    await mintAuthTokenDirect(lucid, pollToken, upgradeTokenName, 1n);
-
-    for (const asset of initialAssets) {
-      await mintAuthTokenDirect(lucid, upgradeToken, iassetTokenName, 1n);
-      await mintAuthTokenDirect(
-        lucid,
-        upgradeToken,
-        stabilityPoolTokenName,
-        1n,
-      );
-
-      await initializeAsset(
-        lucid,
-        cdpParams,
-        iassetToken,
-        stabilityPoolParams,
-        stabilityPoolToken,
-        asset,
-        now,
-      );
-    }
-
-    await mintAuthTokenDirect(lucid, pollToken, upgradeTokenName, -1n);
-    await mintAuthTokenDirect(lucid, govNftAsset, pollManagerTokenName, -1n);
-  }
-
-  return {
-    cdpParams: cdpParams,
-    cdpCreatorParams: cdpCreatorParams,
-    collectorParams: collectorParams,
-    stakingParams: stakingParams,
-    stabilityPoolParams: stabilityPoolParams,
-    treasuryParams: treasuryParams,
-    scriptReferences: {
-      cdpCreatorValidatorRef: {
-        input: await initScriptRef(
-          lucid,
-          CDPCreatorContract.validator(cdpCreatorParams),
-        ),
-      },
-      cdpValidatorRef: {
-        input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
-      },
-      iAssetTokenPolicyRef: {
-        input: await initScriptRef(lucid, assetSymbolPolicy),
-      },
-      stakingValidatorRef: {
-        input: await initScriptRef(
-          lucid,
-          StakingContract.validator(stakingParams),
-        ),
-      },
-      stabilityPoolValidatorRef: {
-        input: await initScriptRef(
-          lucid,
-          StabilityPoolContract.validator(stabilityPoolParams),
-        ),
-      },
-      authTokenPolicies: {
-        cdpAuthTokenRef: {
-          input: await initScriptRef(lucid, cdpTokenPolicy),
-        },
-        iAssetAuthTokenRef: {
-          input: await initScriptRef(lucid, iassetTokenPolicy),
-        },
-        stabilityPoolTokenRef: {
-          input: await initScriptRef(lucid, accountTokenPolicy),
-        },
-        stabilityPoolAuthTokenRef: {
-          input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
-        },
-        stakingTokenRef: {
-          input: await initScriptRef(lucid, stakingTokenPolicy),
-        },
-      },
-    },
-    validatorHashes: {
-      cdpCreatorHash: cdpCreatorValHash,
-      cdpHash: cdpValHash,
-      stabilityPoolHash: stabilityPoolValHash,
-      stakingHash: StakingContract.validatorHash(stakingParams),
-    },
-  } as unknown as SystemParams;
-}
 
 async function mintOneTimeToken(
   lucid: LucidEvolution,
@@ -447,7 +154,7 @@ async function initScriptRef(
   lucid: LucidEvolution,
   validator: SpendingValidator,
 ): Promise<Input> {
-  const tx = await lucid.newTx().pay.ToContract(
+  const tx = lucid.newTx().pay.ToContract(
     credentialToAddress(lucid.config().network, {
       hash: alwaysFailValidatorHash,
       type: 'Script',
@@ -807,4 +514,298 @@ function toSystemParamsAsset(asset: AssetClass): AssetClassSP {
     { unCurrencySymbol: asset.currencySymbol },
     { unTokenName: toText(asset.tokenName) },
   ];
+}
+
+export async function init(
+  lucid: LucidEvolution,
+  now: number = Date.now(),
+): Promise<SystemParams> {
+  const indyAsset: AssetClass = {
+    currencySymbol: await mintOneTimeToken(
+      lucid,
+      fromText(indyTokenName),
+      totalIndySupply,
+    ),
+    tokenName: fromText(indyTokenName),
+  };
+
+  const daoAsset: AssetClass = {
+    currencySymbol: await mintOneTimeToken(lucid, fromText(daoTokenName), 1n),
+    tokenName: fromText(daoTokenName),
+  };
+
+  const govNftAsset: AssetClass = {
+    currencySymbol: await mintOneTimeToken(
+      lucid,
+      fromText(govNftTokenName),
+      1n,
+    ),
+    tokenName: fromText(govNftTokenName),
+  };
+
+  const pollTokenPolicy = mkAuthTokenPolicy(
+    govNftAsset,
+    fromText(pollManagerTokenName),
+  );
+  const pollToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(pollTokenPolicy),
+    tokenName: fromText(pollManagerTokenName),
+  };
+
+  const upgradeTokenPolicy = mkAuthTokenPolicy(
+    pollToken,
+    fromText(upgradeTokenName),
+  );
+  const upgradeToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(upgradeTokenPolicy),
+    tokenName: fromText(upgradeTokenName),
+  };
+
+  const iassetTokenPolicy = mkAuthTokenPolicy(
+    upgradeToken,
+    fromText(iassetTokenName),
+  );
+  const iassetToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(iassetTokenPolicy),
+    tokenName: fromText(iassetTokenName),
+  };
+
+  const stabilityPoolTokenPolicy = mkAuthTokenPolicy(
+    upgradeToken,
+    fromText(stabilityPoolTokenName),
+  );
+  const stabilityPoolToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(stabilityPoolTokenPolicy),
+    tokenName: fromText(stabilityPoolTokenName),
+  };
+
+  // TODO: Create Version Record Token Policy
+  const versionRecordToken: AssetClass = govNftAsset;
+
+  const cdpCreatorAsset: AssetClass = {
+    currencySymbol: await mintOneTimeToken(
+      lucid,
+      fromText(cdpCreatorTokenName),
+      numCdpCreators,
+    ),
+    tokenName: fromText(cdpCreatorTokenName),
+  };
+
+  const cdpTokenPolicy = mkAuthTokenPolicy(
+    cdpCreatorAsset,
+    fromText(cdpTokenName),
+  );
+  const cdpToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(cdpTokenPolicy),
+    tokenName: fromText(cdpTokenName),
+  };
+
+  const stakingManagerAsset: AssetClass = {
+    currencySymbol: await mintOneTimeToken(
+      lucid,
+      fromText(stakingManagerTokenName),
+      1n,
+    ),
+    tokenName: fromText(stakingManagerTokenName),
+  };
+
+  const stakingTokenPolicy = mkAuthTokenPolicy(
+    stakingManagerAsset,
+    fromText(stakingTokenName),
+  );
+  const stakingToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(stakingTokenPolicy),
+    tokenName: fromText(stakingTokenName),
+  };
+
+  const collectorParams: CollectorParams = {
+    stakingManagerNFT: toSystemParamsAsset(stakingManagerAsset),
+    stakingToken: toSystemParamsAsset(stakingToken),
+    versionRecordToken: toSystemParamsAsset(versionRecordToken),
+  };
+  const collectorValHash = CollectorContract.validatorHash(collectorParams);
+
+  const stakingParams: StakingParams = {
+    stakingManagerNFT: toSystemParamsAsset(stakingManagerAsset),
+    stakingToken: toSystemParamsAsset(stakingToken),
+    versionRecordToken: toSystemParamsAsset(versionRecordToken),
+    pollToken: toSystemParamsAsset(pollToken),
+    indyToken: toSystemParamsAsset(indyAsset),
+    collectorValHash: collectorValHash,
+  };
+
+  await initStakingManager(lucid, stakingParams);
+
+  const assetSymbolPolicy = mkIAssetTokenPolicy(cdpToken);
+  const assetSymbol = mintingPolicyToId(assetSymbolPolicy);
+
+  const snapshotEpochToScaleToSumTokenPolicy = mkAuthTokenPolicy(
+    stabilityPoolToken,
+    fromText(snapshotEpochToScaleToSumTokenName),
+  );
+  const snapshotEpochToScaleToSumToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(snapshotEpochToScaleToSumTokenPolicy),
+    tokenName: fromText(snapshotEpochToScaleToSumTokenName),
+  };
+
+  const accountTokenPolicy = mkAuthTokenPolicy(
+    stabilityPoolToken,
+    fromText(accountTokenName),
+  );
+  const accountToken: AssetClass = {
+    currencySymbol: mintingPolicyToId(accountTokenPolicy),
+    tokenName: fromText(accountTokenName),
+  };
+
+  const stabilityPoolParams: StabilityPoolParams = {
+    assetSymbol: { unCurrencySymbol: assetSymbol },
+    stabilityPoolToken: toSystemParamsAsset(stabilityPoolToken),
+    snapshotEpochToScaleToSumToken: toSystemParamsAsset(
+      snapshotEpochToScaleToSumToken,
+    ),
+    accountToken: toSystemParamsAsset(accountToken),
+    cdpToken: toSystemParamsAsset(cdpToken),
+    iAssetAuthToken: toSystemParamsAsset(iassetToken),
+    versionRecordToken: toSystemParamsAsset(versionRecordToken),
+    collectorValHash: collectorValHash,
+    govNFT: toSystemParamsAsset(govNftAsset),
+    accountCreateFeeLovelaces: 5_000_000,
+    accountAdjustmentFeeLovelaces: 5_000_000,
+    requestCollateralLovelaces: 5_000_000,
+  };
+  const stabilityPoolValHash =
+    StabilityPoolContract.validatorHash(stabilityPoolParams);
+
+  const treasuryParams: TreasuryParams = {
+    upgradeToken: toSystemParamsAsset(upgradeToken),
+    versionRecordToken: toSystemParamsAsset(versionRecordToken),
+    treasuryUtxosStakeCredential: null,
+  };
+
+  await initTreasury(
+    lucid,
+    treasuryParams,
+    daoAsset,
+    indyAsset,
+    treasuryIndyAmount,
+  );
+
+  const cdpParams: CdpParams = {
+    cdpAuthToken: toSystemParamsAsset(cdpToken),
+    cdpAssetSymbol: { unCurrencySymbol: assetSymbol },
+    iAssetAuthToken: toSystemParamsAsset(iassetToken),
+    stabilityPoolAuthToken: toSystemParamsAsset(stabilityPoolToken),
+    versionRecordToken: toSystemParamsAsset(versionRecordToken),
+    upgradeToken: toSystemParamsAsset(upgradeToken),
+    collectorValHash: collectorValHash,
+    spValHash: stabilityPoolValHash,
+    govNFT: toSystemParamsAsset(govNftAsset),
+    minCollateralInLovelace: 10_000_000,
+    partialRedemptionExtraFeeLovelace: 10_000_000,
+    biasTime: 120_000,
+    treasuryValHash: collectorValHash,
+  };
+  const cdpValHash = CDPContract.validatorHash(cdpParams);
+
+  const cdpCreatorParams: CdpCreatorParams = {
+    cdpCreatorNft: toSystemParamsAsset(cdpCreatorAsset),
+    cdpAssetCs: { unCurrencySymbol: assetSymbol },
+    cdpAuthTk: toSystemParamsAsset(cdpToken),
+    iAssetAuthTk: toSystemParamsAsset(iassetToken),
+    versionRecordToken: toSystemParamsAsset(versionRecordToken),
+    cdpScriptHash: cdpValHash,
+    collectorValHash: collectorValHash,
+    minCollateralInLovelace: 10_000_000,
+    biasTime: 8_000,
+  };
+  const cdpCreatorValHash: string = CDPCreatorContract.validatorHash(cdpCreatorParams);
+
+  await initCDPCreator(lucid, cdpCreatorParams);
+  await initCollector(lucid, collectorParams);
+
+  if (initialAssets.length > 0) {
+    await mintAuthTokenDirect(lucid, govNftAsset, pollManagerTokenName, 1n);
+    await mintAuthTokenDirect(lucid, pollToken, upgradeTokenName, 1n);
+
+    for (const asset of initialAssets) {
+      await mintAuthTokenDirect(lucid, upgradeToken, iassetTokenName, 1n);
+      await mintAuthTokenDirect(
+        lucid,
+        upgradeToken,
+        stabilityPoolTokenName,
+        1n,
+      );
+
+      await initializeAsset(
+        lucid,
+        cdpParams,
+        iassetToken,
+        stabilityPoolParams,
+        stabilityPoolToken,
+        asset,
+        now,
+      );
+    }
+
+    await mintAuthTokenDirect(lucid, pollToken, upgradeTokenName, -1n);
+    await mintAuthTokenDirect(lucid, govNftAsset, pollManagerTokenName, -1n);
+  }
+
+  return {
+    cdpParams: cdpParams,
+    cdpCreatorParams: cdpCreatorParams,
+    collectorParams: collectorParams,
+    stakingParams: stakingParams,
+    stabilityPoolParams: stabilityPoolParams,
+    treasuryParams: treasuryParams,
+    scriptReferences: {
+      cdpCreatorValidatorRef: {
+        input: await initScriptRef(
+          lucid,
+          CDPCreatorContract.validator(cdpCreatorParams),
+        ),
+      },
+      cdpValidatorRef: {
+        input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
+      },
+      iAssetTokenPolicyRef: {
+        input: await initScriptRef(lucid, assetSymbolPolicy),
+      },
+      stakingValidatorRef: {
+        input: await initScriptRef(
+          lucid,
+          StakingContract.validator(stakingParams),
+        ),
+      },
+      stabilityPoolValidatorRef: {
+        input: await initScriptRef(
+          lucid,
+          StabilityPoolContract.validator(stabilityPoolParams),
+        ),
+      },
+      authTokenPolicies: {
+        cdpAuthTokenRef: {
+          input: await initScriptRef(lucid, cdpTokenPolicy),
+        },
+        iAssetAuthTokenRef: {
+          input: await initScriptRef(lucid, iassetTokenPolicy),
+        },
+        stabilityPoolTokenRef: {
+          input: await initScriptRef(lucid, accountTokenPolicy),
+        },
+        stabilityPoolAuthTokenRef: {
+          input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
+        },
+        stakingTokenRef: {
+          input: await initScriptRef(lucid, stakingTokenPolicy),
+        },
+      },
+    },
+    validatorHashes: {
+      cdpCreatorHash: cdpCreatorValHash,
+      cdpHash: cdpValHash,
+      stabilityPoolHash: stabilityPoolValHash,
+      stakingHash: StakingContract.validatorHash(stakingParams),
+    },
+  } as unknown as SystemParams;
 }

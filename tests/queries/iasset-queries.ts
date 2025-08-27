@@ -27,8 +27,8 @@ export async function findIAsset(
       if (utxo.datum != null) {
         try {
           const iassetDatum = parseIAssetDatum(utxo.datum);
-          console.log(iassetDatum);
-          return iassetDatum.content.assetName == fromText(iassetName);
+
+          return iassetDatum.assetName == fromText(iassetName);
         } catch (_) {
           // when incompatible datum
           return false;
