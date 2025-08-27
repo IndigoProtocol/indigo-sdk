@@ -2,7 +2,6 @@ import {
   fromText,
   LucidEvolution,
   Network,
-  OutRef,
   ScriptHash,
   UTxO,
 } from '@lucid-evolution/lucid';
