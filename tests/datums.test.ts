@@ -12,6 +12,7 @@ import {
   parseSnapshotEpochToScaleToSumDatum,
   parseStabilityPoolDatum,
   serialiseCDPDatum,
+  serialiseFeedInterestOracleRedeemer,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
@@ -63,6 +64,16 @@ describe('Datum checks', () => {
         lastUpdated: 1738626287000n,
       }),
     ).toEqual('d8799f1b0180e51d1ae19514d8799f1a00030d40ff1b00000194ce33c598ff');
+  });
+
+
+  it('Interest Oracle Redeemer', () => {
+    expect(
+      serialiseFeedInterestOracleRedeemer({
+        newInterestRate: { getOnChainInt: 1_000_000n },
+        currentTime: 1724851200n,
+      }),
+    ).toEqual('d8799fd8799f1a000f4240ff1a66cf2400ff');
   });
 
   it('CDP', () => {

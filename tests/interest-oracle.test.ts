@@ -1,13 +1,13 @@
-import { beforeEach, test } from 'vitest';
-import { LucidContext, runAndAwaitTx } from './test-helpers';
-import { credentialToAddress, fromText, Lucid } from '@lucid-evolution/lucid';
+import { afterEach, beforeEach, test } from 'vitest';
+import { LucidContext, runAndAwaitTx, runAndAwaitTxBuilder } from './test-helpers';
+import { Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
-import { StakingContract } from '../src/contracts/staking';
-import { init } from './endpoints/initialize';
 import { addrDetails } from '../src/helpers/lucid-utils';
-import { findStakingPosition } from './queries/staking-queries';
-import { InterestOracleContract } from '../src';
+import { InterestOracleContract, InterestOracleParams } from '../src';
+import { findInterestOracle } from './queries/interest-oracle-queries';
+
+const originalDateNow = Date.now;
 
 beforeEach<LucidContext>(async (context: LucidContext) => {
   context.users = {
@@ -19,15 +19,21 @@ beforeEach<LucidContext>(async (context: LucidContext) => {
   context.emulator = new Emulator([context.users.user]);
 
   context.lucid = await Lucid(context.emulator, 'Custom');
+
+  Date.now = () => context.emulator.now();
 });
 
-test<LucidContext>('Interest Oracle - Launch', async ({
+afterEach(() => {
+  Date.now = originalDateNow;
+});
+
+test<LucidContext>('Interest Oracle - Start', async ({
   lucid,
   users,
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
 
-  const [pkh, _skh] = await addrDetails(lucid);
+  const [pkh, _] = await addrDetails(lucid);
 
   const [tx, assetClass] = await InterestOracleContract.startInterestOracle(
         0n,
@@ -40,8 +46,41 @@ test<LucidContext>('Interest Oracle - Launch', async ({
         lucid
     );
 
-  await tx.complete()
-    .then((tx) => tx.sign.withWallet().complete())
-    .then((tx) => tx.submit())
-    .then((tx) => lucid.awaitTx(tx));
+  await runAndAwaitTxBuilder(lucid, tx);
 });
+
+test<LucidContext>('Interest Oracle - Update', async ({
+    lucid,
+    users,
+  }: LucidContext) => {
+    lucid.selectWallet.fromSeed(users.user.seedPhrase);
+  
+    const [pkh, _] = await addrDetails(lucid);
+    const interestParams: InterestOracleParams = {
+        biasTime: 120_000n,
+        owner: pkh.hash,
+    };
+
+    const [tx, assetClass] = await InterestOracleContract.startInterestOracle(
+          0n,
+          0n,
+          0n,
+          interestParams,
+          lucid
+      );
+  
+    await runAndAwaitTxBuilder(lucid, tx);
+
+    const [utxo, datum] = await findInterestOracle(lucid, assetClass);
+    console.log('original now:', originalDateNow());
+    console.log('now:', Date.now());
+    await runAndAwaitTx(lucid,
+        InterestOracleContract.feedInterestOracle(
+            interestParams,
+            500_000n,
+            lucid,
+            undefined,
+            utxo,
+        )
+    )
+  });

@@ -20,6 +20,22 @@ export function serialiseInterestOracleDatum(
   return Data.to<InterestOracleDatum>(datum, InterestOracleDatum);
 }
 
+export const FeedInterestOracleRedeemerSchema = Data.Object({
+  newInterestRate: OnChainDecimalSchema,
+  currentTime: Data.Integer(),
+});
+export type FeedInterestOracleRedeemer = Data.Static<
+  typeof FeedInterestOracleRedeemerSchema
+>;
+const FeedInterestOracleRedeemer =
+  FeedInterestOracleRedeemerSchema as unknown as FeedInterestOracleRedeemer;
+
+export function serialiseFeedInterestOracleRedeemer(
+  redeemer: FeedInterestOracleRedeemer,
+): Datum {
+  return Data.to<FeedInterestOracleRedeemer>(redeemer, FeedInterestOracleRedeemer);
+}
+
 export const InterestOracleParamsSchema = Data.Object({
   /**  Milliseconds */
   biasTime: Data.Integer(),
