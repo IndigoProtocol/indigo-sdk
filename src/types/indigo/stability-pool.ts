@@ -50,7 +50,7 @@ export const StabilityPoolContent =
   StabilityPoolContentSchema as unknown as StabilityPoolContent;
 
 export const AccountActionSchema = Data.Enum([
-  Data.Object({ Create: Data.Object({}) }),
+  Data.Literal('Create'),
   Data.Object({
     Adjust: Data.Object({
       amount: Data.Integer(),

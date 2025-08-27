@@ -6,7 +6,6 @@ export * from './contracts/staking';
 export * from './contracts/interest-oracle';
 export * from './contracts/treasury';
 export * from './helpers/asset-helpers';
-export * from './helpers/cdp-helpers';
 export * from './helpers/helpers';
 export * from './helpers/lucid-utils';
 export * from './helpers/time-helpers';

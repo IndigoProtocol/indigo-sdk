@@ -339,12 +339,7 @@ test<LucidContext>('Stability Pool - Close Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.closeAccount(
-      'iUSD',
-      accountUtxo,
-      systemParams,
-      lucid,
-    ),
+    StabilityPoolContract.closeAccount(accountUtxo, systemParams, lucid),
   );
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
 
