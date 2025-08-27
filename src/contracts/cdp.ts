@@ -60,7 +60,9 @@ export class CDPContract {
     if (!assetOut || !assetOut.datum) throw new Error('Unable to find IAsset');
     // Fail if delisted asset
     if ('Delisted' in assetOut.datum.price)
-      return Promise.reject(new Error('Trying to open CDP against delisted asset'));
+      return Promise.reject(
+        new Error('Trying to open CDP against delisted asset'),
+      );
 
     const oracleAsset = assetOut.datum.price.Oracle.oracleNft.asset;
     const oracleOut = priceOracleRef
@@ -68,7 +70,8 @@ export class CDPContract {
       : await lucid.utxoByUnit(
           oracleAsset.currencySymbol + oracleAsset.tokenName,
         );
-    if (!oracleOut.datum) return Promise.reject(new Error('Price Oracle datum not found'));
+    if (!oracleOut.datum)
+      return Promise.reject(new Error('Price Oracle datum not found'));
     const oracleDatum = parsePriceOracleDatum(oracleOut.datum);
 
     const interestOracleAsset = assetOut.datum.interestOracleNft;
@@ -413,7 +416,8 @@ export class CDPContract {
         );
 
     // Fail if delisted asset
-    if (!oracleRefInput.datum) return Promise.reject(new Error('Invalid oracle input'));
+    if (!oracleRefInput.datum)
+      return Promise.reject(new Error('Invalid oracle input'));
     const od = parsePriceOracleDatum(oracleRefInput.datum);
     if (!od) return Promise.reject(new Error('Invalid oracle input'));
 
@@ -560,7 +564,8 @@ export class CDPContract {
       throw new Error('Invalid CDP Fees');
 
     // Find Oracle Ref Input
-    if (!('Oracle' in iAsset.datum.price)) throw new Error('iAsset is delisted');
+    if (!('Oracle' in iAsset.datum.price))
+      throw new Error('iAsset is delisted');
     const oracleAsset = iAsset.datum.price.Oracle.oracleNft.asset;
     const oracleRefInput = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
@@ -569,7 +574,8 @@ export class CDPContract {
         );
 
     // Fail if delisted asset
-    if (!oracleRefInput.datum) return Promise.reject(new Error('Invalid oracle input'));
+    if (!oracleRefInput.datum)
+      return Promise.reject(new Error('Invalid oracle input'));
     const od = parsePriceOracleDatum(oracleRefInput.datum);
 
     // TODO: Sanity check: oacle expiration

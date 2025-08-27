@@ -8,9 +8,7 @@ import {
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
-import {
-  mkGovValidatorFromSP,
-} from '../src/scripts/gov-validator';
+import { mkGovValidatorFromSP } from '../src/scripts/gov-validator';
 
 const systemParams = loadSystemParamsFromFile(
   './tests/data/system-params.json',

@@ -54,12 +54,8 @@ import { mkIAssetTokenPolicy } from '../../src/scripts/iasset-policy';
 import { mkPriceOracleValidator } from '../../src/scripts/price-oracle-validator';
 import { mkVersionRecordTokenPolicy } from '../../src/scripts/version-record-policy';
 import { mkVersionRegistryValidator } from '../../src/scripts/version-registry';
-import {
-  mkExecuteValidatorFromSP,
-} from '../../src/scripts/execute-validator';
-import {
-  mkGovValidatorFromSP,
-} from '../../src/scripts/gov-validator';
+import { mkExecuteValidatorFromSP } from '../../src/scripts/execute-validator';
+import { mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
 import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool-validator';
 
 const indyTokenName = 'INDY';
@@ -149,7 +145,6 @@ const initialAssets: InitialAsset[] = [
 
 const alwaysFailValidatorHash =
   'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
-
 
 async function mintOneTimeToken(
   lucid: LucidEvolution,

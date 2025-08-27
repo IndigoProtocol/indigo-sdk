@@ -4,10 +4,7 @@ import {
   SpendingValidator,
 } from '@lucid-evolution/lucid';
 import { castGovParams, GovParams } from '../types/indigo/gov';
-import {
-  GovParamsSP,
-  fromSystemParamsAsset,
-} from '../types/system-params';
+import { GovParamsSP, fromSystemParamsAsset } from '../types/system-params';
 
 const govValidatorData = {
   type: 'PlutusV2' as ScriptType,

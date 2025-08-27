@@ -1,3 +1,1 @@
-export class GovContract {
-  
-}
+export class GovContract {}

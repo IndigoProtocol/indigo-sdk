@@ -27,9 +27,7 @@ import {
   ActionReturnDatum,
   spSub,
 } from '../types/indigo/stability-pool';
-import {
-  SystemParams,
-} from '../types/system-params';
+import { SystemParams } from '../types/system-params';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import { mkStabilityPoolValidatorFromSP } from '../scripts/stability-pool-validator';
 import {
@@ -396,7 +394,8 @@ export class StabilityPoolContract {
         reward,
       );
       const isDepositOrRewardWithdrawal: boolean = amount > 0n;
-      const bigIntMax = (...args: bigint[]): bigint => args.reduce((m, e) => (e > m ? e : m));
+      const bigIntMax = (...args: bigint[]): bigint =>
+        args.reduce((m, e) => (e > m ? e : m));
       const balanceChange: bigint = isDepositOrRewardWithdrawal
         ? amount
         : bigIntMax(amount, fromSPInteger(accountDatum.snapshot.depositVal));

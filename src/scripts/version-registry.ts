@@ -1,7 +1,4 @@
-import {
-  ScriptType,
-  SpendingValidator,
-} from '@lucid-evolution/lucid';
+import { ScriptType, SpendingValidator } from '@lucid-evolution/lucid';
 
 const versionRegistryValidatorData = {
   type: 'PlutusV2' as ScriptType,

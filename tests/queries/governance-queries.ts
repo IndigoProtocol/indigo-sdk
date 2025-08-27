@@ -1,8 +1,4 @@
-import {
-  LucidEvolution,
-  ScriptHash,
-  UTxO,
-} from '@lucid-evolution/lucid';
+import { LucidEvolution, ScriptHash, UTxO } from '@lucid-evolution/lucid';
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
