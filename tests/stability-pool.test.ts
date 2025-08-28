@@ -39,10 +39,9 @@ afterEach(() => {
 test<LucidContext>('Stability Pool - Create Account', async ({
   lucid,
   users,
-  emulator,
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid, emulator.now());
+  const systemParams = await init(lucid);
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 
@@ -114,10 +113,9 @@ test<LucidContext>('Stability Pool - Create Account', async ({
 test<LucidContext>('Stability Pool - Adjust Account', async ({
   lucid,
   users,
-  emulator,
 }: LucidContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid, emulator.now());
+  const systemParams = await init(lucid);
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 

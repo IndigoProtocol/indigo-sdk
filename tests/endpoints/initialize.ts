@@ -46,6 +46,7 @@ import {
   toSystemParamsAsset,
   TreasuryContract,
   TreasuryParams,
+  VersionRecordParams,
 } from '../../src';
 import { mkAuthTokenPolicy } from '../../src/scripts/auth-token-policy';
 import { StakingContract } from '../../src/contracts/staking';
@@ -119,7 +120,7 @@ const initialAssets: InitialAsset[] = [
       startPrice: 1_000_000n,
       params: {
         biasTime: 120_000n,
-        expirationTime: 900_000n,
+        expirationTime: 1_800_000n,
       },
     },
     initerestOracle: {
@@ -636,9 +637,11 @@ export async function init(
     currencySymbol: mintingPolicyToId(stabilityPoolTokenPolicy),
     tokenName: fromText(stabilityPoolTokenName),
   };
-
+  const versionRecordParams: VersionRecordParams = {
+    upgradeToken: toSystemParamsAsset(upgradeToken),
+  };
   const versionRecordTokenPolicy = mkVersionRecordTokenPolicy({
-    upgradeToken: upgradeToken,
+    upgradeToken,
   });
   const versionRecordToken: AssetClass = {
     currencySymbol: mintingPolicyToId(versionRecordTokenPolicy),
@@ -739,9 +742,9 @@ export async function init(
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
     collectorValHash: collectorValHash,
     govNFT: toSystemParamsAsset(govNftAsset),
-    accountCreateFeeLovelaces: 5_000_000n,
-    accountAdjustmentFeeLovelaces: 5_000_000n,
-    requestCollateralLovelaces: 5_000_000n,
+    accountCreateFeeLovelaces: 5_000_000,
+    accountAdjustmentFeeLovelaces: 5_000_000,
+    requestCollateralLovelaces: 5_000_000,
   };
   const stabilityPoolValidator =
     mkStabilityPoolValidatorFromSP(stabilityPoolParams);
@@ -789,7 +792,7 @@ export async function init(
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
     cdpScriptHash: cdpValHash,
     collectorValHash: collectorValHash,
-    minCollateralInLovelace: 10_000_000n,
+    minCollateralInLovelace: 10_000_000,
     biasTime: 8_000n,
   };
   const cdpCreatorValidator = mkCDPCreatorValidatorFromSP(cdpCreatorParams);
@@ -889,6 +892,19 @@ export async function init(
     stakingParams: stakingParams,
     stabilityPoolParams: stabilityPoolParams,
     treasuryParams: treasuryParams,
+    pollShardParams: pollShardParams,
+    pollManagerParams: pollManagerParams,
+    indyToken: toSystemParamsAsset(indyAsset),
+    distributionParams: {
+      treasuryIndyAmount: 1_575_000_000_000,
+      totalINDYSupply: 35_000_000_000_000,
+      initialIndyDistribution: 1_575_000_000_000,
+    },
+    versionRecordParams: versionRecordParams,
+    startTime: {
+      slot: 0,
+      blockHeader: '',
+    },
     scriptReferences: {
       cdpCreatorValidatorRef: {
         input: await initScriptRef(lucid, cdpCreatorValidator),
@@ -926,6 +942,21 @@ export async function init(
       treasuryValidatorRef: {
         input: await initScriptRef(lucid, treasuryValidator),
       },
+      governanceValidatorRef: {
+        input: await initScriptRef(lucid, govValidator),
+      },
+      versionRegistryValidatorRef: {
+        input: await initScriptRef(lucid, versionRegistryValidator),
+      },
+      versionRecordTokenPolicyRef: {
+        input: await initScriptRef(lucid, versionRecordTokenPolicy),
+      },
+      liquidityValidatorRef: {
+        input: undefined,
+      },
+      vestingValidatorRef: {
+        input: undefined,
+      },
       authTokenPolicies: {
         cdpAuthTokenRef: {
           input: await initScriptRef(lucid, cdpTokenPolicy),
@@ -948,6 +979,21 @@ export async function init(
         versionRecordTokenRef: {
           input: await initScriptRef(lucid, versionRecordTokenPolicy),
         },
+        iAssetTokenRef: {
+          input: await initScriptRef(lucid, assetSymbolPolicy),
+        },
+        upgradeTokenRef: {
+          input: await initScriptRef(lucid, upgradeTokenPolicy),
+        },
+        stabilityPoolTokenRef: {
+          input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
+        },
+        snapshotEpochToScaleToSumTokenRef: {
+          input: await initScriptRef(
+            lucid,
+            snapshotEpochToScaleToSumTokenPolicy,
+          ),
+        },
       },
     },
     validatorHashes: {
@@ -960,6 +1006,8 @@ export async function init(
       treasuryHash: treasuryValHash,
       stabilityPoolHash: stabilityPoolValHash,
       stakingHash: stakingValHash,
+      collectorHash: collectorValHash,
+      versionRegistryHash: versionRegistryValHash,
     },
-  } as unknown as SystemParams;
+  } as SystemParams;
 }

@@ -136,7 +136,7 @@ export interface Input {
 }
 
 export interface ScriptReference {
-  output: Output;
+  output?: Output;
   input: Input;
 }
 
