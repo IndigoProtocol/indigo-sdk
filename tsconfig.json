@@ -4,7 +4,8 @@
     "sourceMap": true,
     "module": "nodenext",
     "target": "ESNext",
-    "moduleResolution": "nodenext"
+    "moduleResolution": "nodenext",
+    "allowUnreachableCode": true
   },
   "ts-node": {
     "compilerOptions": {
