@@ -89,6 +89,7 @@ export async function cancelLrp(
 }
 
 export async function redeemLrp(
+  /** The tuple represents the LRP outref and the amount of iAssets to redeem against it. */
   redemptionLrpsData: [OutRef, bigint][],
   lrpRefScriptOutRef: OutRef,
   priceOracleOutRef: OutRef,

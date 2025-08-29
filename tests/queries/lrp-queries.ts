@@ -2,8 +2,8 @@ import {
   Credential,
   LucidEvolution,
   Network,
-  OutRef,
   ScriptHash,
+  UTxO,
 } from '@lucid-evolution/lucid';
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { parseLrpDatum } from '../../src/types/indigo/lrp';
@@ -19,7 +19,7 @@ export async function findLrp(
   owner: string,
   assetTokenName: string,
   stakeCredential?: Credential,
-): Promise<OutRef[]> {
+): Promise<UTxO[]> {
   const lrpUtxos = await lucid.utxosAt(
     createScriptAddress(network, lrpScriptHash, stakeCredential),
   );
