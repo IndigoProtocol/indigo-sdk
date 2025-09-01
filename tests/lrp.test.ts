@@ -6,6 +6,7 @@ import {
   Lucid,
   LucidEvolution,
   Network,
+  paymentCredentialOf,
   toText,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
@@ -333,10 +334,9 @@ describe('LRP', () => {
         ),
         await findIAsset(
           lucid,
-          network,
           testCtx.iassetValHash,
           testCtx.iassetNft,
-          iassetTokenName,
+          toText(iassetTokenName),
         ),
         lucid,
         lrpParams,
@@ -346,40 +346,40 @@ describe('LRP', () => {
       ),
     );
 
-    // const resultLrpUtxo1 = matchSingle(
-    //   await findLrp(
-    //     lucid,
-    //     network,
-    //     lrpValidatorHash,
-    //     paymentCredentialOf(account1.address).hash,
-    //     iassetTokenName,
-    //   ),
-    //   (res) => new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
-    // );
-    // const resultLrpUtxo2 = matchSingle(
-    //   await findLrp(
-    //     lucid,
-    //     network,
-    //     lrpValidatorHash,
-    //     paymentCredentialOf(account2.address).hash,
-    //     iassetTokenName,
-    //   ),
-    //   (res) => new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
-    // );
+    const resultLrpUtxo1 = matchSingle(
+      await findLrp(
+        lucid,
+        network,
+        lrpValidatorHash,
+        paymentCredentialOf(account1.address).hash,
+        iassetTokenName,
+      ),
+      (res) => new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
+    );
+    const resultLrpUtxo2 = matchSingle(
+      await findLrp(
+        lucid,
+        network,
+        lrpValidatorHash,
+        paymentCredentialOf(account2.address).hash,
+        iassetTokenName,
+      ),
+      (res) => new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
+    );
 
-    // assert(
-    //   assetClassValueOf(resultLrpUtxo1.assets, {
-    //     currencySymbol: testCtx.iassetAc.currencySymbol,
-    //     tokenName: iassetTokenName,
-    //   }) === 5_000_000n,
-    //   'LRP1 has wrong number of iassets after redemption',
-    // );
-    // assert(
-    //   assetClassValueOf(resultLrpUtxo2.assets, {
-    //     currencySymbol: testCtx.iassetAc.currencySymbol,
-    //     tokenName: iassetTokenName,
-    //   }) === 4_000_000n,
-    //   'LRP2 has wrong number of iassets after redemption',
-    // );
+    assert(
+      assetClassValueOf(resultLrpUtxo1.assets, {
+        currencySymbol: testCtx.iassetAc.currencySymbol,
+        tokenName: iassetTokenName,
+      }) === 5_000_000n,
+      'LRP1 has wrong number of iassets after redemption',
+    );
+    assert(
+      assetClassValueOf(resultLrpUtxo2.assets, {
+        currencySymbol: testCtx.iassetAc.currencySymbol,
+        tokenName: iassetTokenName,
+      }) === 4_000_000n,
+      'LRP2 has wrong number of iassets after redemption',
+    );
   });
 });

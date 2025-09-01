@@ -128,13 +128,13 @@ export async function redeemLrp(
     .utxosByOutRef(lrpsToRedeemOutRefs)
     .then((val) => zip(val, lrpRedemptionIAssetAmt));
 
-  const [[mainLrpUtxo, mainLrpRedemptionIAssetAmt], _] = match(redemptionLrps)
+  const [[mainLrpUtxo, _], __] = match(redemptionLrps)
     .with(
       [P._, ...P.array()],
-      ([[firstLrp, firstLrpIAssetAmt], ...rest]): [
-        [UTxO, bigint],
-        [UTxO, bigint][],
-      ] => [[firstLrp, firstLrpIAssetAmt], rest],
+      ([[firstLrp, _], ...rest]): [[UTxO, bigint], [UTxO, bigint][]] => [
+        [firstLrp, _],
+        rest,
+      ],
     )
     .otherwise(() => {
       throw new Error('Expects at least 1 UTXO to redeem.');
@@ -147,7 +147,7 @@ export async function redeemLrp(
     (idx, acc, [lrpUtxo, redeemIAssetAmt]) => {
       const lovelacesForRedemption = ocdMul(
         {
-          getOnChainInt: mainLrpRedemptionIAssetAmt,
+          getOnChainInt: redeemIAssetAmt,
         },
         priceOracleDatum.price,
       ).getOnChainInt;
