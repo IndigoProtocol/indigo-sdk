@@ -1,30 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { StakingContract } from '../src/contracts/staking';
 import {
-  AccountContent,
   CDPContent,
   IAssetContent,
-  parseAccountDatum,
   parseCDPDatum,
   parseIAssetDatum,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
-  parseSnapshotEpochToScaleToSumDatum,
   parseStabilityPoolDatum,
   serialiseCDPDatum,
+  serialiseFeedInterestOracleRedeemer,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
   serialiseStabilityPoolDatum,
-  SnapshotEpochToScaleToSumContent,
   StabilityPoolContent,
-  StabilityPoolContract,
 } from '../src/index';
 import {
   parseStakingManagerDatum,
   parseStakingPositionDatum,
   serialiseStakingDatum,
-  StakingDatum,
   StakingManagerContent,
   StakingPositionContent,
 } from '../src/types/indigo/staking';
@@ -63,6 +57,15 @@ describe('Datum checks', () => {
         lastUpdated: 1738626287000n,
       }),
     ).toEqual('d8799f1b0180e51d1ae19514d8799f1a00030d40ff1b00000194ce33c598ff');
+  });
+
+  it('Interest Oracle Redeemer', () => {
+    expect(
+      serialiseFeedInterestOracleRedeemer({
+        newInterestRate: { getOnChainInt: 1_000_000n },
+        currentTime: 1724851200n,
+      }),
+    ).toEqual('d8799fd8799f1a000f4240ff1a66cf2400ff');
   });
 
   it('CDP', () => {
@@ -192,8 +195,8 @@ describe('Datum checks', () => {
         scale: 0n,
       },
       epochToScaleToSum: new Map([
-        [{ epoch: 0n, scale: 0n }, { sum: 595764752630360958n }],
-        [{ epoch: 1n, scale: 0n }, { sum: 1143417026613401054n }],
+        [{ epoch: 0n, scale: 0n }, { value: 595764752630360958n }],
+        [{ epoch: 1n, scale: 0n }, { value: 1143417026613401054n }],
       ]),
     };
     expect(parseStabilityPoolDatum(stabilityPoolDatum)).toEqual(

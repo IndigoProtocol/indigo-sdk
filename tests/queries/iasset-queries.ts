@@ -1,7 +1,6 @@
 import {
   fromText,
   LucidEvolution,
-  Network,
   ScriptHash,
   UTxO,
 } from '@lucid-evolution/lucid';
@@ -12,13 +11,12 @@ import { matchSingle, parseIAssetDatum } from '../../src';
 
 export async function findIAsset(
   lucid: LucidEvolution,
-  network: Network,
   iassetScriptHash: ScriptHash,
   iassetNft: AssetClass,
   iassetName: string,
 ): Promise<UTxO> {
   const iassetUtxos = await lucid.utxosAtWithUnit(
-    createScriptAddress(network, iassetScriptHash),
+    createScriptAddress(lucid.config().network, iassetScriptHash),
     assetClassToUnit(iassetNft),
   );
 
@@ -27,7 +25,8 @@ export async function findIAsset(
       if (utxo.datum != null) {
         try {
           const iassetDatum = parseIAssetDatum(utxo.datum);
-          return iassetDatum.assetName == iassetName;
+
+          return iassetDatum.assetName == fromText(iassetName);
         } catch (_) {
           // when incompatible datum
           return false;

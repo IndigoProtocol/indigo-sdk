@@ -1,4 +1,4 @@
-import { assert, describe, it, test } from 'vitest';
+import { assert, describe, it } from 'vitest';
 import {
   Emulator,
   fromText,
@@ -6,7 +6,7 @@ import {
   Lucid,
   LucidEvolution,
   Network,
-  paymentCredentialOf,
+  toText,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
 import { LRPParams } from '../src/types/indigo/lrp';
@@ -117,7 +117,7 @@ describe('LRP', () => {
 
     lucid.selectWallet.fromSeed(account1.seedPhrase);
 
-    const iassetTokenName = fromText('TEST_IBTC');
+    const iassetTokenName = fromText('iBTC');
     const testCtx = await initTest(
       lucid,
       network,
@@ -192,10 +192,9 @@ describe('LRP', () => {
         ),
         await findIAsset(
           lucid,
-          network,
           testCtx.iassetValHash,
           testCtx.iassetNft,
-          iassetTokenName,
+          toText(iassetTokenName),
         ),
         lucid,
         lrpParams,

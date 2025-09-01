@@ -22,7 +22,8 @@ export class IAssetHelpers {
           .find((utxo) => utxo !== undefined),
       )
       .then((result) => {
-        if (!result) throw 'Unable to locate IAsset by output reference.';
+        if (!result)
+          throw new Error('Unable to locate IAsset by output reference.');
         return result;
       });
   }
@@ -49,7 +50,7 @@ export class IAssetHelpers {
           .find((utxo) => utxo !== undefined),
       )
       .then((result) => {
-        if (!result) throw 'Unable to locate IAsset by name.';
+        if (!result) throw new Error('Unable to locate IAsset by name.');
         return result;
       });
   }

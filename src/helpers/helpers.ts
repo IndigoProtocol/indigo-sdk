@@ -31,8 +31,8 @@ export function loadSystemParamsFromFile(file: string): SystemParams {
 export function loadSystemParamsFromUrl(url: string): Promise<SystemParams> {
   return fetch(url)
     .then((res: Response) => res.json())
-    .then((data: any) => data as SystemParams);
+    .then((data: unknown) => data as SystemParams);
 }
 
-export const getRandomElement = (arr: any[]) =>
+export const getRandomElement = <T>(arr: T[]) =>
   arr.length ? arr[Math.floor(Math.random() * arr.length)] : undefined;

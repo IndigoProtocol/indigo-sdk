@@ -26,14 +26,16 @@ export class StakingHelpers {
         utxos
           .map((utxo) => {
             if (!utxo.datum) return undefined;
-            const datum = parseStakingPositionDatum(utxo.datum);
+            const datum = parseStakingManagerDatum(utxo.datum);
             return { utxo, datum };
           })
           .find((utxo) => utxo !== undefined),
       )
       .then((result) => {
         if (!result)
-          throw 'Unable to locate Staking Manager by output reference.';
+          throw new Error(
+            'Unable to locate Staking Manager by output reference.',
+          );
         return result;
       });
   }
@@ -59,7 +61,9 @@ export class StakingHelpers {
       )
       .then((result) => {
         if (!result)
-          throw 'Unable to locate Staking Manager by output reference.';
+          throw new Error(
+            'Unable to locate Staking Manager by output reference.',
+          );
         return result;
       });
   }
@@ -81,7 +85,9 @@ export class StakingHelpers {
       )
       .then((result) => {
         if (!result)
-          throw 'Unable to locate Staking Position by output reference.';
+          throw new Error(
+            'Unable to locate Staking Position by output reference.',
+          );
         return result;
       });
   }
