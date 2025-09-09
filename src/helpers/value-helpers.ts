@@ -5,6 +5,10 @@ export function mkLovelacesOf(amount: bigint): Assets {
   return { lovelace: amount };
 }
 
+export function lovelacesAmt(assets: Assets): bigint {
+  return assets.lovelace ?? 0n;
+}
+
 export function assetClassToUnit(ac: AssetClass): Unit {
   return toUnit(ac.currencySymbol, ac.tokenName);
 }

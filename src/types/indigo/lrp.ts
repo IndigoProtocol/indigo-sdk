@@ -15,6 +15,11 @@ export const LRPDatumSchema = Data.Object({
   owner: Data.Bytes(),
   iasset: Data.Bytes(),
   maxPrice: OnChainDecimalSchema,
+  /**
+   * The amount of lovelaces that is available to be spent.
+   * This doesn't correspond to the lovelaces in UTXO's value,
+   * since that can contain fees, too.
+   */
   lovelacesToSpend: Data.Integer(),
 });
 export type LRPDatum = Data.Static<typeof LRPDatumSchema>;
