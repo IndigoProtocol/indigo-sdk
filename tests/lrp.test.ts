@@ -1,4 +1,4 @@
-import { assert, describe, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 import {
   Emulator,
   fromText,
@@ -8,15 +8,22 @@ import {
   Network,
   paymentCredentialOf,
   toText,
+  UTxO,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
-import { LRPParams } from '../src/types/indigo/lrp';
+import { LRPParams, parseLrpDatum } from '../src/types/indigo/lrp';
 import { mkLrpValidator } from '../src/scripts/lrp-validator';
 import { runCreateScriptRefTx } from '../src/helpers/helper-txs';
 import { runOneShotMintTx } from '../src/contracts/one-shot';
-import { cancelLrp, openLrp, redeemLrp } from '../src/contracts/lrp';
+import {
+  adjustLrp,
+  cancelLrp,
+  claimLrp,
+  openLrp,
+  redeemLrp,
+} from '../src/contracts/lrp';
 import { findLrp } from './queries/lrp-queries';
-import { addrDetails } from '../src/helpers/lucid-utils';
+import { addrDetails, getInlineDatumOrThrow } from '../src/helpers/lucid-utils';
 import { runAndAwaitTx } from './test-helpers';
 import { matchSingle } from '../src/helpers/helpers';
 import { runCreateIAsset, runStartPriceOracle } from './indigo-test-helpers';
@@ -30,7 +37,8 @@ import {
 } from '../src/types/on-chain-decimal';
 import { findPriceOracle } from './queries/price-oracle-queries';
 import { findIAsset } from './queries/iasset-queries';
-import { assetClassValueOf } from '../src/helpers/value-helpers';
+import { assetClassValueOf, lovelacesAmt } from '../src/helpers/value-helpers';
+import { strictEqual } from 'assert';
 
 type LRPTestContext = {
   iassetAc: AssetClass;
@@ -107,7 +115,7 @@ async function initTest(
 }
 
 describe('LRP', () => {
-  it('case 1', async () => {
+  it('adjust positive and negative', async () => {
     const network: Network = 'Custom';
     const account1 = generateEmulatorAccount({
       lovelace: 80_000_000_000n, // 80,000 ADA
@@ -147,6 +155,20 @@ describe('LRP', () => {
       network,
     );
 
+    const findSingleOwnLrp = async (): Promise<UTxO> => {
+      return matchSingle(
+        await findLrp(
+          lucid,
+          network,
+          lrpValidatorHash,
+          ownPkh.hash,
+          iassetTokenName,
+        ),
+        (res) =>
+          new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
+      );
+    };
+
     await runAndAwaitTx(
       lucid,
       openLrp(
@@ -159,7 +181,38 @@ describe('LRP', () => {
       ),
     );
 
-    const lrpUtxo = matchSingle(
+    await runAndAwaitTx(
+      lucid,
+      findSingleOwnLrp().then((lrp) =>
+        adjustLrp(lucid, lrp, -1_000_000n, lrpRefScriptOutRef, lrpParams),
+      ),
+    );
+
+    const adjustedUtxo1 = await findSingleOwnLrp();
+
+    assert(
+      parseLrpDatum(getInlineDatumOrThrow(adjustedUtxo1)).lovelacesToSpend ===
+        20_000_000n - 1_000_000n,
+    );
+
+    expect(
+      lovelacesAmt(adjustedUtxo1.assets) >=
+        parseLrpDatum(getInlineDatumOrThrow(adjustedUtxo1)).lovelacesToSpend,
+      'Lovelaces to spend has to be smaller than actual lovelaces in UTXO',
+    );
+
+    await runAndAwaitTx(
+      lucid,
+      adjustLrp(
+        lucid,
+        adjustedUtxo1,
+        5_000_000n,
+        lrpRefScriptOutRef,
+        lrpParams,
+      ),
+    );
+
+    const adjustedUtxo2 = matchSingle(
       await findLrp(
         lucid,
         network,
@@ -170,11 +223,96 @@ describe('LRP', () => {
       (res) => new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
     );
 
-    assert(
-      assetClassValueOf(lrpUtxo.assets, {
-        currencySymbol: testCtx.iassetAc.currencySymbol,
-        tokenName: iassetTokenName,
-      }) === 0n,
+    const expectedResultAdaAmt = 20_000_000n - 1_000_000n + 5_000_000n;
+
+    strictEqual(
+      parseLrpDatum(getInlineDatumOrThrow(adjustedUtxo2)).lovelacesToSpend,
+      expectedResultAdaAmt,
+    );
+
+    expect(
+      lovelacesAmt(adjustedUtxo2.assets) >=
+        parseLrpDatum(getInlineDatumOrThrow(adjustedUtxo2)).lovelacesToSpend,
+      'Lovelaces to spend has to be smaller than actual lovelaces in UTXO',
+    );
+  });
+
+  it('claim', async () => {
+    const network: Network = 'Custom';
+    const account1 = generateEmulatorAccount({
+      lovelace: 80_000_000_000n, // 80,000 ADA
+    });
+
+    const emulator = new Emulator([account1]);
+    const lucid = await Lucid(emulator, network);
+
+    lucid.selectWallet.fromSeed(account1.seedPhrase);
+
+    const iassetTokenName = fromText('iBTC');
+    const testCtx = await initTest(
+      lucid,
+      network,
+      iassetTokenName,
+      10_000_000n,
+      OCD_ONE,
+    );
+
+    const [ownPkh, _] = await addrDetails(lucid);
+
+    const lrpParams: LRPParams = {
+      versionRecordToken: {
+        currencySymbol: fromText('smth'),
+        tokenName: fromText('version_record'),
+      },
+      iassetNft: testCtx.iassetNft,
+      iassetPolicyId: testCtx.iassetAc.currencySymbol,
+      minRedemptionLovelacesAmt: 1_000_000n,
+    };
+
+    const lrpValidator = mkLrpValidator(lrpParams);
+    const lrpValidatorHash = validatorToScriptHash(lrpValidator);
+    const lrpRefScriptOutRef = await runCreateScriptRefTx(
+      lucid,
+      lrpValidator,
+      network,
+    );
+
+    const findSingleOwnLrp = async (): Promise<UTxO> => {
+      return matchSingle(
+        await findLrp(
+          lucid,
+          network,
+          lrpValidatorHash,
+          ownPkh.hash,
+          iassetTokenName,
+        ),
+        (res) =>
+          new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
+      );
+    };
+
+    await runAndAwaitTx(
+      lucid,
+      openLrp(
+        iassetTokenName,
+        20_000_000n,
+        { getOnChainInt: 1_000_000n },
+        lucid,
+        lrpValidatorHash,
+        network,
+      ),
+    );
+
+    const lrpUtxo = await findSingleOwnLrp();
+
+    const redemptionAsset: AssetClass = {
+      currencySymbol: testCtx.iassetAc.currencySymbol,
+      tokenName: iassetTokenName,
+    };
+
+    strictEqual(
+      assetClassValueOf(lrpUtxo.assets, redemptionAsset),
+      0n,
       'LRP should have no iassets before redemption',
     );
 
@@ -205,26 +343,280 @@ describe('LRP', () => {
       ),
     );
 
-    const resultLrp = matchSingle(
-      await findLrp(
-        lucid,
-        network,
-        lrpValidatorHash,
-        ownPkh.hash,
-        iassetTokenName,
-      ),
-      (res) => new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
-    );
+    const redeemedLrp = await findSingleOwnLrp();
 
-    assert(
-      assetClassValueOf(resultLrp.assets, {
-        currencySymbol: testCtx.iassetAc.currencySymbol,
-        tokenName: iassetTokenName,
-      }) === redemptionIAssetAmt,
+    strictEqual(
+      assetClassValueOf(redeemedLrp.assets, redemptionAsset),
+      redemptionIAssetAmt,
       'LRP has wrong number of iassets after redemption',
     );
 
-    await runAndAwaitTx(lucid, cancelLrp(resultLrp, lrpRefScriptOutRef, lucid));
+    await runAndAwaitTx(
+      lucid,
+      claimLrp(lucid, redeemedLrp, lrpRefScriptOutRef, lrpParams),
+    );
+
+    const claimedLrp = await findSingleOwnLrp();
+
+    strictEqual(
+      assetClassValueOf(claimedLrp.assets, redemptionAsset),
+      0n,
+      'LRP has to have 0 redemption assets after claim',
+    );
+  });
+
+  it('claim using adjust', async () => {
+    const network: Network = 'Custom';
+    const account1 = generateEmulatorAccount({
+      lovelace: 80_000_000_000n, // 80,000 ADA
+    });
+
+    const emulator = new Emulator([account1]);
+    const lucid = await Lucid(emulator, network);
+
+    lucid.selectWallet.fromSeed(account1.seedPhrase);
+
+    const iassetTokenName = fromText('iBTC');
+    const testCtx = await initTest(
+      lucid,
+      network,
+      iassetTokenName,
+      10_000_000n,
+      OCD_ONE,
+    );
+
+    const [ownPkh, _] = await addrDetails(lucid);
+
+    const lrpParams: LRPParams = {
+      versionRecordToken: {
+        currencySymbol: fromText('smth'),
+        tokenName: fromText('version_record'),
+      },
+      iassetNft: testCtx.iassetNft,
+      iassetPolicyId: testCtx.iassetAc.currencySymbol,
+      minRedemptionLovelacesAmt: 1_000_000n,
+    };
+
+    const lrpValidator = mkLrpValidator(lrpParams);
+    const lrpValidatorHash = validatorToScriptHash(lrpValidator);
+    const lrpRefScriptOutRef = await runCreateScriptRefTx(
+      lucid,
+      lrpValidator,
+      network,
+    );
+
+    const findSingleOwnLrp = async (): Promise<UTxO> => {
+      return matchSingle(
+        await findLrp(
+          lucid,
+          network,
+          lrpValidatorHash,
+          ownPkh.hash,
+          iassetTokenName,
+        ),
+        (res) =>
+          new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
+      );
+    };
+
+    await runAndAwaitTx(
+      lucid,
+      openLrp(
+        iassetTokenName,
+        20_000_000n,
+        { getOnChainInt: 1_000_000n },
+        lucid,
+        lrpValidatorHash,
+        network,
+      ),
+    );
+
+    const lrpUtxo = await findSingleOwnLrp();
+
+    const redemptionAsset: AssetClass = {
+      currencySymbol: testCtx.iassetAc.currencySymbol,
+      tokenName: iassetTokenName,
+    };
+
+    strictEqual(
+      assetClassValueOf(lrpUtxo.assets, redemptionAsset),
+      0n,
+      'LRP should have no iassets before redemption',
+    );
+
+    const redemptionIAssetAmt = 5_000_000n;
+
+    await runAndAwaitTx(
+      lucid,
+      redeemLrp(
+        [[lrpUtxo, redemptionIAssetAmt]],
+        lrpRefScriptOutRef,
+        await findPriceOracle(
+          lucid,
+          network,
+          testCtx.oracleValHash,
+          testCtx.oracleNft,
+        ),
+        await findIAsset(
+          lucid,
+          testCtx.iassetValHash,
+          testCtx.iassetNft,
+          toText(iassetTokenName),
+        ),
+        lucid,
+        lrpParams,
+        testCtx.oracleParams,
+        network,
+        emulator.slot,
+      ),
+    );
+
+    const redeemedLrp = await findSingleOwnLrp();
+
+    strictEqual(
+      assetClassValueOf(redeemedLrp.assets, redemptionAsset),
+      redemptionIAssetAmt,
+      'LRP has wrong number of iassets after redemption',
+    );
+
+    await runAndAwaitTx(
+      lucid,
+      adjustLrp(lucid, redeemedLrp, -1_000_000n, lrpRefScriptOutRef, lrpParams),
+    );
+
+    const adjustedLrp = await findSingleOwnLrp();
+
+    strictEqual(
+      assetClassValueOf(adjustedLrp.assets, redemptionAsset),
+      0n,
+      'LRP has to have 0 redemption assets after adjust',
+    );
+
+    strictEqual(
+      parseLrpDatum(getInlineDatumOrThrow(adjustedLrp)).lovelacesToSpend,
+      // 20mil start, 5mil redeemer at price 1:1, -1mil adjusted
+      14_000_000n,
+    );
+  });
+
+  it('single redemption and cancel', async () => {
+    const network: Network = 'Custom';
+    const account1 = generateEmulatorAccount({
+      lovelace: 80_000_000_000n, // 80,000 ADA
+    });
+
+    const emulator = new Emulator([account1]);
+    const lucid = await Lucid(emulator, network);
+
+    lucid.selectWallet.fromSeed(account1.seedPhrase);
+
+    const iassetTokenName = fromText('iBTC');
+    const testCtx = await initTest(
+      lucid,
+      network,
+      iassetTokenName,
+      10_000_000n,
+      OCD_ONE,
+    );
+
+    const [ownPkh, _] = await addrDetails(lucid);
+
+    const lrpParams: LRPParams = {
+      versionRecordToken: {
+        currencySymbol: fromText('smth'),
+        tokenName: fromText('version_record'),
+      },
+      iassetNft: testCtx.iassetNft,
+      iassetPolicyId: testCtx.iassetAc.currencySymbol,
+      minRedemptionLovelacesAmt: 1_000_000n,
+    };
+
+    const lrpValidator = mkLrpValidator(lrpParams);
+    const lrpValidatorHash = validatorToScriptHash(lrpValidator);
+    const lrpRefScriptOutRef = await runCreateScriptRefTx(
+      lucid,
+      lrpValidator,
+      network,
+    );
+
+    const findSingleOwnLrp = async (): Promise<UTxO> => {
+      return matchSingle(
+        await findLrp(
+          lucid,
+          network,
+          lrpValidatorHash,
+          ownPkh.hash,
+          iassetTokenName,
+        ),
+        (res) =>
+          new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
+      );
+    };
+
+    await runAndAwaitTx(
+      lucid,
+      openLrp(
+        iassetTokenName,
+        20_000_000n,
+        { getOnChainInt: 1_000_000n },
+        lucid,
+        lrpValidatorHash,
+        network,
+      ),
+    );
+
+    const lrpUtxo = await findSingleOwnLrp();
+
+    const redemptionAsset: AssetClass = {
+      currencySymbol: testCtx.iassetAc.currencySymbol,
+      tokenName: iassetTokenName,
+    };
+
+    strictEqual(
+      assetClassValueOf(lrpUtxo.assets, redemptionAsset),
+      0n,
+      'LRP should have no iassets before redemption',
+    );
+
+    const redemptionIAssetAmt = 5_000_000n;
+
+    await runAndAwaitTx(
+      lucid,
+      redeemLrp(
+        [[lrpUtxo, redemptionIAssetAmt]],
+        lrpRefScriptOutRef,
+        await findPriceOracle(
+          lucid,
+          network,
+          testCtx.oracleValHash,
+          testCtx.oracleNft,
+        ),
+        await findIAsset(
+          lucid,
+          testCtx.iassetValHash,
+          testCtx.iassetNft,
+          toText(iassetTokenName),
+        ),
+        lucid,
+        lrpParams,
+        testCtx.oracleParams,
+        network,
+        emulator.slot,
+      ),
+    );
+
+    const redeemedLrp = await findSingleOwnLrp();
+
+    strictEqual(
+      assetClassValueOf(redeemedLrp.assets, redemptionAsset),
+      redemptionIAssetAmt,
+      'LRP has wrong number of iassets after redemption',
+    );
+
+    await runAndAwaitTx(
+      lucid,
+      cancelLrp(redeemedLrp, lrpRefScriptOutRef, lucid),
+    );
   });
 
   it('multi redemption case', async () => {
