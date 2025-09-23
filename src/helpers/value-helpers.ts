@@ -14,3 +14,10 @@ export function mkAssetsOf(assetClass: AssetClass, amount: bigint): Assets {
     [assetClassToUnit(assetClass)]: amount,
   };
 }
+
+export function assetClassValueOf(
+  assets: Assets,
+  assetClass: AssetClass,
+): bigint {
+  return assets[assetClassToUnit(assetClass)] ?? 0n;
+}

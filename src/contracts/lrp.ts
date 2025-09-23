@@ -89,6 +89,7 @@ export async function cancelLrp(
 }
 
 export async function redeemLrp(
+  /** The tuple represents the LRP outref and the amount of iAssets to redeem against it. */
   redemptionLrpsData: [OutRef, bigint][],
   lrpRefScriptOutRef: OutRef,
   priceOracleOutRef: OutRef,
@@ -97,6 +98,7 @@ export async function redeemLrp(
   lrpParams: LRPParams,
   priceOracleParams: PriceOracleParams,
   network: Network,
+  currentSlot: number,
 ): Promise<TxBuilder> {
   const lrpScriptRefUtxo = matchSingle(
     await lucid.utxosByOutRef([lrpRefScriptOutRef]),
@@ -126,13 +128,13 @@ export async function redeemLrp(
     .utxosByOutRef(lrpsToRedeemOutRefs)
     .then((val) => zip(val, lrpRedemptionIAssetAmt));
 
-  const [[mainLrpUtxo, mainLrpRedemptionIAssetAmt], _] = match(redemptionLrps)
+  const [[mainLrpUtxo, _], __] = match(redemptionLrps)
     .with(
       [P._, ...P.array()],
-      ([[firstLrp, firstLrpIAssetAmt], ...rest]): [
-        [UTxO, bigint],
-        [UTxO, bigint][],
-      ] => [[firstLrp, firstLrpIAssetAmt], rest],
+      ([[firstLrp, _], ...rest]): [[UTxO, bigint], [UTxO, bigint][]] => [
+        [firstLrp, _],
+        rest,
+      ],
     )
     .otherwise(() => {
       throw new Error('Expects at least 1 UTXO to redeem.');
@@ -145,7 +147,7 @@ export async function redeemLrp(
     (idx, acc, [lrpUtxo, redeemIAssetAmt]) => {
       const lovelacesForRedemption = ocdMul(
         {
-          getOnChainInt: mainLrpRedemptionIAssetAmt,
+          getOnChainInt: redeemIAssetAmt,
         },
         priceOracleDatum.price,
       ).getOnChainInt;
@@ -203,7 +205,7 @@ export async function redeemLrp(
   )(redemptionLrps);
 
   const txValidity = oracleExpirationAwareValidity(
-    lucid.currentSlot(),
+    currentSlot,
     Number(priceOracleParams.biasTime),
     Number(priceOracleDatum.expiration),
     network,
@@ -212,7 +214,7 @@ export async function redeemLrp(
   return (
     lucid
       .newTx()
-      // .validFrom(txValidity.validFrom)
+      .validFrom(txValidity.validFrom)
       .validTo(txValidity.validTo)
       // Ref script
       .readFrom([lrpScriptRefUtxo])
