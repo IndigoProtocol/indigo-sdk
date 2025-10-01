@@ -16,6 +16,7 @@ export interface SystemParams {
   scriptReferences: ScriptReferences;
   pollShardParams: PollShardParamsSP;
   pollManagerParams: PollManagerParamsSP;
+  lrpParams: LrpParamsSP;
   indyToken: AssetClassSP;
   govParams: GovParamsSP;
   executeParams: ExecuteParamsSP;
@@ -31,6 +32,7 @@ export type ValidatorHashes = {
   stabilityPoolHash: string;
   pollShardHash: string;
   pollManagerHash: string;
+  lrpHash: string;
   govHash: string;
   executeHash: string;
   collectorHash: string;
@@ -96,6 +98,7 @@ export interface ScriptReferences {
   stabilityPoolValidatorRef: ScriptReference;
   pollShardValidatorRef: ScriptReference;
   pollManagerValidatorRef: ScriptReference;
+  lrpValidatorRef: ScriptReference;
   liquidityValidatorRef: ScriptReference;
   iAssetTokenPolicyRef: ScriptReference;
   governanceValidatorRef: ScriptReference;
@@ -149,6 +152,13 @@ export interface AuthTokenPolicies {
   iAssetTokenRef: ScriptReference;
   cdpAuthTokenRef: ScriptReference;
   accountTokenRef: ScriptReference;
+}
+
+export interface LrpParamsSP {
+  versionRecordToken: AssetClassSP;
+  iassetNft: AssetClassSP;
+  iassetPolicyId: CurrencySymbol;
+  minRedemptionLovelacesAmt: bigint;
 }
 
 export interface PollShardParamsSP {

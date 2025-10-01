@@ -6,6 +6,7 @@ import {
   CDPContract,
   mkCDPCreatorValidatorFromSP,
   mkInterestOracleValidator,
+  mkLrpValidatorFromSP,
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
@@ -69,5 +70,11 @@ describe('Validator Hash checks', () => {
         }),
       ),
     ).toBe('b970b3e0e1b591840627e6919898c12ee57e2f0225ab03e056d10d52');
+  });
+
+  it('LRP validator hash', () => {
+    expect(
+      validatorToScriptHash(mkLrpValidatorFromSP(systemParams.lrpParams)),
+    ).toBe(systemParams.validatorHashes.lrpHash);
   });
 });
