@@ -8,6 +8,7 @@ import {
   fromText,
   LucidEvolution,
   OutRef,
+  slotToUnixTime,
   SpendingValidator,
   TxBuilder,
   UTxO,
@@ -41,6 +42,7 @@ import {
   calculateAccruedInterest,
   calculateUnitaryInterestSinceOracleLastUpdated,
 } from '../helpers/interest-oracle';
+import { oracleExpirationAwareValidity } from '../helpers/price-oracle-helpers';
 
 export class CDPContract {
   static async openPosition(
@@ -49,13 +51,16 @@ export class CDPContract {
     mintedAmount: bigint,
     params: SystemParams,
     lucid: LucidEvolution,
+    currentSlot: number,
     assetRef?: OutRef,
     priceOracleRef?: OutRef,
     interestOracleRef?: OutRef,
     cdpCreatorRef?: OutRef,
     collectorRef?: OutRef,
-    now: number = Date.now(),
   ): Promise<TxBuilder> {
+    const network = lucid.config().network;
+    const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
     const [pkh, skh] = await addrDetails(lucid);
     const assetOut: IAssetOutput = await (assetRef
       ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
@@ -93,7 +98,7 @@ export class CDPContract {
       cdpCreatorRef
         ? await lucid.utxosByOutRef([cdpCreatorRef])
         : await lucid.utxosAtWithUnit(
-            credentialToAddress(lucid.config().network, {
+            credentialToAddress(network, {
               type: 'Script',
               hash: params.validatorHashes.cdpCreatorHash,
             }),
@@ -107,7 +112,7 @@ export class CDPContract {
         cdpOwner: pkh.hash,
         minted: mintedAmount,
         collateral: collateralAmount,
-        currentTime: BigInt(now),
+        currentTime: currentTime,
       },
     });
 
@@ -127,7 +132,7 @@ export class CDPContract {
     cdpValue[cdpToken] = 1n;
     const newSnapshot =
       calculateUnitaryInterestSinceOracleLastUpdated(
-        BigInt(now),
+        currentTime,
         interestOracleDatum,
       ) + interestOracleDatum.unitaryInterest;
     const cdpDatum: CDPContent = {
@@ -136,7 +141,7 @@ export class CDPContract {
       mintedAmt: mintedAmount,
       cdpFees: {
         ActiveCDPInterestTracking: {
-          lastSettled: BigInt(now),
+          lastSettled: currentTime,
           unitaryInterestSnapshot: newSnapshot,
         },
       },
@@ -163,14 +168,12 @@ export class CDPContract {
       (mintedAmount * oracleDatum.price.getOnChainInt) / 1_000_000n,
     );
 
-    // Oracle timestamp - 20s (length of a slot)
-    const cappedValidateTo = oracleDatum.expiration - 20_001n;
-    const timeValidFrom = now - 1_000;
-    const timeValidTo_ = now + Number(params.cdpCreatorParams.biasTime) - 1_000;
-    const timeValidTo =
-      cappedValidateTo <= timeValidFrom
-        ? timeValidTo_
-        : Math.min(timeValidTo_, Number(cappedValidateTo));
+    const txValidity = oracleExpirationAwareValidity(
+      currentSlot,
+      Number(params.cdpCreatorParams.biasTime),
+      Number(oracleDatum.expiration),
+      network,
+    );
 
     const tx = lucid
       .newTx()
@@ -192,8 +195,8 @@ export class CDPContract {
       .mintAssets(iassetTokenMintValue, Data.to(new Constr(0, [])))
       .readFrom([iAssetTokenScriptRefUtxo])
       .addSignerKey(pkh.hash)
-      .validFrom(Number(now - 100))
-      .validTo(Number(timeValidTo));
+      .validFrom(txValidity.validFrom)
+      .validTo(txValidity.validTo);
 
     if (debtMintingFee > 0) {
       await CollectorContract.feeTx(
@@ -212,6 +215,7 @@ export class CDPContract {
     amount: bigint,
     params: SystemParams,
     lucid: LucidEvolution,
+    currentSlot: number,
     assetRef?: OutRef,
     priceOracleRef?: OutRef,
     interestOracleRef?: OutRef,
@@ -225,6 +229,7 @@ export class CDPContract {
       0n,
       params,
       lucid,
+      currentSlot,
       assetRef,
       priceOracleRef,
       interestOracleRef,
@@ -239,6 +244,7 @@ export class CDPContract {
     amount: bigint,
     params: SystemParams,
     lucid: LucidEvolution,
+    currentSlot: number,
     assetRef?: OutRef,
     priceOracleRef?: OutRef,
     interestOracleRef?: OutRef,
@@ -252,6 +258,7 @@ export class CDPContract {
       0n,
       params,
       lucid,
+      currentSlot,
       assetRef,
       priceOracleRef,
       interestOracleRef,
@@ -266,6 +273,7 @@ export class CDPContract {
     amount: bigint,
     params: SystemParams,
     lucid: LucidEvolution,
+    currentSlot: number,
     assetRef?: OutRef,
     priceOracleRef?: OutRef,
     interestOracleRef?: OutRef,
@@ -279,6 +287,7 @@ export class CDPContract {
       amount,
       params,
       lucid,
+      currentSlot,
       assetRef,
       priceOracleRef,
       interestOracleRef,
@@ -293,6 +302,7 @@ export class CDPContract {
     amount: bigint,
     params: SystemParams,
     lucid: LucidEvolution,
+    currentSlot: number,
     assetRef?: OutRef,
     priceOracleRef?: OutRef,
     interestOracleRef?: OutRef,
@@ -306,6 +316,7 @@ export class CDPContract {
       -amount,
       params,
       lucid,
+      currentSlot,
       assetRef,
       priceOracleRef,
       interestOracleRef,
@@ -321,6 +332,7 @@ export class CDPContract {
     mintAmount: bigint,
     params: SystemParams,
     lucid: LucidEvolution,
+    currentSlot: number,
     assetRef?: OutRef,
     priceOracleRef?: OutRef,
     interestOracleRef?: OutRef,
@@ -328,9 +340,10 @@ export class CDPContract {
     govRef?: OutRef,
     treasuryRef?: OutRef,
   ): Promise<TxBuilder> {
+    const network = lucid.config().network;
     // Find Pkh, Skh
     const [pkh, _] = await addrDetails(lucid);
-    const now = Date.now();
+    const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
     // Find Outputs: iAsset Output, CDP Output, Gov Output
     const cdp = (await lucid.utxosByOutRef([cdpRef]))[0];
@@ -372,7 +385,7 @@ export class CDPContract {
       .newTx()
       .collectFrom(
         [cdp],
-        Data.to(new Constr(0, [BigInt(now), mintAmount, collateralAmount])),
+        Data.to(new Constr(0, [currentTime, mintAmount, collateralAmount])),
       )
       .readFrom([iAsset.utxo, gov, cdpScriptRefUtxo])
       .addSignerKey(pkh.hash);
@@ -384,7 +397,7 @@ export class CDPContract {
 
     const newSnapshot =
       calculateUnitaryInterestSinceOracleLastUpdated(
-        BigInt(now),
+        currentTime,
         interestOracleDatum,
       ) + interestOracleDatum.unitaryInterest;
 
@@ -393,7 +406,7 @@ export class CDPContract {
       mintedAmt: cdpD.mintedAmt + mintAmount,
       cdpFees: {
         ActiveCDPInterestTracking: {
-          lastSettled: BigInt(now),
+          lastSettled: currentTime,
           unitaryInterestSnapshot: newSnapshot,
         },
       },
@@ -424,19 +437,15 @@ export class CDPContract {
     const od = parsePriceOracleDatum(oracleRefInput.datum);
     if (!od) return Promise.reject(new Error('Invalid oracle input'));
 
-    // TODO: Sanity check: oacle expiration
-    // Oracle timestamp - 20s (length of a slot)
-    // Oracle timestamp - 20s (length of a slot)
-    const cappedValidateTo = od.expiration - 20_001n;
-    const timeValidFrom = now - 1_000;
-    const timeValidTo_ = now + Number(params.cdpCreatorParams.biasTime) - 1_000;
-    const timeValidTo =
-      cappedValidateTo <= timeValidFrom
-        ? timeValidTo_
-        : Math.min(timeValidTo_, Number(cappedValidateTo));
+    const txValidity = oracleExpirationAwareValidity(
+      currentSlot,
+      Number(params.cdpCreatorParams.biasTime),
+      Number(od.expiration),
+      network,
+    );
     tx.readFrom([oracleRefInput])
-      .validFrom(Number(timeValidFrom))
-      .validTo(Number(timeValidTo));
+      .validFrom(txValidity.validFrom)
+      .validTo(txValidity.validTo);
 
     let fee = 0n;
     if (collateralAmount < 0) {
@@ -456,7 +465,7 @@ export class CDPContract {
     // Interest payment
 
     const interestPaymentAsset = calculateAccruedInterest(
-      BigInt(now),
+      currentTime,
       cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
       cdpD.mintedAmt,
       cdpD.cdpFees.ActiveCDPInterestTracking.lastSettled,
@@ -510,6 +519,7 @@ export class CDPContract {
     cdpRef: OutRef,
     params: SystemParams,
     lucid: LucidEvolution,
+    currentSlot: number,
     assetRef?: OutRef,
     priceOracleRef?: OutRef,
     interestOracleRef?: OutRef,
@@ -517,9 +527,10 @@ export class CDPContract {
     govRef?: OutRef,
     treasuryRef?: OutRef,
   ): Promise<TxBuilder> {
+    const network = lucid.config().network;
     // Find Pkh, Skh
     const [pkh, _] = await addrDetails(lucid);
-    const now = Date.now();
+    const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
     // Find Outputs: iAsset Output, CDP Output, Gov Output
     const cdp = (await lucid.utxosByOutRef([cdpRef]))[0];
@@ -557,7 +568,7 @@ export class CDPContract {
 
     const tx = lucid
       .newTx()
-      .collectFrom([cdp], Data.to(new Constr(1, [BigInt(now)])))
+      .collectFrom([cdp], Data.to(new Constr(1, [currentTime])))
       .readFrom([iAsset.utxo, gov, cdpScriptRefUtxo])
       .addSignerKey(pkh.hash);
     if (!cdp.datum) throw new Error('Unable to find CDP Datum');
@@ -580,25 +591,21 @@ export class CDPContract {
       return Promise.reject(new Error('Invalid oracle input'));
     const od = parsePriceOracleDatum(oracleRefInput.datum);
 
-    // TODO: Sanity check: oacle expiration
-    // Oracle timestamp - 20s (length of a slot)
-    // Oracle timestamp - 20s (length of a slot)
-    const cappedValidateTo = od.expiration - 20_001n;
-    const timeValidFrom = now - 1_000;
-    const timeValidTo_ = now + Number(params.cdpCreatorParams.biasTime) - 1_000;
-    const timeValidTo =
-      cappedValidateTo <= timeValidFrom
-        ? timeValidTo_
-        : Math.min(timeValidTo_, Number(cappedValidateTo));
+    const txValidity = oracleExpirationAwareValidity(
+      currentSlot,
+      Number(params.cdpCreatorParams.biasTime),
+      Number(od.expiration),
+      network,
+    );
     tx.readFrom([oracleRefInput])
-      .validFrom(Number(timeValidFrom))
-      .validTo(Number(timeValidTo));
+      .validFrom(txValidity.validFrom)
+      .validTo(txValidity.validTo);
 
     let fee = 0n;
 
     // Interest payment
     const interestPaymentAsset = calculateAccruedInterest(
-      BigInt(now),
+      currentTime,
       cdpD.cdpFees.ActiveCDPInterestTracking.unitaryInterestSnapshot,
       cdpD.mintedAmt,
       cdpD.cdpFees.ActiveCDPInterestTracking.lastSettled,
