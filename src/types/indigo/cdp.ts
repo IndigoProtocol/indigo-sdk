@@ -26,15 +26,17 @@ export const CDPContentSchema = Data.Object({
   cdpFees: CDPFeesSchema,
 });
 
+export const IAssetPriceInfoSchema = Data.Enum([
+  Data.Object({ Delisted: OnChainDecimalSchema }),
+  Data.Object({
+    Oracle: OracleAssetNftSchema,
+  }),
+]);
+
 export const IAssetContentSchema = Data.Object({
   /** Use the HEX encoding */
   assetName: Data.Bytes(),
-  price: Data.Enum([
-    Data.Object({ Delisted: OnChainDecimalSchema }),
-    Data.Object({
-      Oracle: OracleAssetNftSchema,
-    }),
-  ]),
+  price: IAssetPriceInfoSchema,
   interestOracleNft: AssetClassSchema,
   redemptionRatio: OnChainDecimalSchema,
   maintenanceRatio: OnChainDecimalSchema,

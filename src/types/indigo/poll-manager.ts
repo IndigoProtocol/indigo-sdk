@@ -16,6 +16,15 @@ export type PollManagerParams = Data.Static<typeof PollManagerParamsSchema>;
 export const PollManagerParams =
   PollManagerParamsSchema as unknown as PollManagerParams;
 
+const PollManagerRedeemerSchema = Data.Enum([
+  Data.Object({ EndPoll: Data.Integer() }),
+  Data.Object({ CreateShards: Data.Integer() }),
+  Data.Object({ MergeShardsManager: Data.Integer() }),
+]);
+export type PollManagerRedeemer = Data.Static<typeof PollManagerRedeemerSchema>;
+export const PollManagerRedeemer =
+  PollManagerRedeemerSchema as unknown as PollManagerRedeemer;
+
 export function castPollManagerParams(params: PollManagerParams): Data {
   return Data.castTo(params, PollManagerParams);
 }
