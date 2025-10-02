@@ -337,9 +337,7 @@ describe('LRP', () => {
         ),
         lucid,
         lrpParams,
-        testCtx.oracleParams,
         network,
-        emulator.slot,
       ),
     );
 
@@ -465,9 +463,7 @@ describe('LRP', () => {
         ),
         lucid,
         lrpParams,
-        testCtx.oracleParams,
         network,
-        emulator.slot,
       ),
     );
 
@@ -599,9 +595,7 @@ describe('LRP', () => {
         ),
         lucid,
         lrpParams,
-        testCtx.oracleParams,
         network,
-        emulator.slot,
       ),
     );
 
@@ -732,9 +726,7 @@ describe('LRP', () => {
         ),
         lucid,
         lrpParams,
-        testCtx.oracleParams,
         network,
-        emulator.slot,
       ),
     );
 

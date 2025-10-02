@@ -7,6 +7,8 @@ import {
   OutRef,
   UTxO,
   addAssets,
+  unixTimeToSlot,
+  slotToUnixTime,
 } from '@lucid-evolution/lucid';
 import {
   addrDetails,
@@ -23,10 +25,7 @@ import {
   serialiseLrpDatum,
   serialiseLrpRedeemer,
 } from '../types/indigo/lrp';
-import {
-  parsePriceOracleDatum,
-  PriceOracleParams,
-} from '../types/indigo/price-oracle';
+import { parsePriceOracleDatum } from '../types/indigo/price-oracle';
 import { ocdMul, OnChainDecimal } from '../types/on-chain-decimal';
 import { parseIAssetDatum } from '../types/indigo/cdp';
 import {
@@ -34,7 +33,6 @@ import {
   mkAssetsOf,
   mkLovelacesOf,
 } from '../helpers/value-helpers';
-import { oracleExpirationAwareValidity } from '../helpers/price-oracle-helpers';
 import { calculateFeeFromPercentage } from '../helpers/indigo-helpers';
 import { matchSingle } from '../helpers/helpers';
 import { AssetClass } from '../types/generic';
@@ -101,9 +99,7 @@ export async function redeemLrp(
   iassetOutRef: OutRef,
   lucid: LucidEvolution,
   lrpParams: LRPParams,
-  priceOracleParams: PriceOracleParams,
   network: Network,
-  currentSlot: number,
 ): Promise<TxBuilder> {
   const lrpScriptRefUtxo = matchSingle(
     await lucid.utxosByOutRef([lrpRefScriptOutRef]),
@@ -209,18 +205,15 @@ export async function redeemLrp(
     },
   )(redemptionLrps);
 
-  const txValidity = oracleExpirationAwareValidity(
-    currentSlot,
-    Number(priceOracleParams.biasTime),
-    Number(priceOracleDatum.expiration),
-    network,
-  );
-
   return (
     lucid
       .newTx()
-      .validFrom(txValidity.validFrom)
-      .validTo(txValidity.validTo)
+      .validTo(
+        slotToUnixTime(
+          network,
+          unixTimeToSlot(network, Number(priceOracleDatum.expiration)) - 1,
+        ),
+      )
       // Ref script
       .readFrom([lrpScriptRefUtxo])
       // Ref inputs
