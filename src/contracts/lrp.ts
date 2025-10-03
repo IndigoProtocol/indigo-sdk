@@ -27,7 +27,7 @@ import {
 } from '../types/indigo/lrp';
 import { parsePriceOracleDatum } from '../types/indigo/price-oracle';
 import { ocdMul, OnChainDecimal } from '../types/on-chain-decimal';
-import { parseIAssetDatum } from '../types/indigo/cdp';
+import { parseIAssetDatumOrThrow } from '../types/indigo/cdp';
 import {
   assetClassValueOf,
   mkAssetsOf,
@@ -116,7 +116,9 @@ export async function redeemLrp(
     (_) => new Error('Expected a single IAsset UTXO'),
   );
 
-  const iassetDatum = parseIAssetDatum(getInlineDatumOrThrow(iassetUtxo));
+  const iassetDatum = parseIAssetDatumOrThrow(
+    getInlineDatumOrThrow(iassetUtxo),
+  );
 
   const [lrpsToRedeemOutRefs, lrpRedemptionIAssetAmt] =
     unzip(redemptionLrpsData);

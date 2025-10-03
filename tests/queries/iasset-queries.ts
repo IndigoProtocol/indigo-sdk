@@ -7,7 +7,13 @@ import {
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
-import { matchSingle, parseIAssetDatum } from '../../src';
+import {
+  IAssetOutput,
+  matchSingle,
+  parseIAssetDatum,
+  parseIAssetDatumOrThrow,
+} from '../../src';
+import { option as O, array as A, function as F } from 'fp-ts';
 
 export async function findIAsset(
   lucid: LucidEvolution,
@@ -16,7 +22,7 @@ export async function findIAsset(
   iassetName: string,
 ): Promise<UTxO> {
   const iassetUtxos = await lucid.utxosAtWithUnit(
-    createScriptAddress(lucid.config().network, iassetScriptHash),
+    createScriptAddress(lucid.config().network!, iassetScriptHash),
     assetClassToUnit(iassetNft),
   );
 
@@ -24,7 +30,7 @@ export async function findIAsset(
     iassetUtxos.filter((utxo) => {
       if (utxo.datum != null) {
         try {
-          const iassetDatum = parseIAssetDatum(utxo.datum);
+          const iassetDatum = parseIAssetDatumOrThrow(utxo.datum);
 
           return iassetDatum.assetName == fromText(iassetName);
         } catch (_) {
@@ -35,5 +41,27 @@ export async function findIAsset(
     }),
     (res) =>
       new Error('Expected a single IAsset UTXO.: ' + JSON.stringify(res)),
+  );
+}
+
+export async function findAllIAssets(
+  lucid: LucidEvolution,
+  iassetScriptHash: ScriptHash,
+  iassetNft: AssetClass,
+): Promise<IAssetOutput[]> {
+  const iassetUtxos = await lucid.utxosAtWithUnit(
+    createScriptAddress(lucid.config().network!, iassetScriptHash),
+    assetClassToUnit(iassetNft),
+  );
+
+  return F.pipe(
+    iassetUtxos.map((utxo) =>
+      F.pipe(
+        O.fromNullable(utxo.datum),
+        O.flatMap(parseIAssetDatum),
+        O.map((datum) => ({ utxo, datum: datum })),
+      ),
+    ),
+    A.compact,
   );
 }

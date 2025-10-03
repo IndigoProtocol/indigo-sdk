@@ -3,7 +3,7 @@ import {
   CDPContent,
   IAssetContent,
   parseCDPDatum,
-  parseIAssetDatum,
+  parseIAssetDatumOrThrow,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
   parseStabilityPoolDatum,
@@ -138,7 +138,7 @@ describe('Datum checks', () => {
       nextIAsset: fromText('iSOL'),
     };
     expect(serialiseIAssetDatum(assetObject)).toEqual(assetDatum);
-    expect(parseIAssetDatum(assetDatum)).toEqual(assetObject);
+    expect(parseIAssetDatumOrThrow(assetDatum)).toEqual(assetObject);
   });
 
   it('Staking Manager', () => {

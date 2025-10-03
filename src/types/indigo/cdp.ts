@@ -3,6 +3,7 @@ import { AssetClassSchema } from '../generic';
 import { OnChainDecimalSchema } from '../on-chain-decimal';
 import { OracleAssetNftSchema } from './price-oracle';
 import { match, P } from 'ts-pattern';
+import { option as O, function as F } from 'fp-ts';
 
 export const CDPFeesSchema = Data.Enum([
   Data.Object({
@@ -77,12 +78,23 @@ export function serialiseCDPDatum(cdpDatum: CDPContent): Datum {
   return Data.to<CDPDatum>({ CDP: { content: cdpDatum } }, CDPDatum);
 }
 
-export function parseIAssetDatum(datum: Datum): IAssetContent {
-  return match(Data.from<CDPDatum>(datum, CDPDatum))
-    .with({ IAsset: { content: P.select() } }, (res) => res)
-    .otherwise(() => {
+export function parseIAssetDatum(datum: Datum): O.Option<IAssetContent> {
+  try {
+    return match(Data.from<CDPDatum>(datum, CDPDatum))
+      .with({ IAsset: { content: P.select() } }, (res) => O.some(res))
+      .otherwise(() => O.none);
+  } catch (_) {
+    return O.none;
+  }
+}
+
+export function parseIAssetDatumOrThrow(datum: Datum): IAssetContent {
+  return F.pipe(
+    parseIAssetDatum(datum),
+    O.match(() => {
       throw new Error('Expected an IAsset datum.');
-    });
+    }, F.identity),
+  );
 }
 
 export function serialiseIAssetDatum(iassetDatum: IAssetContent): Datum {

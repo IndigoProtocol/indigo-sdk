@@ -1,52 +1,9 @@
-import { Data, Datum } from '@lucid-evolution/lucid';
+import { Data, Datum, Redeemer } from '@lucid-evolution/lucid';
 import { AssetClassSchema } from '../generic';
 import { OnChainDecimalSchema } from '../on-chain-decimal';
 import { OracleAssetNftSchema } from './price-oracle';
 import { IAssetPriceInfoSchema } from './cdp';
-
-const GovDatumSchema = Data.Object({
-  currentProposal: Data.Integer(),
-  protocolParams: Data.Object({
-    proposalDeposit: Data.Integer(),
-    votingPeriod: Data.Integer(),
-    effectiveDelay: Data.Integer(),
-    expirationPeriod: Data.Integer(),
-    collateralFeePercentage: OnChainDecimalSchema,
-    proposingPeriod: Data.Integer(),
-    totalShards: Data.Integer(),
-    minimumQuorum: Data.Integer(),
-    maxTreasuryLovelaceSpend: Data.Integer(),
-    maxTreasuryIndySpend: Data.Integer(),
-  }),
-  currentVersion: Data.Integer(),
-  iassetsCount: Data.Integer(),
-  activeProposals: Data.Integer(),
-  treasuryIndyWithdrawnAmt: Data.Integer(),
-});
-export type GovDatum = Data.Static<typeof GovDatumSchema>;
-const GovDatum = GovDatumSchema as unknown as GovDatum;
-
-export function parseGovDatum(datum: Datum): GovDatum {
-  return Data.from<GovDatum>(datum, GovDatum);
-}
-
-export function serialiseGovDatum(d: GovDatum): Datum {
-  return Data.to<GovDatum>(d, GovDatum);
-}
-
-const GovParamsSchema = Data.Object({
-  govNFT: AssetClassSchema,
-  pollToken: AssetClassSchema,
-  upgradeToken: AssetClassSchema,
-  indyAsset: AssetClassSchema,
-  versionRecordToken: AssetClassSchema,
-  pollManagerValHash: Data.Bytes(),
-  gBiasTime: Data.Integer(),
-  daoIdentityToken: AssetClassSchema,
-  iAssetAuthToken: AssetClassSchema,
-});
-export type GovParams = Data.Static<typeof GovParamsSchema>;
-export const GovParams = GovParamsSchema as unknown as GovParams;
+import { option as O, function as F } from 'fp-ts';
 
 const ProtocolParamsSchema = Data.Object({
   proposalDeposit: Data.Integer(),
@@ -68,6 +25,31 @@ const ProtocolParamsSchema = Data.Object({
 export type ProtocolParams = Data.Static<typeof ProtocolParamsSchema>;
 export const ProtocolParams = ProtocolParamsSchema as unknown as ProtocolParams;
 
+const GovDatumSchema = Data.Object({
+  currentProposal: Data.Integer(),
+  protocolParams: ProtocolParamsSchema,
+  currentVersion: Data.Integer(),
+  iassetsCount: Data.Integer(),
+  activeProposals: Data.Integer(),
+  treasuryIndyWithdrawnAmt: Data.Integer(),
+});
+export type GovDatum = Data.Static<typeof GovDatumSchema>;
+const GovDatum = GovDatumSchema as unknown as GovDatum;
+
+const GovParamsSchema = Data.Object({
+  govNFT: AssetClassSchema,
+  pollToken: AssetClassSchema,
+  upgradeToken: AssetClassSchema,
+  indyAsset: AssetClassSchema,
+  versionRecordToken: AssetClassSchema,
+  pollManagerValHash: Data.Bytes(),
+  gBiasTime: Data.Integer(),
+  daoIdentityToken: AssetClassSchema,
+  iAssetAuthToken: AssetClassSchema,
+});
+export type GovParams = Data.Static<typeof GovParamsSchema>;
+export const GovParams = GovParamsSchema as unknown as GovParams;
+
 const ValueWithdrawalItemSchema = Data.Tuple(
   [Data.Bytes(), Data.Bytes(), Data.Integer()],
   { hasConstr: true },
@@ -77,6 +59,7 @@ export const TreasuryWithdrawalSchema = Data.Object({
   destination: Data.Bytes(),
   value: Data.Array(ValueWithdrawalItemSchema),
 });
+export type TreasuryWithdrawal = Data.Static<typeof TreasuryWithdrawalSchema>;
 
 const UpgradePathSchema = Data.Object({
   upgradeSymbol: Data.Bytes(),
@@ -127,7 +110,11 @@ export const ProposalContentSchema = Data.Enum([
     }),
   }),
   Data.Object({ UpgradeProtocol: UpgradePathsSchema }),
-  Data.Object({ TextProposal: Data.Bytes() }),
+  Data.Object({
+    TextProposal: Data.Object({
+      bytes: Data.Bytes(),
+    }),
+  }),
 ]);
 
 export type ProposalContent = Data.Static<typeof ProposalContentSchema>;
@@ -150,6 +137,31 @@ const GovRedeemerSchema = Data.Enum([
 
 export type GovRedeemer = Data.Static<typeof GovRedeemerSchema>;
 export const GovRedeemer = GovRedeemerSchema as unknown as GovRedeemer;
+
+export function parseGovDatum(datum: Datum): O.Option<GovDatum> {
+  try {
+    return O.some(Data.from<GovDatum>(datum, GovDatum));
+  } catch (_) {
+    return O.none;
+  }
+}
+
+export function parseGovDatumOrThrow(datum: Datum): GovDatum {
+  return F.pipe(
+    parseGovDatum(datum),
+    O.match(() => {
+      throw new Error('Expected a Gov datum.');
+    }, F.identity),
+  );
+}
+
+export function serialiseGovDatum(d: GovDatum): Datum {
+  return Data.to<GovDatum>(d, GovDatum);
+}
+
+export function serialiseGovRedeemer(redeemer: GovRedeemer): Redeemer {
+  return Data.to<GovRedeemer>(redeemer, GovRedeemer);
+}
 
 export function castGovParams(params: GovParams): Data {
   return Data.castTo(params, GovParams);

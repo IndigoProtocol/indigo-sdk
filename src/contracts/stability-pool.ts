@@ -28,7 +28,11 @@ import {
   spSub,
 } from '../types/indigo/stability-pool';
 import { SystemParams } from '../types/system-params';
-import { addrDetails, scriptRef } from '../helpers/lucid-utils';
+import {
+  addrDetails,
+  getInlineDatumOrThrow,
+  scriptRef,
+} from '../helpers/lucid-utils';
 import { mkStabilityPoolValidatorFromSP } from '../scripts/stability-pool-validator';
 import {
   adjustmentHelper,
@@ -36,8 +40,8 @@ import {
   updatePoolSnapshotWithdrawalFee,
 } from '../helpers/stability-pool-helpers';
 import { calculateFeeFromPercentage } from '../helpers/indigo-helpers';
-import { GovDatum, parseGovDatum } from '../types/indigo/gov';
-import { IAssetContent, parseIAssetDatum } from '../types/indigo/cdp';
+import { GovDatum, parseGovDatumOrThrow } from '../types/indigo/gov';
+import { IAssetContent, parseIAssetDatumOrThrow } from '../types/indigo/cdp';
 import { CollectorContract } from './collector';
 import { addressFromBech32, addressToBech32 } from '../types/generic';
 
@@ -73,7 +77,7 @@ export class StabilityPoolContract {
     return lucid
       .newTx()
       .pay.ToContract(
-        credentialToAddress(lucid.config().network, {
+        credentialToAddress(lucid.config().network!, {
           hash: validatorToScriptHash(
             mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
           ),
@@ -111,7 +115,7 @@ export class StabilityPoolContract {
       },
     };
     const oldAccountDatum: AccountContent = parseAccountDatum(
-      accountUtxo.datum,
+      getInlineDatumOrThrow(accountUtxo),
     );
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
@@ -129,7 +133,7 @@ export class StabilityPoolContract {
       .readFrom([stabilityPoolScriptRef])
       .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
       .pay.ToContract(
-        credentialToAddress(lucid.config().network, {
+        credentialToAddress(lucid.config().network!, {
           hash: validatorToScriptHash(
             mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
           ),
@@ -176,7 +180,7 @@ export class StabilityPoolContract {
       },
     };
     const oldAccountDatum: AccountContent = parseAccountDatum(
-      accountUtxo.datum,
+      getInlineDatumOrThrow(accountUtxo),
     );
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
@@ -194,7 +198,7 @@ export class StabilityPoolContract {
       .readFrom([stabilityPoolScriptRef])
       .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
       .pay.ToContract(
-        credentialToAddress(lucid.config().network, {
+        credentialToAddress(lucid.config().network!, {
           hash: validatorToScriptHash(
             mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
           ),
@@ -243,8 +247,10 @@ export class StabilityPoolContract {
       lucid,
     );
 
-    const accountDatum = parseAccountDatum(accountUtxo.datum);
-    const stabilityPoolDatum = parseStabilityPoolDatum(stabilityPoolUtxo.datum);
+    const accountDatum = parseAccountDatum(getInlineDatumOrThrow(accountUtxo));
+    const stabilityPoolDatum = parseStabilityPoolDatum(
+      getInlineDatumOrThrow(stabilityPoolUtxo),
+    );
 
     const tx = lucid
       .newTx()
@@ -385,8 +391,12 @@ export class StabilityPoolContract {
         accountDatum.snapshot,
       );
 
-      const govDatum: GovDatum = parseGovDatum(govUtxo.datum);
-      const iassetDatum: IAssetContent = parseIAssetDatum(iAssetUtxo.datum);
+      const govDatum: GovDatum = parseGovDatumOrThrow(
+        getInlineDatumOrThrow(govUtxo),
+      );
+      const iassetDatum: IAssetContent = parseIAssetDatumOrThrow(
+        getInlineDatumOrThrow(iAssetUtxo),
+      );
       const rewardLovelacesFee = calculateFeeFromPercentage(
         govDatum.protocolParams.collateralFeePercentage,
         reward,
@@ -567,8 +577,12 @@ export class StabilityPoolContract {
         accountDatum.snapshot,
       );
 
-      const govDatum: GovDatum = parseGovDatum(govUtxo.datum);
-      const iassetDatum: IAssetContent = parseIAssetDatum(iAssetUtxo.datum);
+      const govDatum: GovDatum = parseGovDatumOrThrow(
+        getInlineDatumOrThrow(govUtxo),
+      );
+      const iassetDatum: IAssetContent = parseIAssetDatumOrThrow(
+        getInlineDatumOrThrow(iAssetUtxo),
+      );
       const rewardLovelacesFee = calculateFeeFromPercentage(
         govDatum.protocolParams.collateralFeePercentage,
         reward,

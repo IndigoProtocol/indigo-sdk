@@ -1,4 +1,4 @@
-import { Data } from '@lucid-evolution/lucid';
+import { Data, Datum } from '@lucid-evolution/lucid';
 import { ProposalContentSchema, TreasuryWithdrawalSchema } from './gov';
 import { AddressSchema } from '../generic';
 
@@ -38,3 +38,7 @@ const PollDatumSchema = Data.Enum([
 ]);
 export type PollDatum = Data.Static<typeof PollDatumSchema>;
 export const PollDatum = PollDatumSchema as unknown as PollDatum;
+
+export function serialisePollDatum(datum: PollDatum): Datum {
+  return Data.to<PollDatum>(datum, PollDatum);
+}

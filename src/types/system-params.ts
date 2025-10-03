@@ -1,4 +1,4 @@
-import { fromText, toText } from '@lucid-evolution/lucid';
+import { fromText, OutRef, toText } from '@lucid-evolution/lucid';
 import { AssetClass, CurrencySymbol, TokenName } from './generic';
 
 /**
@@ -191,6 +191,7 @@ export interface GovParamsSP {
   gBiasTime: bigint;
   daoIdentityToken: AssetClassSP;
 }
+
 export interface ExecuteParamsSP {
   govNFT: AssetClassSP;
   upgradeToken: AssetClassSP;
@@ -253,4 +254,8 @@ export function fromSystemParamsAsset(asset: AssetClassSP): AssetClass {
     currencySymbol: asset[0].unCurrencySymbol,
     tokenName: fromText(asset[1].unTokenName),
   };
+}
+
+export function fromSystemParamsScriptRef(ref: ScriptReference): OutRef {
+  return { outputIndex: ref.input.index, txHash: ref.input.transactionId };
 }

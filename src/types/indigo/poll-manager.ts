@@ -17,9 +17,13 @@ export const PollManagerParams =
   PollManagerParamsSchema as unknown as PollManagerParams;
 
 const PollManagerRedeemerSchema = Data.Enum([
-  Data.Object({ EndPoll: Data.Integer() }),
-  Data.Object({ CreateShards: Data.Integer() }),
-  Data.Object({ MergeShardsManager: Data.Integer() }),
+  Data.Object({
+    EndPoll: Data.Object({ currentTime: Data.Integer() }),
+  }),
+  Data.Object({ CreateShards: Data.Object({ currentTime: Data.Integer() }) }),
+  Data.Object({
+    MergeShardsManager: Data.Object({ currentTime: Data.Integer() }),
+  }),
 ]);
 export type PollManagerRedeemer = Data.Static<typeof PollManagerRedeemerSchema>;
 export const PollManagerRedeemer =

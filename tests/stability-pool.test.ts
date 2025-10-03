@@ -1,6 +1,6 @@
 import { beforeEach, test, afterEach } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
-import { fromText, Lucid } from '@lucid-evolution/lucid';
+import { EmulatorAccount, fromText, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { init } from './endpoints/initialize';
@@ -14,7 +14,12 @@ import { findGov } from './queries/governance-queries';
 
 let originalDateNow: () => number;
 
-beforeEach<LucidContext>(async (context: LucidContext) => {
+type MyContext = LucidContext<{
+  admin: EmulatorAccount;
+  user: EmulatorAccount;
+}>;
+
+beforeEach<MyContext>(async (context: MyContext) => {
   context.users = {
     admin: generateEmulatorAccount({
       lovelace: BigInt(100_000_000_000_000),
@@ -36,11 +41,11 @@ afterEach(() => {
   Date.now = originalDateNow;
 });
 
-test<LucidContext>('Stability Pool - Create Account', async ({
+test<MyContext>('Stability Pool - Create Account', async ({
   lucid,
   users,
   emulator,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid);
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
@@ -109,7 +114,7 @@ test<LucidContext>('Stability Pool - Create Account', async ({
       'iUSD',
       stabilityPoolUtxo,
       accountUtxo,
-      govUtxo,
+      govUtxo.utxo,
       assetUtxo,
       undefined,
       systemParams,
@@ -118,11 +123,11 @@ test<LucidContext>('Stability Pool - Create Account', async ({
   );
 });
 
-test<LucidContext>('Stability Pool - Adjust Account', async ({
+test<MyContext>('Stability Pool - Adjust Account', async ({
   lucid,
   users,
   emulator,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid);
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
@@ -191,7 +196,7 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
       'iUSD',
       stabilityPoolUtxo,
       accountUtxo,
-      govUtxo,
+      govUtxo.utxo,
       assetUtxo,
       undefined,
       systemParams,
@@ -246,7 +251,7 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
       'iUSD',
       stabilityPoolUtxo,
       accountUtxo,
-      govUtxo,
+      govUtxo.utxo,
       assetUtxo,
       undefined,
       systemParams,
@@ -255,11 +260,11 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
   );
 });
 
-test<LucidContext>('Stability Pool - Close Account', async ({
+test<MyContext>('Stability Pool - Close Account', async ({
   lucid,
   users,
   emulator,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid, emulator.now());
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
@@ -328,7 +333,7 @@ test<LucidContext>('Stability Pool - Close Account', async ({
       'iUSD',
       stabilityPoolUtxo,
       accountUtxo,
-      govUtxo,
+      govUtxo.utxo,
       assetUtxo,
       undefined,
       systemParams,
@@ -377,7 +382,7 @@ test<LucidContext>('Stability Pool - Close Account', async ({
       'iUSD',
       stabilityPoolUtxo,
       accountUtxo,
-      govUtxo,
+      govUtxo.utxo,
       assetUtxo,
       undefined,
       systemParams,
