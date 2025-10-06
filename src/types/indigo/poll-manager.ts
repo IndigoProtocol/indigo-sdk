@@ -1,4 +1,4 @@
-import { Data } from '@lucid-evolution/lucid';
+import { Data, Redeemer } from '@lucid-evolution/lucid';
 import { AssetClassSchema } from '../generic';
 
 const PollManagerParamsSchema = Data.Object({
@@ -28,6 +28,10 @@ const PollManagerRedeemerSchema = Data.Enum([
 export type PollManagerRedeemer = Data.Static<typeof PollManagerRedeemerSchema>;
 export const PollManagerRedeemer =
   PollManagerRedeemerSchema as unknown as PollManagerRedeemer;
+
+export function serialisePollManagerRedeemer(r: PollManagerRedeemer): Redeemer {
+  return Data.to<PollManagerRedeemer>(r, PollManagerRedeemer);
+}
 
 export function castPollManagerParams(params: PollManagerParams): Data {
   return Data.castTo(params, PollManagerParams);

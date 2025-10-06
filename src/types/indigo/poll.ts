@@ -1,6 +1,8 @@
 import { Data, Datum } from '@lucid-evolution/lucid';
 import { ProposalContentSchema, TreasuryWithdrawalSchema } from './gov';
 import { AddressSchema } from '../generic';
+import { option as O, function as F } from 'fp-ts';
+import { match, P } from 'ts-pattern';
 
 const PollStatusSchema = Data.Object({
   yesVotes: Data.Integer(),
@@ -22,7 +24,10 @@ const PollManagerContentSchema = Data.Object({
   protocolVersion: Data.Integer(),
   minimumQuorum: Data.Integer(),
 });
-export type PollManager = Data.Static<typeof PollManagerContentSchema>;
+export type PollManagerContent = Data.Static<typeof PollManagerContentSchema>;
+
+const PollManagerSchema = Data.Object({ content: PollManagerContentSchema });
+export type PollManager = Data.Static<typeof PollManagerSchema>;
 
 const PollShardContentSchema = Data.Object({
   pollId: Data.Integer(),
@@ -30,14 +35,36 @@ const PollShardContentSchema = Data.Object({
   votingEndTime: Data.Integer(),
   managerAddress: AddressSchema,
 });
-export type PollShard = Data.Static<typeof PollShardContentSchema>;
+export type PollShardContent = Data.Static<typeof PollShardContentSchema>;
+
+const PollShardSchema = Data.Object({ content: PollShardContentSchema });
+export type PollShard = Data.Static<typeof PollShardSchema>;
 
 const PollDatumSchema = Data.Enum([
-  Data.Object({ PollManager: PollManagerContentSchema }),
-  Data.Object({ PollShard: PollShardContentSchema }),
+  Data.Object({ PollManager: PollManagerSchema }),
+  Data.Object({ PollShard: PollShardSchema }),
 ]);
 export type PollDatum = Data.Static<typeof PollDatumSchema>;
 export const PollDatum = PollDatumSchema as unknown as PollDatum;
+
+export function parsePollManager(datum: Datum): O.Option<PollManagerContent> {
+  try {
+    return match(Data.from<PollDatum>(datum, PollDatum))
+      .with({ PollManager: P.select() }, (res) => O.some(res.content))
+      .otherwise(() => O.none);
+  } catch (_) {
+    return O.none;
+  }
+}
+
+export function parsePollManagerOrThrow(datum: Datum): PollManagerContent {
+  return F.pipe(
+    parsePollManager(datum),
+    O.match(() => {
+      throw new Error('Expected a Poll manager datum.');
+    }, F.identity),
+  );
+}
 
 export function serialisePollDatum(datum: PollDatum): Datum {
   return Data.to<PollDatum>(datum, PollDatum);

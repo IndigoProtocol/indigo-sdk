@@ -79,7 +79,7 @@ export function addressToBech32(
       : undefined;
 
   return credentialToAddress(
-    lucid.config().network,
+    lucid.config().network!,
     paymentCredential,
     stakeCredential,
   );
@@ -89,11 +89,11 @@ export function addressFromBech32(address: string): Address {
   const details = getAddressDetails(address);
   return {
     paymentCredential: {
-      PublicKeyCredential: [details.paymentCredential.hash],
+      PublicKeyCredential: [details.paymentCredential!.hash],
     },
     stakeCredential: details.stakeCredential
       ? { Inline: [{ PublicKeyCredential: [details.stakeCredential.hash] }] }
-      : undefined,
+      : null,
   };
 }
 

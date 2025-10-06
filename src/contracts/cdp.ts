@@ -37,7 +37,7 @@ import { _cdpValidator } from '../scripts/cdp-validator';
 import { parsePriceOracleDatum } from '../types/indigo/price-oracle';
 import { parseInterestOracleDatum } from '../types/indigo/interest-oracle';
 import { castCDPCreatorRedeemer } from '../types/indigo/cdp-creator';
-import { parseGovDatum } from '../types/indigo/gov';
+import { parseGovDatumOrThrow } from '../types/indigo/gov';
 import {
   calculateAccruedInterest,
   calculateUnitaryInterestSinceOracleLastUpdated,
@@ -58,7 +58,7 @@ export class CDPContract {
     cdpCreatorRef?: OutRef,
     collectorRef?: OutRef,
   ): Promise<TxBuilder> {
-    const network = lucid.config().network;
+    const network = lucid.config().network!;
     const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
     const [pkh, skh] = await addrDetails(lucid);
@@ -72,7 +72,7 @@ export class CDPContract {
         new Error('Trying to open CDP against delisted asset'),
       );
 
-    const oracleAsset = assetOut.datum.price.Oracle.oracleNft.asset;
+    const oracleAsset = assetOut.datum.price.Oracle.oracleNft;
     const oracleOut = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(
@@ -340,7 +340,7 @@ export class CDPContract {
     govRef?: OutRef,
     treasuryRef?: OutRef,
   ): Promise<TxBuilder> {
-    const network = lucid.config().network;
+    const network = lucid.config().network!;
     // Find Pkh, Skh
     const [pkh, _] = await addrDetails(lucid);
     const currentTime = BigInt(slotToUnixTime(network, currentSlot));
@@ -360,7 +360,7 @@ export class CDPContract {
             fromText(params.govParams.govNFT[1].unTokenName),
         );
     if (!gov.datum) throw new Error('Unable to find Gov Datum');
-    const govData = parseGovDatum(gov.datum);
+    const govData = parseGovDatumOrThrow(gov.datum);
     const cdpScriptRefUtxo = await CDPContract.scriptRef(
       params.scriptReferences,
       lucid,
@@ -427,8 +427,8 @@ export class CDPContract {
     const oracleRefInput = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(
-          oracleAsset.Oracle.oracleNft.asset.currencySymbol +
-            fromText(oracleAsset.Oracle.oracleNft.asset.tokenName),
+          oracleAsset.Oracle.oracleNft.currencySymbol +
+            fromText(oracleAsset.Oracle.oracleNft.tokenName),
         );
 
     // Fail if delisted asset
@@ -527,7 +527,7 @@ export class CDPContract {
     govRef?: OutRef,
     treasuryRef?: OutRef,
   ): Promise<TxBuilder> {
-    const network = lucid.config().network;
+    const network = lucid.config().network!;
     // Find Pkh, Skh
     const [pkh, _] = await addrDetails(lucid);
     const currentTime = BigInt(slotToUnixTime(network, currentSlot));
@@ -579,7 +579,7 @@ export class CDPContract {
     // Find Oracle Ref Input
     if (!('Oracle' in iAsset.datum.price))
       throw new Error('iAsset is delisted');
-    const oracleAsset = iAsset.datum.price.Oracle.oracleNft.asset;
+    const oracleAsset = iAsset.datum.price.Oracle.oracleNft;
     const oracleRefInput = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(

@@ -4,6 +4,7 @@ import {
   Constr,
   LucidEvolution,
   OutRef,
+  paymentCredentialOf,
   slotToUnixTime,
   toText,
   TxBuilder,
@@ -17,11 +18,13 @@ import {
 } from '../types/indigo/gov';
 import { matchSingle } from '../helpers/helpers';
 import {
-  addrDetails,
   createScriptAddress,
   getInlineDatumOrThrow,
 } from '../helpers/lucid-utils';
-import { serialisePollDatum } from '../types/indigo/poll';
+import {
+  parsePollManagerOrThrow,
+  serialisePollDatum,
+} from '../types/indigo/poll';
 import { mkAssetsOf } from '../helpers/value-helpers';
 import { Data } from '@lucid-evolution/lucid';
 import { IAssetHelpers, IAssetOutput } from '../helpers/asset-helpers';
@@ -34,6 +37,9 @@ import {
   fromSystemParamsScriptRef,
   SystemParams,
 } from '../types/system-params';
+import { serialisePollManagerRedeemer } from '../types/indigo/poll-manager';
+import { ONE_SECOND } from '../helpers/time-helpers';
+import { addressFromBech32 } from '../types/generic';
 
 function proposalDeposit(baseDeposit: bigint, activeProposals: bigint): bigint {
   return baseDeposit * (2n ^ activeProposals);
@@ -96,7 +102,8 @@ export async function createProposal(
   const network = lucid.config().network!;
   const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
-  const [pkh, _] = await addrDetails(lucid);
+  const ownAddr = await lucid.wallet().address();
+  const pkh = paymentCredentialOf(ownAddr);
 
   const govRefScriptUtxo = matchSingle(
     await lucid.utxosByOutRef([
@@ -128,7 +135,7 @@ export async function createProposal(
   const proposingEndTime =
     currentTime + govDatum.protocolParams.proposingPeriod;
 
-  const pollAuthAssets = mkAssetsOf(
+  const pollNftValue = mkAssetsOf(
     fromSystemParamsAsset(sysParams.govParams.pollToken),
     1n,
   );
@@ -164,7 +171,7 @@ export async function createProposal(
 
   return (
     tx
-      .mintAssets(pollAuthAssets, Data.to(new Constr(0, [])))
+      .mintAssets(pollNftValue, Data.to(new Constr(0, [])))
       // Ref scripts
       .readFrom([govRefScriptUtxo, pollAuthTokenPolicyRefScriptUtxo])
       .collectFrom(
@@ -196,24 +203,26 @@ export async function createProposal(
           kind: 'inline',
           value: serialisePollDatum({
             PollManager: {
-              pollId: govDatum.currentProposal + 1n,
-              pollOwner: pkh.hash,
-              content: proposalContent,
-              treasuryWithdrawal: treasuryWithdrawal,
-              status: { yesVotes: 0n, noVotes: 0n },
-              votingEndTime: votingEndTime,
-              createdShardsCount: 0n,
-              talliedShardsCount: 0n,
-              totalShardsCount: govDatum.protocolParams.totalShards,
-              proposingEndTime: proposingEndTime,
-              expirationTime: expirationTime,
-              protocolVersion: govDatum.currentVersion,
-              minimumQuorum: govDatum.protocolParams.minimumQuorum,
+              content: {
+                pollId: govDatum.currentProposal + 1n,
+                pollOwner: pkh.hash,
+                content: proposalContent,
+                treasuryWithdrawal: treasuryWithdrawal,
+                status: { yesVotes: 0n, noVotes: 0n },
+                votingEndTime: votingEndTime,
+                createdShardsCount: 0n,
+                talliedShardsCount: 0n,
+                totalShardsCount: govDatum.protocolParams.totalShards,
+                proposingEndTime: proposingEndTime,
+                expirationTime: expirationTime,
+                protocolVersion: govDatum.currentVersion,
+                minimumQuorum: govDatum.protocolParams.minimumQuorum,
+              },
             },
           }),
         },
         addAssets(
-          pollAuthAssets,
+          pollNftValue,
           mkAssetsOf(
             fromSystemParamsAsset(sysParams.govParams.indyAsset),
             proposalDeposit(
@@ -223,10 +232,123 @@ export async function createProposal(
           ),
         ),
       )
+      .validFrom(Number(currentTime) - ONE_SECOND)
+      .validTo(Number(currentTime + sysParams.govParams.gBiasTime) - ONE_SECOND)
+      .addSigner(ownAddr)
   );
 }
 
-// export function createShardsChunks(chunkSize: bigint, pollManagerId: bigint) {}
+/**
+ * Builds transaction creating shards of count chunk size.
+ */
+export async function createShardsChunks(
+  /**
+   * This gets automatically capped to total shards count.
+   */
+  chunkSize: bigint,
+  pollManagerOref: OutRef,
+  sysParams: SystemParams,
+  currentSlot: number,
+  lucid: LucidEvolution,
+): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  const pollManagerUtxo = matchSingle(
+    await lucid.utxosByOutRef([pollManagerOref]),
+    (_) => new Error('Expected a single Poll manager UTXO'),
+  );
+
+  const pollManager = parsePollManagerOrThrow(
+    getInlineDatumOrThrow(pollManagerUtxo),
+  );
+
+  if (pollManager.createdShardsCount >= pollManager.totalShardsCount) {
+    throw new Error('All shards already created.');
+  }
+
+  const pollAuthTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.authTokenPolicies.pollManagerTokenRef,
+      ),
+    ]),
+    (_) =>
+      new Error('Expected a single poll auth token policy ref Script UTXO'),
+  );
+  const pollManagerRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.pollManagerValidatorRef,
+      ),
+    ]),
+    (_) =>
+      new Error('Expected a single poll auth token policy ref Script UTXO'),
+  );
+
+  const shardsCount = BigInt(
+    Math.min(
+      Number(chunkSize),
+      Number(pollManager.totalShardsCount - pollManager.createdShardsCount),
+    ),
+  );
+
+  const pollNft = fromSystemParamsAsset(sysParams.govParams.pollToken);
+
+  const tx = lucid
+    .newTx()
+    .validFrom(Number(currentTime) - ONE_SECOND)
+    .validTo(Number(currentTime + sysParams.govParams.gBiasTime) - ONE_SECOND)
+    .mintAssets(mkAssetsOf(pollNft, shardsCount), Data.to(new Constr(0, [])))
+    // Ref scripts
+    .readFrom([pollAuthTokenPolicyRefScriptUtxo, pollManagerRefScriptUtxo])
+    .collectFrom(
+      [pollManagerUtxo],
+      serialisePollManagerRedeemer({ CreateShards: { currentTime } }),
+    )
+    .pay.ToContract(
+      pollManagerUtxo.address,
+      {
+        kind: 'inline',
+        value: serialisePollDatum({
+          PollManager: {
+            content: {
+              ...pollManager,
+              createdShardsCount: pollManager.createdShardsCount + shardsCount,
+            },
+          },
+        }),
+      },
+      pollManagerUtxo.assets,
+    );
+
+  for (let idx = 0; idx < shardsCount; idx++) {
+    tx.pay.ToContract(
+      sysParams.validatorHashes.pollShardHash,
+      {
+        kind: 'inline',
+        value: serialisePollDatum({
+          PollShard: {
+            content: {
+              pollId: pollManager.pollId,
+              status: { yesVotes: 0n, noVotes: 0n },
+              votingEndTime: pollManager.votingEndTime,
+              managerAddress: addressFromBech32(
+                createScriptAddress(
+                  network,
+                  sysParams.validatorHashes.pollManagerHash,
+                ),
+              ),
+            },
+          },
+        }),
+      },
+      mkAssetsOf(pollNft, 1n),
+    );
+  }
+
+  return tx;
+}
 
 // export function mergeShards(shardsOutRefs: [OutRef], pollManagerId: bigint) {}
 

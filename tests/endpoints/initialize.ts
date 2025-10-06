@@ -165,7 +165,7 @@ async function initScriptRef(
       hash: alwaysFailValidatorHash,
       type: 'Script',
     }),
-    null,
+    undefined,
     undefined,
     validator,
   );
@@ -334,9 +334,7 @@ async function initializeAsset(
     assetName: fromText(asset.name),
     price: {
       Oracle: {
-        oracleNft: {
-          asset: priceOracleNft,
-        },
+        oracleNft: priceOracleNft,
       },
     },
     interestOracleNft: interestOracleNft,
@@ -675,7 +673,7 @@ export async function init(
   const treasuryParams: TreasuryParams = {
     upgradeToken: toSystemParamsAsset(upgradeToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    treasuryUtxosStakeCredential: null,
+    treasuryUtxosStakeCredential: undefined,
   };
 
   const treasuryValidator = TreasuryContract.validator(treasuryParams);

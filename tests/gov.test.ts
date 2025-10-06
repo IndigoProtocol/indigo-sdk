@@ -53,15 +53,45 @@ describe('Gov', () => {
       fromSystemParamsAsset(sysParams.govParams.govNFT),
     );
 
-    await createProposal(
-      { TextProposal: { bytes: fromText('smth') } },
-      null,
-      sysParams,
+    await runAndAwaitTx(
       context.lucid,
-      context.emulator.slot,
-      govUtxo.utxo,
-      [],
+      createProposal(
+        { TextProposal: { bytes: fromText('smth') } },
+        null,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+        govUtxo.utxo,
+        [],
+      ),
     );
+  });
+
+  test<MyContext>('Create text proposal with shards', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      createProposal(
+        { TextProposal: { bytes: fromText('smth') } },
+        null,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+        govUtxo.utxo,
+        [],
+      ),
+    );
+
+    // createShardsChunks(3n);
   });
 
   test<MyContext>('Create asset proposal', async (context: MyContext) => {
@@ -112,7 +142,7 @@ describe('Gov', () => {
         {
           ProposeAsset: {
             asset: fromText('iBTC'),
-            priceOracleNft: { oracleNft: { asset: priceOranceNft } },
+            priceOracleNft: { oracleNft: priceOranceNft },
             interestOracleNft: interestOracleNft,
             redemptionRatioPercentage: { getOnChainInt: 200_000_000n },
             maintenanceRatioPercentage: { getOnChainInt: 150_000_000n },
