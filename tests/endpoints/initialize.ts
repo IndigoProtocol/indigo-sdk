@@ -426,7 +426,7 @@ async function initGovernance(
       effectiveDelay: 1_000n,
       expirationPeriod: 180_000n,
       proposalDeposit: 0n,
-      proposingPeriod: 8_000n,
+      proposingPeriod: 100_000n,
       collateralFeePercentage: {
         getOnChainInt: 1_500_000n,
       },

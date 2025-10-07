@@ -26,9 +26,6 @@ const PollManagerContentSchema = Data.Object({
 });
 export type PollManagerContent = Data.Static<typeof PollManagerContentSchema>;
 
-const PollManagerSchema = Data.Object({ content: PollManagerContentSchema });
-export type PollManager = Data.Static<typeof PollManagerSchema>;
-
 const PollShardContentSchema = Data.Object({
   pollId: Data.Integer(),
   status: PollStatusSchema,
@@ -37,12 +34,11 @@ const PollShardContentSchema = Data.Object({
 });
 export type PollShardContent = Data.Static<typeof PollShardContentSchema>;
 
-const PollShardSchema = Data.Object({ content: PollShardContentSchema });
-export type PollShard = Data.Static<typeof PollShardSchema>;
-
 const PollDatumSchema = Data.Enum([
-  Data.Object({ PollManager: PollManagerSchema }),
-  Data.Object({ PollShard: PollShardSchema }),
+  Data.Object({
+    PollManager: Data.Object({ content: PollManagerContentSchema }),
+  }),
+  Data.Object({ PollShard: Data.Object({ content: PollShardContentSchema }) }),
 ]);
 export type PollDatum = Data.Static<typeof PollDatumSchema>;
 export const PollDatum = PollDatumSchema as unknown as PollDatum;

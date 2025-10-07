@@ -6,13 +6,14 @@ import {
   generateEmulatorAccount,
   Lucid,
 } from '@lucid-evolution/lucid';
-import { describe, beforeEach, test } from 'vitest';
+import { describe, beforeEach, test, expect } from 'vitest';
 import { mkLovelacesOf } from '../src/helpers/value-helpers';
 import { init } from './endpoints/initialize';
 import { findGov } from './queries/governance-queries';
 import {
   addrDetails,
   createProposal,
+  createShardsChunks,
   fromSystemParamsAsset,
   InterestOracleContract,
 } from '../src';
@@ -23,6 +24,7 @@ import {
 } from './test-helpers';
 import { startPriceOracleTx } from '../src/contracts/price-oracle';
 import { findAllIAssets } from './queries/iasset-queries';
+import { findPollManager } from './queries/poll-queries';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -53,18 +55,17 @@ describe('Gov', () => {
       fromSystemParamsAsset(sysParams.govParams.govNFT),
     );
 
-    await runAndAwaitTx(
+    const [tx, _] = await createProposal(
+      { TextProposal: { bytes: fromText('smth') } },
+      null,
+      sysParams,
       context.lucid,
-      createProposal(
-        { TextProposal: { bytes: fromText('smth') } },
-        null,
-        sysParams,
-        context.lucid,
-        context.emulator.slot,
-        govUtxo.utxo,
-        [],
-      ),
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
     );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
   });
 
   test<MyContext>('Create text proposal with shards', async (context: MyContext) => {
@@ -78,20 +79,53 @@ describe('Gov', () => {
       fromSystemParamsAsset(sysParams.govParams.govNFT),
     );
 
-    await runAndAwaitTx(
+    const [tx, pollId] = await createProposal(
+      { TextProposal: { bytes: fromText('smth') } },
+      null,
+      sysParams,
       context.lucid,
-      createProposal(
-        { TextProposal: { bytes: fromText('smth') } },
-        null,
-        sysParams,
-        context.lucid,
-        context.emulator.slot,
-        govUtxo.utxo,
-        [],
-      ),
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
     );
 
-    // createShardsChunks(3n);
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    for (
+      let i = 0;
+      i < Math.ceil(Number(govUtxo.datum.protocolParams.totalShards) / 2);
+      i++
+    ) {
+      const pollUtxo = await findPollManager(
+        context.lucid,
+        sysParams.validatorHashes.pollManagerHash,
+        fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+        pollId,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        createShardsChunks(
+          2n,
+          pollUtxo.utxo,
+          sysParams,
+          context.emulator.slot,
+          context.lucid,
+        ),
+      );
+    }
+
+    const pollUtxo = await findPollManager(
+      context.lucid,
+      sysParams.validatorHashes.pollManagerHash,
+      fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+      pollId,
+    );
+
+    expect(
+      pollUtxo.datum.createdShardsCount === pollUtxo.datum.totalShardsCount,
+      'Expected total shards count being created',
+    );
   });
 
   test<MyContext>('Create asset proposal', async (context: MyContext) => {
@@ -136,32 +170,31 @@ describe('Gov', () => {
       )
     ).map((iasset) => iasset.utxo);
 
-    await runAndAwaitTx(
-      context.lucid,
-      createProposal(
-        {
-          ProposeAsset: {
-            asset: fromText('iBTC'),
-            priceOracleNft: priceOranceNft,
-            interestOracleNft: interestOracleNft,
-            redemptionRatioPercentage: { getOnChainInt: 200_000_000n },
-            maintenanceRatioPercentage: { getOnChainInt: 150_000_000n },
-            liquidationRatioPercentage: { getOnChainInt: 120_000_000n },
-            debtMintingFeePercentage: { getOnChainInt: 500_000n },
-            liquidationProcessingFeePercentage: { getOnChainInt: 2_000_000n },
-            stabilityPoolWithdrawalFeePercentage: { getOnChainInt: 500_000n },
-            redemptionReimbursementPercentage: { getOnChainInt: 1_000_000n },
-            redemptionProcessingFeePercentage: { getOnChainInt: 1_000_000n },
-            interestCollectorPortionPercentage: { getOnChainInt: 40_000_000n },
-          },
+    const [tx, __] = await createProposal(
+      {
+        ProposeAsset: {
+          asset: fromText('iBTC'),
+          priceOracleNft: priceOranceNft,
+          interestOracleNft: interestOracleNft,
+          redemptionRatioPercentage: { getOnChainInt: 200_000_000n },
+          maintenanceRatioPercentage: { getOnChainInt: 150_000_000n },
+          liquidationRatioPercentage: { getOnChainInt: 120_000_000n },
+          debtMintingFeePercentage: { getOnChainInt: 500_000n },
+          liquidationProcessingFeePercentage: { getOnChainInt: 2_000_000n },
+          stabilityPoolWithdrawalFeePercentage: { getOnChainInt: 500_000n },
+          redemptionReimbursementPercentage: { getOnChainInt: 1_000_000n },
+          redemptionProcessingFeePercentage: { getOnChainInt: 1_000_000n },
+          interestCollectorPortionPercentage: { getOnChainInt: 40_000_000n },
         },
-        null,
-        sysParams,
-        context.lucid,
-        context.emulator.slot,
-        govUtxo.utxo,
-        allIassetOrefs,
-      ),
+      },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      allIassetOrefs,
     );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
   });
 });

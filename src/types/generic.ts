@@ -4,7 +4,9 @@ import {
   Data,
   LucidEvolution,
   getAddressDetails,
+  Credential,
 } from '@lucid-evolution/lucid';
+import { match, P } from 'ts-pattern';
 
 export const AssetClassSchema = Data.Object({
   currencySymbol: Data.Bytes(),
@@ -34,32 +36,32 @@ export const CredentialSchema = Data.Enum([
     ]),
   }),
 ]);
-export type Credential = Data.Static<typeof CredentialSchema>;
-export const Credential = CredentialSchema as unknown as Credential;
+export type CredentialD = Data.Static<typeof CredentialSchema>;
+export const CredentialD = CredentialSchema as unknown as CredentialD;
+
+export const StakeCredentialSchema = Data.Enum([
+  Data.Object({ Inline: Data.Tuple([CredentialSchema]) }),
+  Data.Object({
+    Pointer: Data.Tuple([
+      Data.Object({
+        slotNumber: Data.Integer(),
+        transactionIndex: Data.Integer(),
+        certificateIndex: Data.Integer(),
+      }),
+    ]),
+  }),
+]);
 
 export const AddressSchema = Data.Object({
   paymentCredential: CredentialSchema,
-  stakeCredential: Data.Nullable(
-    Data.Enum([
-      Data.Object({ Inline: Data.Tuple([CredentialSchema]) }),
-      Data.Object({
-        Pointer: Data.Tuple([
-          Data.Object({
-            slotNumber: Data.Integer(),
-            transactionIndex: Data.Integer(),
-            certificateIndex: Data.Integer(),
-          }),
-        ]),
-      }),
-    ]),
-  ),
+  stakeCredential: Data.Nullable(StakeCredentialSchema),
 });
-export type Address = Data.Static<typeof AddressSchema>;
-export const Address = AddressSchema as unknown as Address;
+export type AddressD = Data.Static<typeof AddressSchema>;
+export const AddressD = AddressSchema as unknown as AddressD;
 
 export function addressToBech32(
   lucid: LucidEvolution,
-  address: Address,
+  address: AddressD,
 ): string {
   const paymentCredential: LucidCredential =
     'PublicKeyCredential' in address.paymentCredential
@@ -85,16 +87,41 @@ export function addressToBech32(
   );
 }
 
-export function addressFromBech32(address: string): Address {
+export function addressFromBech32(address: string): AddressD {
   const details = getAddressDetails(address);
-  return {
-    paymentCredential: {
-      PublicKeyCredential: [details.paymentCredential!.hash],
-    },
-    stakeCredential: details.stakeCredential
-      ? { Inline: [{ PublicKeyCredential: [details.stakeCredential.hash] }] }
-      : null,
+
+  const matchCred = (cred: Credential): CredentialD => {
+    return match(cred)
+      .returnType<CredentialD>()
+      .with({ type: 'Key', hash: P.select() }, (pkh) => {
+        return {
+          PublicKeyCredential: [pkh],
+        };
+      })
+      .with({ type: 'Script', hash: P.select() }, (scriptHash) => ({
+        ScriptCredential: [scriptHash],
+      }))
+      .exhaustive();
   };
+
+  return match(details)
+    .returnType<AddressD>()
+    .with(
+      { paymentCredential: P.nullish },
+      { type: P.not(P.union('Base', 'Enterprise')) },
+      (_) => {
+        throw new Error('Invalid address provided');
+      },
+    )
+    .narrow()
+    .otherwise((details) => ({
+      paymentCredential: matchCred(details.paymentCredential),
+      stakeCredential: details.stakeCredential
+        ? {
+            Inline: [matchCred(details.stakeCredential)],
+          }
+        : null,
+    }));
 }
 
 export interface CurrencySymbol {

@@ -87,6 +87,9 @@ async function findRelativeIAssetForInsertion(
   );
 }
 
+/**
+ * Returns the new PollId.
+ */
 export async function createProposal(
   proposalContent: ProposalContent,
   treasuryWithdrawal: TreasuryWithdrawal | null,
@@ -98,7 +101,7 @@ export async function createProposal(
    * This has to be passed only in case of createAsset proposal
    */
   allIAssetOrefs: OutRef[],
-): Promise<TxBuilder> {
+): Promise<[TxBuilder, bigint]> {
   const network = lucid.config().network!;
   const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
@@ -140,6 +143,8 @@ export async function createProposal(
     1n,
   );
 
+  const newPollId = govDatum.currentProposal + 1n;
+
   const tx = lucid.newTx();
 
   // Add iAsset ref input when Propose asset proposal
@@ -169,7 +174,7 @@ export async function createProposal(
     })
     .otherwise(() => {});
 
-  return (
+  return [
     tx
       .mintAssets(pollNftValue, Data.to(new Constr(0, [])))
       // Ref scripts
@@ -204,7 +209,7 @@ export async function createProposal(
           value: serialisePollDatum({
             PollManager: {
               content: {
-                pollId: govDatum.currentProposal + 1n,
+                pollId: newPollId,
                 pollOwner: pkh.hash,
                 content: proposalContent,
                 treasuryWithdrawal: treasuryWithdrawal,
@@ -234,8 +239,9 @@ export async function createProposal(
       )
       .validFrom(Number(currentTime) - ONE_SECOND)
       .validTo(Number(currentTime + sysParams.govParams.gBiasTime) - ONE_SECOND)
-      .addSigner(ownAddr)
-  );
+      .addSigner(ownAddr),
+    newPollId,
+  ];
 }
 
 /**
@@ -253,6 +259,8 @@ export async function createShardsChunks(
 ): Promise<TxBuilder> {
   const network = lucid.config().network!;
   const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  const ownAddr = await lucid.wallet().address();
 
   const pollManagerUtxo = matchSingle(
     await lucid.utxosByOutRef([pollManagerOref]),
@@ -320,11 +328,12 @@ export async function createShardsChunks(
         }),
       },
       pollManagerUtxo.assets,
-    );
+    )
+    .addSigner(ownAddr);
 
   for (let idx = 0; idx < shardsCount; idx++) {
     tx.pay.ToContract(
-      sysParams.validatorHashes.pollShardHash,
+      createScriptAddress(network, sysParams.validatorHashes.pollShardHash),
       {
         kind: 'inline',
         value: serialisePollDatum({
@@ -333,12 +342,7 @@ export async function createShardsChunks(
               pollId: pollManager.pollId,
               status: { yesVotes: 0n, noVotes: 0n },
               votingEndTime: pollManager.votingEndTime,
-              managerAddress: addressFromBech32(
-                createScriptAddress(
-                  network,
-                  sysParams.validatorHashes.pollManagerHash,
-                ),
-              ),
+              managerAddress: addressFromBech32(pollManagerUtxo.address),
             },
           },
         }),
