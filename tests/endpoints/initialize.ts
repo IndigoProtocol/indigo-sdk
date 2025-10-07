@@ -334,7 +334,7 @@ async function initializeAsset(
     assetName: fromText(asset.name),
     price: {
       Oracle: {
-        oracleNft: priceOracleNft,
+        content: priceOracleNft,
       },
     },
     interestOracleNft: interestOracleNft,

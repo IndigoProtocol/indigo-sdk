@@ -24,9 +24,9 @@ import {
 } from '../src/contracts/lrp';
 import { findLrp } from './queries/lrp-queries';
 import { addrDetails, getInlineDatumOrThrow } from '../src/helpers/lucid-utils';
-import { runAndAwaitTx } from './test-helpers';
+import { runAndAwaitTx, runAndAwaitTxBuilder } from './test-helpers';
 import { matchSingle } from '../src/helpers/helpers';
-import { runCreateIAsset, runStartPriceOracle } from './indigo-test-helpers';
+import { runCreateIAsset } from './indigo-test-helpers';
 import { mkPriceOracleValidator } from '../src/scripts/price-oracle-validator';
 import { AssetClass, OracleAssetNft, PriceOracleParams } from '../src';
 import { alwaysFailValidator } from '../src/scripts/always-fail-validator';
@@ -39,6 +39,7 @@ import { findPriceOracle } from './queries/price-oracle-queries';
 import { findIAsset } from './queries/iasset-queries';
 import { assetClassValueOf, lovelacesAmt } from '../src/helpers/value-helpers';
 import { strictEqual } from 'assert';
+import { startPriceOracleTx } from '../src/contracts/price-oracle';
 
 type LRPTestContext = {
   iassetAc: AssetClass;
@@ -77,19 +78,19 @@ async function initTest(
   };
   const oracleValidator = mkPriceOracleValidator(priceOracleParams);
   const oracleValidatorHash = validatorToScriptHash(oracleValidator);
-  const oracleNft = await runStartPriceOracle(
+  const [tx, oracleNft] = await startPriceOracleTx(
     lucid,
-    oracleValidatorHash,
-    priceOracleParams,
-    network,
-    fromText('ORACLE_IBTC'),
+    'ORACLE_IBTC',
     iassetPrice,
+    priceOracleParams,
   );
+
+  await runAndAwaitTxBuilder(lucid, tx);
 
   const iassetValHash = validatorToScriptHash(alwaysFailValidator);
   const iassetNft = await runCreateIAsset(lucid, network, iassetValHash, {
     assetName: iassetTokenName,
-    price: { Oracle: oracleNft },
+    price: { Oracle: { content: oracleNft } },
     interestOracleNft: { currencySymbol: '', tokenName: '' },
     redemptionRatio: OCD_ONE,
     maintenanceRatio: OCD_ONE,

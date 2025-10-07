@@ -111,8 +111,8 @@ describe('Datum checks', () => {
       assetName: fromText('iETH'),
       price: {
         Oracle: {
-          oracleNft: {
-            asset: {
+          content: {
+            oracleNft: {
               currencySymbol:
                 '6c9497ffd7e8baf86c3c0d6fcd43c524daa49ad5fceba26d715468e9',
               tokenName: fromText('iETH20221219191302'),

@@ -28,9 +28,11 @@ export const CDPContentSchema = Data.Object({
 });
 
 export const IAssetPriceInfoSchema = Data.Enum([
-  Data.Object({ Delisted: OnChainDecimalSchema }),
   Data.Object({
-    Oracle: OracleAssetNftSchema,
+    Delisted: Data.Object({ content: OnChainDecimalSchema }),
+  }),
+  Data.Object({
+    Oracle: Data.Object({ content: OracleAssetNftSchema }),
   }),
 ]);
 

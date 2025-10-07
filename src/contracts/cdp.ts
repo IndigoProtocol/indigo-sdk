@@ -72,7 +72,7 @@ export class CDPContract {
         new Error('Trying to open CDP against delisted asset'),
       );
 
-    const oracleAsset = assetOut.datum.price.Oracle.oracleNft;
+    const oracleAsset = assetOut.datum.price.Oracle.content.oracleNft;
     const oracleOut = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(
@@ -427,8 +427,8 @@ export class CDPContract {
     const oracleRefInput = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(
-          oracleAsset.Oracle.oracleNft.currencySymbol +
-            fromText(oracleAsset.Oracle.oracleNft.tokenName),
+          oracleAsset.Oracle.content.oracleNft.currencySymbol +
+            fromText(oracleAsset.Oracle.content.oracleNft.tokenName),
         );
 
     // Fail if delisted asset
@@ -579,7 +579,7 @@ export class CDPContract {
     // Find Oracle Ref Input
     if (!('Oracle' in iAsset.datum.price))
       throw new Error('iAsset is delisted');
-    const oracleAsset = iAsset.datum.price.Oracle.oracleNft;
+    const oracleAsset = iAsset.datum.price.Oracle.content.oracleNft;
     const oracleRefInput = priceOracleRef
       ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
       : await lucid.utxoByUnit(

@@ -142,7 +142,7 @@ describe('Gov', () => {
         {
           ProposeAsset: {
             asset: fromText('iBTC'),
-            priceOracleNft: { oracleNft: priceOranceNft },
+            priceOracleNft: priceOranceNft,
             interestOracleNft: interestOracleNft,
             redemptionRatioPercentage: { getOnChainInt: 200_000_000n },
             maintenanceRatioPercentage: { getOnChainInt: 150_000_000n },

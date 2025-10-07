@@ -8,6 +8,7 @@ import {
 } from '@lucid-evolution/lucid';
 import { AssetClass } from '../types/generic';
 import {
+  OracleAssetNft,
   PriceOracleDatum,
   PriceOracleParams,
   serialisePriceOracleDatum,
@@ -24,7 +25,7 @@ export async function startPriceOracleTx(
   oracleParams: PriceOracleParams,
   now: number = Date.now(),
   refOutRef?: OutRef,
-): Promise<[TxBuilder, AssetClass]> {
+): Promise<[TxBuilder, OracleAssetNft]> {
   if (!refOutRef) {
     refOutRef = (await lucid.wallet().getUtxos())[0];
   }
@@ -60,5 +61,5 @@ export async function startPriceOracleTx(
     addAssets(mkLovelacesOf(5_000_000n), mkAssetsOf(priceOracleNft, 1n)),
   );
 
-  return [tx, priceOracleNft];
+  return [tx, { oracleNft: priceOracleNft }];
 }
