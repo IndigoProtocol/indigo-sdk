@@ -53,6 +53,7 @@ import { mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
 import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool-validator';
 import { runAndAwaitTxBuilder } from '../test-helpers';
 import { startPriceOracleTx } from '../../src/contracts/price-oracle';
+import { C } from 'vitest/dist/chunks/reporters.d.BFLkQcL6.js';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -141,6 +142,7 @@ const initialAssets: InitialAsset[] = [
 
 const alwaysFailValidatorHash =
   'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
+const treasuryStakeCredential = 'b8358aadd30c60eba168608ad5e875592e9b7cb8c700827cde87f9a3';
 
 async function mintOneTimeToken(
   lucid: LucidEvolution,
@@ -674,7 +676,13 @@ export async function init(
   const treasuryParams: TreasuryParamsSP = {
     upgradeToken: toSystemParamsAsset(upgradeToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    treasuryUtxosStakeCredential: undefined,
+    treasuryUtxosStakeCredential: {
+      tag: 'StakingHash',
+      contents: {
+        tag: 'ScriptCredential',
+        contents: treasuryStakeCredential,
+      },
+    },
   };
 
   const treasuryValidator = mkTreasuryValidatorFromSP(treasuryParams);

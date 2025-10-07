@@ -1,4 +1,4 @@
-import { Address, applyParamsToScript, Network, ScriptType, SpendingValidator, validatorToAddress } from '@lucid-evolution/lucid';
+import { Address, Credential, applyParamsToScript, Network, ScriptType, SpendingValidator, validatorToAddress } from '@lucid-evolution/lucid';
 import { castTreasuryParams, TreasuryParams } from '../types/indigo/treasury';
 import { fromSystemParamsAsset, fromSystemParamsCredential, TreasuryParamsSP } from '../types/system-params';
 
@@ -38,10 +38,14 @@ export const mkTreasuryParamsFromSP = (
     versionRecordToken: fromSystemParamsAsset(params.versionRecordToken),
     upgradeToken: fromSystemParamsAsset(params.upgradeToken),
     treasuryUtxosStakeCredential: params.treasuryUtxosStakeCredential ? (
-      params.treasuryUtxosStakeCredential.contents.tag === 'ScriptCredential' ? {
-        ScriptCredential: [params.treasuryUtxosStakeCredential.contents.contents],
-      } : {
-        PublicKeyCredential: [params.treasuryUtxosStakeCredential.contents.contents],
+      {
+        Inline: [
+          params.treasuryUtxosStakeCredential.contents.tag === 'ScriptCredential' ? {
+            ScriptCredential: [params.treasuryUtxosStakeCredential.contents.contents],
+          } : {
+            PublicKeyCredential: [params.treasuryUtxosStakeCredential.contents.contents],
+          }
+        ]
       }
     ) : null,
   };
@@ -51,15 +55,28 @@ export const mkTreasuryAddress = (
   params: TreasuryParams,
   network: Network,
 ): Address => {
+  let sc: Credential | undefined = undefined;
+  if (params.treasuryUtxosStakeCredential) {
+    if ('Pointer' in params.treasuryUtxosStakeCredential) throw new Error('Pointer stake credential not supported');
+    if ('Inline' in params.treasuryUtxosStakeCredential) {
+      const inline = params.treasuryUtxosStakeCredential.Inline[0];
+      if ('ScriptCredential' in inline) {
+        sc = {
+          type: 'Script',
+          hash: inline.ScriptCredential[0]
+        }
+      } else if ('PublicKeyCredential' in inline) {
+        sc = {
+          type: 'Key',
+          hash: inline.PublicKeyCredential[0]
+        }
+      }
+    }
+  }
+
   return validatorToAddress(
     network,
     mkTreasuryValidator(params),
-    params.treasuryUtxosStakeCredential ? ('ScriptCredential' in params.treasuryUtxosStakeCredential) ? {
-      type: 'Script',
-      hash: params.treasuryUtxosStakeCredential.ScriptCredential[0],
-    } : {
-      type: 'Key',
-      hash: params.treasuryUtxosStakeCredential.PublicKeyCredential[0],
-    } : undefined,
+    sc,
   );
 };

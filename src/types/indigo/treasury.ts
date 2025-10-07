@@ -1,10 +1,10 @@
 import { Data, Datum, Redeemer } from '@lucid-evolution/lucid';
-import { AssetClassSchema, CredentialSchema } from '../generic';
+import { AssetClassSchema, StakeCredentialSchema } from '../generic';
 
 export const TreasuryParamsSchema = Data.Object({
   upgradeToken: AssetClassSchema,
   versionRecordToken: AssetClassSchema,
-  treasuryUtxosStakeCredential: Data.Nullable(CredentialSchema),
+  treasuryUtxosStakeCredential: Data.Nullable(StakeCredentialSchema),
 });
 export type TreasuryParams = Data.Static<typeof TreasuryParamsSchema>;
 export const TreasuryParams = TreasuryParamsSchema as unknown as TreasuryParams;
