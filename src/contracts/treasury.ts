@@ -26,7 +26,7 @@ export async function treasuryFeeTx(
     treasuryScriptRef,
   ]);
 
-  return lucid.newTx().collectFrom([treasuryUtxo], Data.to(new Constr(4, [])))
+  return lucid.newTx().collectFrom([treasuryUtxo], serialiseTreasuryRedeemer('CollectAda'))
     .pay.ToContract(
       treasuryUtxo.address,
       { kind: 'inline', value: treasuryUtxo.datum || '' },
