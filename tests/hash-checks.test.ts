@@ -7,6 +7,8 @@ import {
   mkCDPCreatorValidatorFromSP,
   mkInterestOracleValidator,
   mkLrpValidatorFromSP,
+  mkTreasuryValidatorFromSP,
+  mkTreasuryParamsFromSP,
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
@@ -77,4 +79,14 @@ describe('Validator Hash checks', () => {
       validatorToScriptHash(mkLrpValidatorFromSP(systemParams.lrpParams)),
     ).toBe(systemParams.validatorHashes.lrpHash);
   });
+
+  // TODO: Revisit this test, issues with cbor encoding on Lucid?
+  // Applying parameters to the validator using `aiken build` does not result in the same hash as the one generate by Lucid.
+  // it('Treasury validator hash', () => {
+  //   expect(
+  //     validatorToScriptHash(
+  //       mkTreasuryValidatorFromSP(systemParams.treasuryParams)
+  //     ),
+  //   ).toBe(systemParams.validatorHashes.treasuryHash);
+  // });
 });

@@ -26,6 +26,7 @@ import {
   mkCDPCreatorValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
+  mkTreasuryValidatorFromSP,
   PollManagerParamsSP,
   PollShardParamsSP,
   runOneShotMintTx,
@@ -38,7 +39,7 @@ import {
   SystemParams,
   toSystemParamsAsset,
   TreasuryContract,
-  TreasuryParams,
+  TreasuryParamsSP,
   VersionRecordParams,
 } from '../../src';
 import { mkAuthTokenPolicy } from '../../src/scripts/auth-token-policy';
@@ -236,14 +237,14 @@ async function initCDPCreator(
 
 async function initTreasury(
   lucid: LucidEvolution,
-  treasuryParams: TreasuryParams,
+  treasuryParams: TreasuryParamsSP,
   daoAsset: AssetClass,
   indyAsset: AssetClass,
   treasuryIndyAmount: bigint,
 ): Promise<void> {
   const tx = lucid.newTx().pay.ToContract(
     credentialToAddress(lucid.config().network!, {
-      hash: TreasuryContract.validatorHash(treasuryParams),
+      hash: validatorToScriptHash(mkTreasuryValidatorFromSP(treasuryParams)),
       type: 'Script',
     }),
     { kind: 'inline', value: Data.to(new Constr(0, [])) },
@@ -670,14 +671,14 @@ export async function init(
     mkStabilityPoolValidatorFromSP(stabilityPoolParams);
   const stabilityPoolValHash = validatorToScriptHash(stabilityPoolValidator);
 
-  const treasuryParams: TreasuryParams = {
+  const treasuryParams: TreasuryParamsSP = {
     upgradeToken: toSystemParamsAsset(upgradeToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
     treasuryUtxosStakeCredential: undefined,
   };
 
-  const treasuryValidator = TreasuryContract.validator(treasuryParams);
-  const treasuryValHash = TreasuryContract.validatorHash(treasuryParams);
+  const treasuryValidator = mkTreasuryValidatorFromSP(treasuryParams);
+  const treasuryValHash = validatorToScriptHash(treasuryValidator);
 
   await initTreasury(
     lucid,

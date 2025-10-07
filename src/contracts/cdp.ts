@@ -22,7 +22,7 @@ import {
 } from '../types/system-params';
 import { IAssetHelpers, IAssetOutput } from '../helpers/asset-helpers';
 import { CollectorContract } from './collector';
-import { TreasuryContract } from './treasury';
+import { treasuryFeeTx } from './treasury';
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import {
   calculateFeeFromPercentage,
@@ -43,6 +43,7 @@ import {
   calculateUnitaryInterestSinceOracleLastUpdated,
 } from '../helpers/interest-oracle';
 import { oracleExpirationAwareValidity } from '../helpers/price-oracle-helpers';
+import { mkTreasuryAddress, mkTreasuryParamsFromSP } from '../scripts/treasury-validator';
 
 export class CDPContract {
   static async openPosition(
@@ -480,12 +481,26 @@ export class CDPContract {
     const interestTreasuryPayment = interestPayment - interestCollectorPayment;
 
     if (interestTreasuryPayment > 0) {
-      await TreasuryContract.feeTx(
-        interestTreasuryPayment,
-        lucid,
-        params,
-        tx,
-        treasuryRef,
+      const treasuryUtxos = (await lucid.utxosAt(
+        mkTreasuryAddress(
+          mkTreasuryParamsFromSP(params.treasuryParams), lucid.config().network!
+        )
+      )).filter((utxo) => utxo.datum === Data.void());
+
+      const treasuryRef = getRandomElement(treasuryUtxos);
+      if (!treasuryRef) throw new Error('Unable to find Treasury UTXO');
+
+      const treasuryScriptRef: OutRef = {
+        txHash: params.scriptReferences.treasuryValidatorRef.input.transactionId,
+        outputIndex: Number(params.scriptReferences.treasuryValidatorRef.input.index),
+      };
+      tx.compose(
+        await treasuryFeeTx(
+          interestTreasuryPayment,
+          lucid,
+          treasuryRef,
+          treasuryScriptRef,
+        )
       );
     }
 
@@ -620,12 +635,26 @@ export class CDPContract {
     const interestTreasuryPayment = interestPayment - interestCollectorPayment;
 
     if (interestTreasuryPayment > 0) {
-      await TreasuryContract.feeTx(
-        interestTreasuryPayment,
-        lucid,
-        params,
-        tx,
-        treasuryRef,
+      const treasuryUtxos = (await lucid.utxosAt(
+        mkTreasuryAddress(
+          mkTreasuryParamsFromSP(params.treasuryParams), lucid.config().network!
+        )
+      )).filter((utxo) => utxo.datum === Data.void());
+
+      const treasuryRef = getRandomElement(treasuryUtxos);
+      if (!treasuryRef) throw new Error('Unable to find Treasury UTXO');
+
+      const treasuryScriptRef: OutRef = {
+        txHash: params.scriptReferences.treasuryValidatorRef.input.transactionId,
+        outputIndex: Number(params.scriptReferences.treasuryValidatorRef.input.index),
+      };
+      tx.compose(
+        await treasuryFeeTx(
+          interestTreasuryPayment,
+          lucid,
+          treasuryRef,
+          treasuryScriptRef,
+        )
       );
     }
 

@@ -1,5 +1,5 @@
 import { fromText, OutRef, toText } from '@lucid-evolution/lucid';
-import { AssetClass, CurrencySymbol, TokenName } from './generic';
+import { AssetClass, CredentialD, CredentialSchema, CurrencySymbol, TokenName } from './generic';
 
 /**
  * AssetClassSP used in System Params
@@ -9,7 +9,7 @@ export type AssetClassSP = [CurrencySymbol, TokenName];
 export interface SystemParams {
   versionRecordParams: VersionRecordParams;
   validatorHashes: ValidatorHashes;
-  treasuryParams: TreasuryParams;
+  treasuryParams: TreasuryParamsSP;
   startTime: StartTime;
   stakingParams: StakingParams;
   stabilityPoolParams: StabilityPoolParamsSP;
@@ -57,7 +57,7 @@ export interface PubKeyHash {
 export interface VersionRecordParams {
   upgradeToken: AssetClassSP;
 }
-export interface TreasuryParams {
+export interface TreasuryParamsSP {
   upgradeToken: AssetClassSP;
   versionRecordToken: AssetClassSP;
   treasuryUtxosStakeCredential?: ScriptCredential;
@@ -253,6 +253,17 @@ export function fromSystemParamsAsset(asset: AssetClassSP): AssetClass {
   return {
     currencySymbol: asset[0].unCurrencySymbol,
     tokenName: fromText(asset[1].unTokenName),
+  };
+}
+
+export function fromSystemParamsCredential(credential: ScriptCredential): CredentialD {
+  if (credential.tag === 'ScriptCredential') {
+    return {
+      ScriptCredential: [credential.contents.contents],
+    };
+  }
+  return {
+    PublicKeyCredential: [credential.contents.contents],
   };
 }
 
