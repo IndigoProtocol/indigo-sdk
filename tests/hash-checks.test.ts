@@ -7,6 +7,8 @@ import {
   mkCDPCreatorValidatorFromSP,
   mkInterestOracleValidator,
   mkLrpValidatorFromSP,
+  mkTreasuryValidatorFromSP,
+  mkTreasuryParamsFromSP,
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
@@ -76,5 +78,13 @@ describe('Validator Hash checks', () => {
     expect(
       validatorToScriptHash(mkLrpValidatorFromSP(systemParams.lrpParams)),
     ).toBe(systemParams.validatorHashes.lrpHash);
+  });
+
+  it('Treasury validator hash', () => {
+    expect(
+      validatorToScriptHash(
+        mkTreasuryValidatorFromSP(systemParams.treasuryParams)
+      ),
+    ).toBe(systemParams.validatorHashes.treasuryHash);
   });
 });

@@ -26,6 +26,7 @@ import {
   mkCDPCreatorValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
+  mkTreasuryValidatorFromSP,
   PollManagerParamsSP,
   PollShardParamsSP,
   runOneShotMintTx,
@@ -38,7 +39,7 @@ import {
   SystemParams,
   toSystemParamsAsset,
   TreasuryContract,
-  TreasuryParams,
+  TreasuryParamsSP,
   VersionRecordParams,
 } from '../../src';
 import { mkAuthTokenPolicy } from '../../src/scripts/auth-token-policy';
@@ -52,6 +53,7 @@ import { mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
 import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool-validator';
 import { runAndAwaitTxBuilder } from '../test-helpers';
 import { startPriceOracleTx } from '../../src/contracts/price-oracle';
+import { C } from 'vitest/dist/chunks/reporters.d.BFLkQcL6.js';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -140,6 +142,7 @@ const initialAssets: InitialAsset[] = [
 
 const alwaysFailValidatorHash =
   'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
+const treasuryStakeCredential = 'b8358aadd30c60eba168608ad5e875592e9b7cb8c700827cde87f9a3';
 
 async function mintOneTimeToken(
   lucid: LucidEvolution,
@@ -236,14 +239,14 @@ async function initCDPCreator(
 
 async function initTreasury(
   lucid: LucidEvolution,
-  treasuryParams: TreasuryParams,
+  treasuryParams: TreasuryParamsSP,
   daoAsset: AssetClass,
   indyAsset: AssetClass,
   treasuryIndyAmount: bigint,
 ): Promise<void> {
   const tx = lucid.newTx().pay.ToContract(
     credentialToAddress(lucid.config().network!, {
-      hash: TreasuryContract.validatorHash(treasuryParams),
+      hash: validatorToScriptHash(mkTreasuryValidatorFromSP(treasuryParams)),
       type: 'Script',
     }),
     { kind: 'inline', value: Data.to(new Constr(0, [])) },
@@ -670,14 +673,20 @@ export async function init(
     mkStabilityPoolValidatorFromSP(stabilityPoolParams);
   const stabilityPoolValHash = validatorToScriptHash(stabilityPoolValidator);
 
-  const treasuryParams: TreasuryParams = {
+  const treasuryParams: TreasuryParamsSP = {
     upgradeToken: toSystemParamsAsset(upgradeToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    treasuryUtxosStakeCredential: undefined,
+    treasuryUtxosStakeCredential: {
+      tag: 'StakingHash',
+      contents: {
+        tag: 'ScriptCredential',
+        contents: treasuryStakeCredential,
+      },
+    },
   };
 
-  const treasuryValidator = TreasuryContract.validator(treasuryParams);
-  const treasuryValHash = TreasuryContract.validatorHash(treasuryParams);
+  const treasuryValidator = mkTreasuryValidatorFromSP(treasuryParams);
+  const treasuryValHash = validatorToScriptHash(treasuryValidator);
 
   await initTreasury(
     lucid,

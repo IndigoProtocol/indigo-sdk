@@ -1,112 +1,94 @@
 import {
-  Address,
-  applyParamsToScript,
+  addAssets,
   Constr,
   Data,
-  fromText,
   LucidEvolution,
   OutRef,
-  SpendingValidator,
+  paymentCredentialOf,
   TxBuilder,
-  UTxO,
-  validatorToAddress,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
-import { _treasuryValidator } from '../scripts/treasury-validator';
-import {
-  ScriptReferences,
-  SystemParams,
-  TreasuryParams,
-} from '../types/system-params';
-import { scriptRef } from '../helpers/lucid-utils';
-import { getRandomElement } from '../helpers/helpers';
+import { serialiseTreasuryRedeemer, TreasuryParams } from '../types/indigo/treasury';
+import { mkLovelacesOf } from '../helpers/value-helpers';
+import { mkTreasuryAddress } from '../scripts/treasury-validator';
 
-export class TreasuryContract {
-  static async feeTx(
-    fee: bigint,
-    lucid: LucidEvolution,
-    params: SystemParams,
-    tx: TxBuilder,
-    treasuryRef?: OutRef,
-  ): Promise<void> {
-    const treasuryUtxo: UTxO = treasuryRef
-      ? getRandomElement(await lucid.utxosByOutRef([treasuryRef]))
-      : getRandomElement(
-          await lucid.utxosAt(
-            TreasuryContract.address(params.treasuryParams, lucid),
-          ),
-        );
+export async function treasuryFeeTx(
+  fee: bigint,
+  lucid: LucidEvolution,
+  treasuryRef: OutRef,
+  treasuryScriptRef: OutRef,
+): Promise<TxBuilder> {
+  const [
+    treasuryUtxo,
+    treasuryScriptRefUtxo,
+  ] = await lucid.utxosByOutRef([
+    treasuryRef,
+    treasuryScriptRef,
+  ]);
 
-    const treasuryScriptRefUtxo = await TreasuryContract.scriptRef(
-      params.scriptReferences,
-      lucid,
-    );
+  return lucid.newTx().collectFrom([treasuryUtxo], serialiseTreasuryRedeemer('CollectAda'))
+    .pay.ToContract(
+      treasuryUtxo.address,
+      { kind: 'inline', value: treasuryUtxo.datum || '' },
+      {
+        ...treasuryUtxo.assets,
+        lovelace: treasuryUtxo.assets['lovelace'] + fee,
+      },
+    )
+    .readFrom([treasuryScriptRefUtxo]);
+}
 
-    tx.collectFrom([treasuryUtxo], Data.to(new Constr(4, [])))
-      .pay.ToContract(
-        treasuryUtxo.address,
-        { kind: 'inline', value: treasuryUtxo.datum || '' },
-        {
-          ...treasuryUtxo.assets,
-          lovelace: treasuryUtxo.assets['lovelace'] + fee,
-        },
-      )
-      .readFrom([treasuryScriptRefUtxo]);
-  }
+// TODO: Add a function to prepare a withdrawal from the treasury
+// export async function prepareWithdrawal()
 
-  // treasury Validator
-  static validator(params: TreasuryParams): SpendingValidator {
-    return {
-      type: 'PlutusV2',
-      script: applyParamsToScript(_treasuryValidator.cborHex, [
-        new Constr(0, [
-          new Constr(0, [
-            params.upgradeToken[0].unCurrencySymbol,
-            fromText(params.upgradeToken[1].unTokenName),
-          ]),
-          new Constr(0, [
-            params.versionRecordToken[0].unCurrencySymbol,
-            fromText(params.versionRecordToken[1].unTokenName),
-          ]),
-          params.treasuryUtxosStakeCredential
-            ? new Constr(0, [
-                new Constr(0, [
-                  new Constr(1, [
-                    params.treasuryUtxosStakeCredential.contents.contents,
-                  ]),
-                ]),
-              ])
-            : new Constr(1, []),
-        ]),
-      ]),
-    };
-  }
+export async function treasuryMerge(
+  treasuryInputs: OutRef[],
+  lucid: LucidEvolution,
+  treasuryScriptRef: OutRef,
+  treasuryParams: TreasuryParams,
+): Promise<TxBuilder> {
+  const [treasuryScriptRefUtxo] = await lucid.utxosByOutRef([treasuryScriptRef]);
+  const treasuryInputsUtxos = await lucid.utxosByOutRef(treasuryInputs);
 
-  static validatorHash(params: TreasuryParams): string {
-    return validatorToScriptHash(TreasuryContract.validator(params));
-  }
+  const totalAssets = treasuryInputsUtxos.reduce((acc, utxo) => {
+    return addAssets(acc, utxo.assets);
+  }, mkLovelacesOf(0n));
 
-  static address(params: TreasuryParams, lucid: LucidEvolution): Address {
-    const network = lucid.config().network;
-    if (!network) {
-      throw new Error('Network configuration is undefined');
-    }
-    return validatorToAddress(
-      network,
-      TreasuryContract.validator(params),
-      params.treasuryUtxosStakeCredential
-        ? {
-            type: 'Script',
-            hash: params.treasuryUtxosStakeCredential.contents.contents,
-          }
-        : undefined,
+  const treasuryAddress = mkTreasuryAddress(treasuryParams, lucid.config().network!);
+
+  return lucid.newTx()
+    .collectFrom(treasuryInputsUtxos, serialiseTreasuryRedeemer('Merge'))
+    .pay.ToContract(
+      treasuryAddress,
+      { kind: 'inline', value: Data.void() },
+      totalAssets
+    )
+    .readFrom([treasuryScriptRefUtxo]);
+}
+
+export async function treasurySplit(
+  treasuryInput: OutRef,
+  lucid: LucidEvolution,
+  treasuryScriptRef: OutRef,
+  treasuryParams: TreasuryParams,
+): Promise<TxBuilder> {
+  const [treasuryScriptRefUtxo] = await lucid.utxosByOutRef([treasuryScriptRef]);
+  const [treasuryInputsUtxo] = await lucid.utxosByOutRef([treasuryInput]);
+  const assets = Object.keys(treasuryInputsUtxo.assets);
+  
+  const treasuryAddress = mkTreasuryAddress(treasuryParams, lucid.config().network!);
+
+  const tx = lucid.newTx()
+    .collectFrom([treasuryInputsUtxo], serialiseTreasuryRedeemer('Split'))
+    .readFrom([treasuryScriptRefUtxo]);
+
+  for (const asset of assets) {
+    tx.pay.ToContract(
+      treasuryAddress,
+      { kind: 'inline', value: Data.void() },
+      { [asset]: treasuryInputsUtxo.assets[asset] }
     );
   }
 
-  static async scriptRef(
-    params: ScriptReferences,
-    lucid: LucidEvolution,
-  ): Promise<UTxO> {
-    return scriptRef(params.treasuryValidatorRef, lucid);
-  }
+  return tx;
 }

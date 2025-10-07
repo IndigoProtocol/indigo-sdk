@@ -9,6 +9,7 @@ export * from './helpers/asset-helpers';
 export * from './helpers/helpers';
 export * from './helpers/lucid-utils';
 export * from './helpers/time-helpers';
+export * from './helpers/treasury-helpers';
 export * from './scripts/cdp-creator-validator';
 export * from './scripts/cdp-validator';
 export * from './scripts/collector-validator';
