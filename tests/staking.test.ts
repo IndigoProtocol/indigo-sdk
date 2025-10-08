@@ -52,7 +52,6 @@ test<MyContext>('Staking - Adjust Position', async ({
   const [pkh, _] = await addrDetails(lucid);
   const myStakingPosition = await findStakingPosition(
     lucid,
-    lucid.config().network!,
     systemParams.validatorHashes.stakingHash,
     {
       currencySymbol:
@@ -67,7 +66,7 @@ test<MyContext>('Staking - Adjust Position', async ({
   await runAndAwaitTx(
     lucid,
     StakingContract.adjustPosition(
-      myStakingPosition,
+      myStakingPosition.utxo,
       1_000_000n,
       systemParams,
       lucid,
@@ -90,7 +89,6 @@ test<MyContext>('Staking - Close Position', async ({
   const [pkh, _] = await addrDetails(lucid);
   const myStakingPosition = await findStakingPosition(
     lucid,
-    lucid.config().network!,
     systemParams.validatorHashes.stakingHash,
     {
       currencySymbol:
@@ -104,6 +102,6 @@ test<MyContext>('Staking - Close Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    StakingContract.closePosition(myStakingPosition, systemParams, lucid),
+    StakingContract.closePosition(myStakingPosition.utxo, systemParams, lucid),
   );
 });

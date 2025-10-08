@@ -23,9 +23,12 @@ import {
 } from '../helpers/lucid-utils';
 import {
   parsePollManagerOrThrow,
+  parsePollShardOrThrow,
+  PollShardContent,
+  PollStatus,
   serialisePollDatum,
 } from '../types/indigo/poll';
-import { mkAssetsOf } from '../helpers/value-helpers';
+import { assetClassValueOf, mkAssetsOf } from '../helpers/value-helpers';
 import { Data } from '@lucid-evolution/lucid';
 import { IAssetHelpers, IAssetOutput } from '../helpers/asset-helpers';
 import { array } from 'fp-ts';
@@ -40,6 +43,16 @@ import {
 import { serialisePollManagerRedeemer } from '../types/indigo/poll-manager';
 import { ONE_SECOND } from '../helpers/time-helpers';
 import { addressFromBech32 } from '../types/generic';
+import {
+  parseStakingPositionOrThrow,
+  serialiseStakingDatum,
+  serialiseStakingRedeemer,
+  StakingPosLockedAmt,
+} from '../types/indigo/staking';
+import {
+  serialisePollShardRedeemer,
+  VoteOption,
+} from '../types/indigo/poll-shard';
 
 function proposalDeposit(baseDeposit: bigint, activeProposals: bigint): bigint {
   return baseDeposit * (2n ^ activeProposals);
@@ -356,7 +369,143 @@ export async function createShardsChunks(
 
 // export function mergeShards(shardsOutRefs: [OutRef], pollManagerId: bigint) {}
 
-// export function vote(pollShardId: bigint) {}
+/**
+ * Updates both locked amount and poll status based on the vote.
+ */
+function voteHelper(
+  stakingPosLockedAmt: StakingPosLockedAmt,
+  pollShard: PollShardContent,
+  voteOption: VoteOption,
+  currentTime: bigint,
+  indyStakedAmt: bigint,
+): [StakingPosLockedAmt, PollStatus] {
+  const newPollStatus = match(voteOption)
+    .returnType<PollStatus>()
+    .with('Yes', () => ({
+      ...pollShard.status,
+      yesVotes: pollShard.status.yesVotes + indyStakedAmt,
+    }))
+    .with('No', () => ({
+      ...pollShard.status,
+      noVotes: pollShard.status.noVotes + indyStakedAmt,
+    }))
+    .exhaustive();
+
+  const newLockedAmt: [bigint, [bigint, bigint]][] = [
+    ...stakingPosLockedAmt
+      .entries()
+      .filter(([_, [__, endTime]]) => endTime > currentTime),
+    [pollShard.pollId, [indyStakedAmt, pollShard.votingEndTime]],
+  ];
+
+  return [new Map(newLockedAmt), newPollStatus];
+}
+
+export async function vote(
+  voteOption: VoteOption,
+  pollShardOref: OutRef,
+  stakingPositionOref: OutRef,
+  sysParams: SystemParams,
+  lucid: LucidEvolution,
+  currentSlot: number,
+): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  const ownAddr = await lucid.wallet().address();
+
+  const pollShardRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.pollShardValidatorRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single poll shard ref Script UTXO'),
+  );
+  const stakingRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.stakingValidatorRef),
+    ]),
+    (_) => new Error('Expected a single staking ref Script UTXO'),
+  );
+
+  const pollShardUtxo = matchSingle(
+    await lucid.utxosByOutRef([pollShardOref]),
+    (_) => new Error('Expected a single Poll shard UTXO'),
+  );
+  const pollShardDatum = parsePollShardOrThrow(
+    getInlineDatumOrThrow(pollShardUtxo),
+  );
+
+  const stakingPosUtxo = matchSingle(
+    await lucid.utxosByOutRef([stakingPositionOref]),
+    (_) => new Error('Expected a single staking position UTXO'),
+  );
+  const stakingPosDatum = parseStakingPositionOrThrow(
+    getInlineDatumOrThrow(stakingPosUtxo),
+  );
+
+  const indyStakedAmt = assetClassValueOf(
+    stakingPosUtxo.assets,
+    fromSystemParamsAsset(sysParams.govParams.indyAsset),
+  );
+
+  const validityFrom = Number(currentTime) - ONE_SECOND;
+
+  if (stakingPosDatum.lockedAmount.has(pollShardDatum.pollId)) {
+    throw new Error('Already voted for that proposal.');
+  }
+
+  const [newLockedAmt, newVoteStatus] = voteHelper(
+    stakingPosDatum.lockedAmount,
+    pollShardDatum,
+    voteOption,
+    BigInt(validityFrom),
+    indyStakedAmt,
+  );
+
+  return lucid
+    .newTx()
+    .validFrom(validityFrom)
+    .validTo(Number(currentTime + sysParams.govParams.gBiasTime) - ONE_SECOND)
+    .readFrom([stakingRefScriptUtxo, pollShardRefScriptUtxo])
+    .collectFrom([stakingPosUtxo], serialiseStakingRedeemer('Lock'))
+    .collectFrom(
+      [pollShardUtxo],
+      serialisePollShardRedeemer({ Vote: { content: voteOption } }),
+    )
+    .pay.ToContract(
+      pollShardUtxo.address,
+      {
+        kind: 'inline',
+        value: serialisePollDatum({
+          PollShard: {
+            content: {
+              ...pollShardDatum,
+              status: newVoteStatus,
+            },
+          },
+        }),
+      },
+      pollShardUtxo.assets,
+    )
+    .pay.ToContract(
+      stakingPosUtxo.address,
+      {
+        kind: 'inline',
+        value: serialiseStakingDatum({
+          StakingPosition: {
+            content: {
+              ...stakingPosDatum,
+              lockedAmount: newLockedAmt,
+            },
+          },
+        }),
+      },
+      stakingPosUtxo.assets,
+    )
+    .addSigner(ownAddr);
+}
 
 // export function endProposal(proposalId: bigint) {}
 

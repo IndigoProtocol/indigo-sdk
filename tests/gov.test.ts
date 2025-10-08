@@ -16,6 +16,8 @@ import {
   createShardsChunks,
   fromSystemParamsAsset,
   InterestOracleContract,
+  StakingContract,
+  vote,
 } from '../src';
 import {
   LucidContext,
@@ -24,7 +26,15 @@ import {
 } from './test-helpers';
 import { startPriceOracleTx } from '../src/contracts/price-oracle';
 import { findAllIAssets } from './queries/iasset-queries';
-import { findPollManager } from './queries/poll-queries';
+import { findPollManager, findRandomPollShard } from './queries/poll-queries';
+import { findStakingPosition } from './queries/staking-queries';
+import {
+  readonlyArray as RA,
+  task as T,
+  array as A,
+  function as F,
+  number as N,
+} from 'fp-ts';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -196,5 +206,196 @@ describe('Gov', () => {
     );
 
     await runAndAwaitTxBuilder(context.lucid, tx);
+  });
+
+  test<MyContext>('Vote on proposal', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    const [tx, pollId] = await createProposal(
+      { TextProposal: { bytes: fromText('smth') } },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    const pollUtxo = await findPollManager(
+      context.lucid,
+      sysParams.validatorHashes.pollManagerHash,
+      fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+      pollId,
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      createShardsChunks(
+        govUtxo.datum.protocolParams.totalShards,
+        pollUtxo.utxo,
+        sysParams,
+        context.emulator.slot,
+        context.lucid,
+      ),
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+    );
+
+    const [pkh, _] = await addrDetails(context.lucid);
+
+    const stakingPosOref = await findStakingPosition(
+      context.lucid,
+      sysParams.validatorHashes.stakingHash,
+      fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
+      pkh.hash,
+    );
+
+    const pollShard = await findRandomPollShard(
+      context.lucid,
+      sysParams.validatorHashes.pollShardHash,
+      fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
+      pollId,
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      vote(
+        'Yes',
+        pollShard.utxo,
+        stakingPosOref.utxo,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+      ),
+    );
+  });
+
+  test<MyContext>('Vote on 2 proposal in reverse (higher pollID first)', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+    );
+    const [pkh, _] = await addrDetails(context.lucid);
+
+    // Create proposals
+    const createProposalsTask = F.pipe(
+      [fromText('proposal 1'), fromText('proposal 2')].map(
+        (txtContent): T.Task<bigint> => {
+          return async () => {
+            const govUtxo = await findGov(
+              context.lucid,
+              sysParams.validatorHashes.govHash,
+              fromSystemParamsAsset(sysParams.govParams.govNFT),
+            );
+
+            const [tx, pollId] = await createProposal(
+              { TextProposal: { bytes: txtContent } },
+              null,
+              sysParams,
+              context.lucid,
+              context.emulator.slot,
+              govUtxo.utxo,
+              [],
+            );
+
+            await runAndAwaitTxBuilder(context.lucid, tx);
+
+            const pollUtxo = await findPollManager(
+              context.lucid,
+              sysParams.validatorHashes.pollManagerHash,
+              fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+              pollId,
+            );
+
+            await runAndAwaitTx(
+              context.lucid,
+              createShardsChunks(
+                pollUtxo.datum.totalShardsCount,
+                pollUtxo.utxo,
+                sysParams,
+                context.emulator.slot,
+                context.lucid,
+              ),
+            );
+
+            return pollId;
+          };
+        },
+      ),
+      T.sequenceSeqArray,
+    );
+
+    const pollIdsDescending = F.pipe(
+      await createProposalsTask(),
+      RA.toArray, // Sort it from high to low
+      A.map(Number),
+      A.sort(N.Ord),
+      A.map(BigInt),
+      A.reverse,
+    );
+
+    // vote on each proposal
+    const voteEachProposalTask = F.pipe(
+      pollIdsDescending.map(
+        (pollId): T.Task<void> =>
+          async () => {
+            const stakingPosOref = await findStakingPosition(
+              context.lucid,
+              sysParams.validatorHashes.stakingHash,
+              fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
+              pkh.hash,
+            );
+
+            const pollShard = await findRandomPollShard(
+              context.lucid,
+              sysParams.validatorHashes.pollShardHash,
+              fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
+              pollId,
+            );
+
+            await runAndAwaitTx(
+              context.lucid,
+              vote(
+                'Yes',
+                pollShard.utxo,
+                stakingPosOref.utxo,
+                sysParams,
+                context.lucid,
+                context.emulator.slot,
+              ),
+            );
+          },
+      ),
+      T.sequenceSeqArray,
+    );
+
+    await voteEachProposalTask();
+
+    // TODO: asserts
+    // const stakingPosUtxo = await findStakingPosition(
+    //   context.lucid,
+    //   sysParams.validatorHashes.stakingHash,
+    //   fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
+    //   pkh.hash,
+    // );
+
+    // expect(stakingPosUtxo.datum.lockedAmount.keys()).toEqual(pollIdsDescending);
   });
 });

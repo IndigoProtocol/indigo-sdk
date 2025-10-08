@@ -17,7 +17,7 @@ import {
 } from '../src/index';
 import {
   parseStakingManagerDatum,
-  parseStakingPositionDatum,
+  parseStakingPositionOrThrow,
   serialiseStakingDatum,
   StakingManagerContent,
   StakingPositionContent,
@@ -172,7 +172,7 @@ describe('Datum checks', () => {
       },
     };
 
-    expect(parseStakingPositionDatum(stakingPositionDatum)).toEqual(
+    expect(parseStakingPositionOrThrow(stakingPositionDatum)).toEqual(
       stakingPositionObject,
     );
     expect(

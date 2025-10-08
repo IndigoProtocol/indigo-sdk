@@ -8,6 +8,7 @@ const PollStatusSchema = Data.Object({
   yesVotes: Data.Integer(),
   noVotes: Data.Integer(),
 });
+export type PollStatus = Data.Static<typeof PollStatusSchema>;
 
 const PollManagerContentSchema = Data.Object({
   pollId: Data.Integer(),
@@ -58,6 +59,25 @@ export function parsePollManagerOrThrow(datum: Datum): PollManagerContent {
     parsePollManager(datum),
     O.match(() => {
       throw new Error('Expected a Poll manager datum.');
+    }, F.identity),
+  );
+}
+
+export function parsePollShard(datum: Datum): O.Option<PollShardContent> {
+  try {
+    return match(Data.from<PollDatum>(datum, PollDatum))
+      .with({ PollShard: P.select() }, (res) => O.some(res.content))
+      .otherwise(() => O.none);
+  } catch (_) {
+    return O.none;
+  }
+}
+
+export function parsePollShardOrThrow(datum: Datum): PollShardContent {
+  return F.pipe(
+    parsePollShard(datum),
+    O.match(() => {
+      throw new Error('Expected a Poll shard datum.');
     }, F.identity),
   );
 }

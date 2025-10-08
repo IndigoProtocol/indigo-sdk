@@ -1,6 +1,7 @@
 import { Data, Datum, Redeemer } from '@lucid-evolution/lucid';
 import { AssetClassSchema } from '../generic';
 import { match, P } from 'ts-pattern';
+import { option as O, function as F } from 'fp-ts';
 
 const StakingParamsSchema = Data.Object({
   stakingManagerNft: AssetClassSchema,
@@ -43,14 +44,17 @@ export type StakingManagerContent = Data.Static<
   typeof StakingManagerContentSchema
 >;
 
+const StakingPosLockedAmtSchema = Data.Map(
+  Data.Integer(),
+  Data.Tuple([Data.Integer(), Data.Integer()], {
+    hasConstr: true,
+  }),
+);
+export type StakingPosLockedAmt = Data.Static<typeof StakingPosLockedAmtSchema>;
+
 const StakingPositionContentSchema = Data.Object({
   owner: Data.Bytes(),
-  lockedAmount: Data.Map(
-    Data.Integer(),
-    Data.Tuple([Data.Integer(), Data.Integer()], {
-      hasConstr: true,
-    }),
-  ),
+  lockedAmount: StakingPosLockedAmtSchema,
   positionSnapshot: RewardSnapshotSchema,
 });
 export type StakingPositionContent = Data.Static<
@@ -68,14 +72,27 @@ const StakingDatumSchema = Data.Enum([
 export type StakingDatum = Data.Static<typeof StakingDatumSchema>;
 const StakingDatum = StakingDatumSchema as unknown as StakingDatum;
 
-export function parseStakingPositionDatum(
+export function parseStakingPosition(
+  datum: Datum,
+): O.Option<StakingPositionContent> {
+  try {
+    return match(Data.from<StakingDatum>(datum, StakingDatum))
+      .with({ StakingPosition: { content: P.select() } }, (res) => O.some(res))
+      .otherwise(() => O.none);
+  } catch (_) {
+    return O.none;
+  }
+}
+
+export function parseStakingPositionOrThrow(
   datum: Datum,
 ): StakingPositionContent {
-  return match(Data.from<StakingDatum>(datum, StakingDatum))
-    .with({ StakingPosition: { content: P.select() } }, (res) => res)
-    .otherwise(() => {
+  return F.pipe(
+    parseStakingPosition(datum),
+    O.match(() => {
       throw new Error('Expected a StakingPosition datum.');
-    });
+    }, F.identity),
+  );
 }
 
 export function parseStakingManagerDatum(datum: Datum): StakingManagerContent {

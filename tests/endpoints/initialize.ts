@@ -430,7 +430,7 @@ async function initGovernance(
       collateralFeePercentage: {
         getOnChainInt: 1_500_000n,
       },
-      votingPeriod: 10_000n,
+      votingPeriod: 1000_000n,
       totalShards: 4n,
       minimumQuorum: 100_000n,
       maxTreasuryLovelaceSpend: 10_000_000n,
