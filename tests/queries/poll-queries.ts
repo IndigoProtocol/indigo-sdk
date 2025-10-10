@@ -46,18 +46,18 @@ export async function findPollManager(
   );
 }
 
-export async function findRandomPollShard(
+export async function findAllPollShards(
   lucid: LucidEvolution,
   pollShardScriptHash: string,
   pollShardNft: AssetClass,
   pollId: bigint,
-): Promise<{ utxo: UTxO; datum: PollShardContent }> {
+): Promise<{ utxo: UTxO; datum: PollShardContent }[]> {
   const pollShardUtxos = await lucid.utxosAtWithUnit(
     createScriptAddress(lucid.config().network!, pollShardScriptHash),
     assetClassToUnit(pollShardNft),
   );
 
-  const pollShardOuts = F.pipe(
+  return F.pipe(
     pollShardUtxos.map((utxo) =>
       F.pipe(
         O.fromNullable(utxo.datum),
@@ -72,6 +72,20 @@ export async function findRandomPollShard(
       ),
     ),
     A.compact,
+  );
+}
+
+export async function findRandomPollShard(
+  lucid: LucidEvolution,
+  pollShardScriptHash: string,
+  pollShardNft: AssetClass,
+  pollId: bigint,
+): Promise<{ utxo: UTxO; datum: PollShardContent }> {
+  const pollShardOuts = await findAllPollShards(
+    lucid,
+    pollShardScriptHash,
+    pollShardNft,
+    pollId,
   );
 
   return F.pipe(

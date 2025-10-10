@@ -5,8 +5,9 @@ import {
   fromText,
   generateEmulatorAccount,
   Lucid,
+  unixTimeToSlot,
 } from '@lucid-evolution/lucid';
-import { describe, beforeEach, test, expect } from 'vitest';
+import { describe, beforeEach, test, expect, assert } from 'vitest';
 import { mkLovelacesOf } from '../src/helpers/value-helpers';
 import { init } from './endpoints/initialize';
 import { findGov } from './queries/governance-queries';
@@ -16,6 +17,7 @@ import {
   createShardsChunks,
   fromSystemParamsAsset,
   InterestOracleContract,
+  mergeShards,
   StakingContract,
   vote,
 } from '../src';
@@ -26,7 +28,11 @@ import {
 } from './test-helpers';
 import { startPriceOracleTx } from '../src/contracts/price-oracle';
 import { findAllIAssets } from './queries/iasset-queries';
-import { findPollManager, findRandomPollShard } from './queries/poll-queries';
+import {
+  findAllPollShards,
+  findPollManager,
+  findRandomPollShard,
+} from './queries/poll-queries';
 import { findStakingPosition } from './queries/staking-queries';
 import {
   readonlyArray as RA,
@@ -136,6 +142,96 @@ describe('Gov', () => {
       pollUtxo.datum.createdShardsCount === pollUtxo.datum.totalShardsCount,
       'Expected total shards count being created',
     );
+  });
+
+  test<MyContext>('Merge proposal shards', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    const [tx, pollId] = await createProposal(
+      { TextProposal: { bytes: fromText('smth') } },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    {
+      const pollUtxo = await findPollManager(
+        context.lucid,
+        sysParams.validatorHashes.pollManagerHash,
+        fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+        pollId,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        createShardsChunks(
+          2n,
+          pollUtxo.utxo,
+          sysParams,
+          context.emulator.slot,
+          context.lucid,
+        ),
+      );
+
+      const targetSlot = unixTimeToSlot(
+        context.lucid.config().network!,
+        Number(pollUtxo.datum.votingEndTime),
+      );
+      expect(targetSlot).toBeGreaterThan(context.emulator.slot);
+
+      context.emulator.awaitSlot(targetSlot - context.emulator.slot + 1);
+    }
+
+    {
+      const pollUtxo = await findPollManager(
+        context.lucid,
+        sysParams.validatorHashes.pollManagerHash,
+        fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+        pollId,
+      );
+
+      const allPollShards = await findAllPollShards(
+        context.lucid,
+        sysParams.validatorHashes.pollShardHash,
+        fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
+        pollUtxo.datum.pollId,
+      );
+
+      assert(allPollShards.length === 2);
+
+      await runAndAwaitTx(
+        context.lucid,
+        mergeShards(
+          pollUtxo.utxo,
+          allPollShards.map((u) => u.utxo),
+          sysParams,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    const pollUtxo = await findPollManager(
+      context.lucid,
+      sysParams.validatorHashes.pollManagerHash,
+      fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+      pollId,
+    );
+
+    assert(pollUtxo.datum.talliedShardsCount === 2n);
   });
 
   test<MyContext>('Create asset proposal', async (context: MyContext) => {
