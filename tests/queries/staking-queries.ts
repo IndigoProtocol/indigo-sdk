@@ -3,18 +3,18 @@ import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
 import { matchSingle } from '../../src';
+import { option as O, array as A, function as F } from 'fp-ts';
 import {
   parseStakingPosition,
-  StakingPositionContent,
-} from '../../src/types/indigo/staking';
-import { option as O, array as A, function as F } from 'fp-ts';
+  StakingPosition,
+} from '../../src/types/indigo/staking-new';
 
 export async function findStakingPosition(
   lucid: LucidEvolution,
   stakingScriptHash: ScriptHash,
   stakingPositionNft: AssetClass,
   owner: string,
-): Promise<{ utxo: UTxO; datum: StakingPositionContent }> {
+): Promise<{ utxo: UTxO; datum: StakingPosition }> {
   const network = lucid.config().network!;
 
   const stakingUtxos = await lucid.utxosAtWithUnit(

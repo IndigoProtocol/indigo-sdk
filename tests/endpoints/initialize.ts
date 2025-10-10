@@ -43,7 +43,6 @@ import {
 } from '../../src';
 import { mkAuthTokenPolicy } from '../../src/scripts/auth-token-policy';
 import { StakingContract } from '../../src/contracts/staking';
-import { serialiseStakingDatum } from '../../src/types/indigo/staking';
 import { mkIAssetTokenPolicy } from '../../src/scripts/iasset-policy';
 import { mkVersionRecordTokenPolicy } from '../../src/scripts/version-record-policy';
 import { mkVersionRegistryValidator } from '../../src/scripts/version-registry';
@@ -52,6 +51,7 @@ import { mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
 import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool-validator';
 import { runAndAwaitTxBuilder } from '../test-helpers';
 import { startPriceOracleTx } from '../../src/contracts/price-oracle';
+import { serialiseStakingDatum } from '../../src/types/indigo/staking-new';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -272,9 +272,8 @@ async function initStakingManager(
       {
         kind: 'inline',
         value: serialiseStakingDatum({
-          StakingManager: {
-            content: { totalStake: 0n, managerSnapshot: { snapshotAda: 0n } },
-          },
+          totalStake: 0n,
+          managerSnapshot: { snapshotAda: 0n },
         }),
       },
       {

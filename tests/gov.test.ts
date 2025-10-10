@@ -283,7 +283,115 @@ describe('Gov', () => {
     );
   });
 
-  test<MyContext>('Vote on 2 proposal in reverse (higher pollID first)', async (context: MyContext) => {
+  test<MyContext>('Vote on 2 proposals sequentially (lower pollID first)', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+    );
+    const [pkh, _] = await addrDetails(context.lucid);
+
+    // Create proposals
+    const createProposalsTask = F.pipe(
+      [fromText('proposal 1'), fromText('proposal 2')].map(
+        (txtContent): T.Task<bigint> => {
+          return async () => {
+            const govUtxo = await findGov(
+              context.lucid,
+              sysParams.validatorHashes.govHash,
+              fromSystemParamsAsset(sysParams.govParams.govNFT),
+            );
+
+            const [tx, pollId] = await createProposal(
+              { TextProposal: { bytes: txtContent } },
+              null,
+              sysParams,
+              context.lucid,
+              context.emulator.slot,
+              govUtxo.utxo,
+              [],
+            );
+
+            await runAndAwaitTxBuilder(context.lucid, tx);
+
+            const pollUtxo = await findPollManager(
+              context.lucid,
+              sysParams.validatorHashes.pollManagerHash,
+              fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+              pollId,
+            );
+
+            await runAndAwaitTx(
+              context.lucid,
+              createShardsChunks(
+                pollUtxo.datum.totalShardsCount,
+                pollUtxo.utxo,
+                sysParams,
+                context.emulator.slot,
+                context.lucid,
+              ),
+            );
+
+            return pollId;
+          };
+        },
+      ),
+      T.sequenceSeqArray,
+    );
+
+    const pollIds = await createProposalsTask();
+
+    // vote on each proposal
+    const voteEachProposalTask = F.pipe(
+      pollIds.map(
+        (pollId): T.Task<void> =>
+          async () => {
+            const stakingPosOref = await findStakingPosition(
+              context.lucid,
+              sysParams.validatorHashes.stakingHash,
+              fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
+              pkh.hash,
+            );
+
+            const pollShard = await findRandomPollShard(
+              context.lucid,
+              sysParams.validatorHashes.pollShardHash,
+              fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
+              pollId,
+            );
+
+            await runAndAwaitTx(
+              context.lucid,
+              vote(
+                Number(pollId) % 2 == 0 ? 'Yes' : 'No',
+                pollShard.utxo,
+                stakingPosOref.utxo,
+                sysParams,
+                context.lucid,
+                context.emulator.slot,
+              ),
+            );
+          },
+      ),
+      T.sequenceSeqArray,
+    );
+
+    await voteEachProposalTask();
+
+    const stakingPosUtxo = await findStakingPosition(
+      context.lucid,
+      sysParams.validatorHashes.stakingHash,
+      fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
+      pkh.hash,
+    );
+
+    expect([...stakingPosUtxo.datum.lockedAmount.keys()]).toEqual([1n, 2n]);
+  });
+
+  test<MyContext>('Vote on 2 proposals in reverse (higher pollID first), both yes and no votes', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
     const sysParams = await init(context.lucid);
@@ -373,7 +481,7 @@ describe('Gov', () => {
             await runAndAwaitTx(
               context.lucid,
               vote(
-                'Yes',
+                Number(pollId) % 2 == 0 ? 'Yes' : 'No',
                 pollShard.utxo,
                 stakingPosOref.utxo,
                 sysParams,
@@ -388,14 +496,13 @@ describe('Gov', () => {
 
     await voteEachProposalTask();
 
-    // TODO: asserts
-    // const stakingPosUtxo = await findStakingPosition(
-    //   context.lucid,
-    //   sysParams.validatorHashes.stakingHash,
-    //   fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
-    //   pkh.hash,
-    // );
+    const stakingPosUtxo = await findStakingPosition(
+      context.lucid,
+      sysParams.validatorHashes.stakingHash,
+      fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
+      pkh.hash,
+    );
 
-    // expect(stakingPosUtxo.datum.lockedAmount.keys()).toEqual(pollIdsDescending);
+    expect([...stakingPosUtxo.datum.lockedAmount.keys()]).toEqual([2n, 1n]);
   });
 });

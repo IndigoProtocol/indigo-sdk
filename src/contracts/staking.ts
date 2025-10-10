@@ -20,11 +20,14 @@ import {
 import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import { _stakingValidator } from '../scripts/staking-validator';
 import {
+  StakingHelpers,
+  updateStakingLockedAmount,
+} from '../helpers/staking-helpers';
+import {
   serialiseStakingDatum,
-  StakingManagerContent,
-  StakingPositionContent,
-} from '../types/indigo/staking';
-import { StakingHelpers } from '../helpers/staking-helpers';
+  StakingManager,
+  StakingPosition,
+} from '../types/indigo/staking-new';
 
 export class StakingContract {
   static async openPosition(
@@ -51,14 +54,14 @@ export class StakingContract {
         lucid,
       );
 
-    const newStakingManagerDatum: StakingManagerContent = {
+    const newStakingManagerDatum: StakingManager = {
       totalStake: stakingManagerOut.datum.totalStake + amount,
       managerSnapshot: {
         snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,
       },
     };
 
-    const stakingPositionDatum: StakingPositionContent = {
+    const stakingPositionDatum: StakingPosition = {
       owner: pkh.hash,
       lockedAmount: new Map([]),
       positionSnapshot: {
@@ -80,9 +83,7 @@ export class StakingContract {
         stakingManagerOut.utxo.address,
         {
           kind: 'inline',
-          value: serialiseStakingDatum({
-            StakingManager: { content: newStakingManagerDatum },
-          }),
+          value: serialiseStakingDatum(newStakingManagerDatum),
         },
         stakingManagerOut.utxo.assets,
       )
@@ -97,9 +98,7 @@ export class StakingContract {
         StakingContract.address(params.stakingParams, lucid),
         {
           kind: 'inline',
-          value: serialiseStakingDatum({
-            StakingPosition: { content: stakingPositionDatum },
-          }),
+          value: serialiseStakingDatum(stakingPositionDatum),
         },
         {
           [stakingToken]: 1n,
@@ -154,12 +153,11 @@ export class StakingContract {
       ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
       (1000000n * 1000000n);
 
-    const newLockedAmount = new Map<bigint, [bigint, bigint]>();
-    for (const [key, value] of stakingPositionOut.datum.lockedAmount) {
-      if (value[1] > now) {
-        newLockedAmount.set(key, [value[0], value[1]]);
-      }
-    }
+    const newLockedAmount = updateStakingLockedAmount(
+      stakingPositionOut.datum.lockedAmount,
+      BigInt(now),
+    );
+
     return lucid
       .newTx()
       .validFrom(Date.now())
@@ -171,12 +169,8 @@ export class StakingContract {
         {
           kind: 'inline',
           value: serialiseStakingDatum({
-            StakingManager: {
-              content: {
-                ...stakingManagerOut.datum,
-                totalStake: stakingManagerOut.datum.totalStake + amount,
-              },
-            },
+            ...stakingManagerOut.datum,
+            totalStake: stakingManagerOut.datum.totalStake + amount,
           }),
         },
         {
@@ -189,12 +183,8 @@ export class StakingContract {
         {
           kind: 'inline',
           value: serialiseStakingDatum({
-            StakingPosition: {
-              content: {
-                ...stakingPositionOut.datum,
-                lockedAmount: newLockedAmount,
-              },
-            },
+            ...stakingPositionOut.datum,
+            lockedAmount: newLockedAmount,
           }),
         },
         {
@@ -265,13 +255,8 @@ export class StakingContract {
         {
           kind: 'inline',
           value: serialiseStakingDatum({
-            StakingManager: {
-              content: {
-                ...stakingManagerOut.datum,
-                totalStake:
-                  stakingManagerOut.datum.totalStake - existingIndyAmount,
-              },
-            },
+            ...stakingManagerOut.datum,
+            totalStake: stakingManagerOut.datum.totalStake - existingIndyAmount,
           }),
         },
         {

@@ -43,16 +43,17 @@ import {
 import { serialisePollManagerRedeemer } from '../types/indigo/poll-manager';
 import { ONE_SECOND } from '../helpers/time-helpers';
 import { addressFromBech32 } from '../types/generic';
-import {
-  parseStakingPositionOrThrow,
-  serialiseStakingDatum,
-  serialiseStakingRedeemer,
-  StakingPosLockedAmt,
-} from '../types/indigo/staking';
+import { serialiseStakingRedeemer } from '../types/indigo/staking';
 import {
   serialisePollShardRedeemer,
   VoteOption,
 } from '../types/indigo/poll-shard';
+import {
+  parseStakingPositionOrThrow,
+  serialiseStakingDatum,
+  StakingPosLockedAmt,
+} from '../types/indigo/staking-new';
+import { updateStakingLockedAmount } from '../helpers/staking-helpers';
 
 function proposalDeposit(baseDeposit: bigint, activeProposals: bigint): bigint {
   return baseDeposit * (2n ^ activeProposals);
@@ -391,11 +392,15 @@ function voteHelper(
     }))
     .exhaustive();
 
-  const newLockedAmt: [bigint, [bigint, bigint]][] = [
-    ...stakingPosLockedAmt
-      .entries()
-      .filter(([_, [__, endTime]]) => endTime > currentTime),
-    [pollShard.pollId, [indyStakedAmt, pollShard.votingEndTime]],
+  const newLockedAmt: [
+    bigint,
+    { readonly voteAmt: bigint; readonly votingEnd: bigint },
+  ][] = [
+    ...updateStakingLockedAmount(stakingPosLockedAmt, currentTime).entries(),
+    [
+      pollShard.pollId,
+      { voteAmt: indyStakedAmt, votingEnd: pollShard.votingEndTime },
+    ],
   ];
 
   return [new Map(newLockedAmt), newPollStatus];
@@ -494,12 +499,8 @@ export async function vote(
       {
         kind: 'inline',
         value: serialiseStakingDatum({
-          StakingPosition: {
-            content: {
-              ...stakingPosDatum,
-              lockedAmount: newLockedAmt,
-            },
-          },
+          ...stakingPosDatum,
+          lockedAmount: newLockedAmt,
         }),
       },
       stakingPosUtxo.assets,
