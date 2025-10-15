@@ -15,11 +15,14 @@ import {
   addrDetails,
   createProposal,
   createShardsChunks,
+  endProposal,
   fromSystemParamsAsset,
   InterestOracleContract,
   mergeShards,
   StakingContract,
+  SystemParams,
   vote,
+  VoteOption,
 } from '../src';
 import {
   LucidContext,
@@ -41,11 +44,47 @@ import {
   function as F,
   number as N,
 } from 'fp-ts';
+import { findExecute } from './queries/execute-queries';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
   user: EmulatorAccount;
 }>;
+
+async function runVote(
+  pollId: bigint,
+  option: VoteOption,
+  sysParams: SystemParams,
+  context: MyContext,
+) {
+  const [pkh, _] = await addrDetails(context.lucid);
+
+  const stakingPosOref = await findStakingPosition(
+    context.lucid,
+    sysParams.validatorHashes.stakingHash,
+    fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
+    pkh.hash,
+  );
+
+  const pollShard = await findRandomPollShard(
+    context.lucid,
+    sysParams.validatorHashes.pollShardHash,
+    fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
+    pollId,
+  );
+
+  await runAndAwaitTx(
+    context.lucid,
+    vote(
+      option,
+      pollShard.utxo,
+      stakingPosOref.utxo,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+    ),
+  );
+}
 
 describe('Gov', () => {
   beforeEach<MyContext>(async (context: MyContext) => {
@@ -350,33 +389,7 @@ describe('Gov', () => {
       StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
     );
 
-    const [pkh, _] = await addrDetails(context.lucid);
-
-    const stakingPosOref = await findStakingPosition(
-      context.lucid,
-      sysParams.validatorHashes.stakingHash,
-      fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
-      pkh.hash,
-    );
-
-    const pollShard = await findRandomPollShard(
-      context.lucid,
-      sysParams.validatorHashes.pollShardHash,
-      fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
-      pollId,
-    );
-
-    await runAndAwaitTx(
-      context.lucid,
-      vote(
-        'Yes',
-        pollShard.utxo,
-        stakingPosOref.utxo,
-        sysParams,
-        context.lucid,
-        context.emulator.slot,
-      ),
-    );
+    await runVote(pollId, 'Yes', sysParams, context);
   });
 
   test<MyContext>('Vote on 2 proposals sequentially (lower pollID first)', async (context: MyContext) => {
@@ -445,30 +458,11 @@ describe('Gov', () => {
       pollIds.map(
         (pollId): T.Task<void> =>
           async () => {
-            const stakingPosOref = await findStakingPosition(
-              context.lucid,
-              sysParams.validatorHashes.stakingHash,
-              fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
-              pkh.hash,
-            );
-
-            const pollShard = await findRandomPollShard(
-              context.lucid,
-              sysParams.validatorHashes.pollShardHash,
-              fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
+            await runVote(
               pollId,
-            );
-
-            await runAndAwaitTx(
-              context.lucid,
-              vote(
-                Number(pollId) % 2 == 0 ? 'Yes' : 'No',
-                pollShard.utxo,
-                stakingPosOref.utxo,
-                sysParams,
-                context.lucid,
-                context.emulator.slot,
-              ),
+              Number(pollId) % 2 == 0 ? 'Yes' : 'No',
+              sysParams,
+              context,
             );
           },
       ),
@@ -560,30 +554,11 @@ describe('Gov', () => {
       pollIdsDescending.map(
         (pollId): T.Task<void> =>
           async () => {
-            const stakingPosOref = await findStakingPosition(
-              context.lucid,
-              sysParams.validatorHashes.stakingHash,
-              fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
-              pkh.hash,
-            );
-
-            const pollShard = await findRandomPollShard(
-              context.lucid,
-              sysParams.validatorHashes.pollShardHash,
-              fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
+            await runVote(
               pollId,
-            );
-
-            await runAndAwaitTx(
-              context.lucid,
-              vote(
-                Number(pollId) % 2 == 0 ? 'Yes' : 'No',
-                pollShard.utxo,
-                stakingPosOref.utxo,
-                sysParams,
-                context.lucid,
-                context.emulator.slot,
-              ),
+              Number(pollId) % 2 == 0 ? 'Yes' : 'No',
+              sysParams,
+              context,
             );
           },
       ),
@@ -601,4 +576,142 @@ describe('Gov', () => {
 
     expect([...stakingPosUtxo.datum.lockedAmount.keys()]).toEqual([2n, 1n]);
   });
+
+  test<MyContext>('End proposal', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    const [tx, pollId] = await createProposal(
+      { TextProposal: { bytes: fromText('smth') } },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    for (
+      let i = 0;
+      i < Math.ceil(Number(govUtxo.datum.protocolParams.totalShards) / 2);
+      i++
+    ) {
+      const pollUtxo = await findPollManager(
+        context.lucid,
+        sysParams.validatorHashes.pollManagerHash,
+        fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+        pollId,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        createShardsChunks(
+          2n,
+          pollUtxo.utxo,
+          sysParams,
+          context.emulator.slot,
+          context.lucid,
+        ),
+      );
+    }
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+    );
+
+    await runVote(pollId, 'Yes', sysParams, context);
+
+    {
+      const pollUtxo = await findPollManager(
+        context.lucid,
+        sysParams.validatorHashes.pollManagerHash,
+        fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+        pollId,
+      );
+
+      const targetSlot = unixTimeToSlot(
+        context.lucid.config().network!,
+        Number(pollUtxo.datum.votingEndTime),
+      );
+      expect(targetSlot).toBeGreaterThan(context.emulator.slot);
+
+      context.emulator.awaitSlot(targetSlot - context.emulator.slot + 1);
+    }
+
+    for (
+      let i = 0;
+      i < Math.ceil(Number(govUtxo.datum.protocolParams.totalShards) / 2);
+      i++
+    ) {
+      const pollUtxo = await findPollManager(
+        context.lucid,
+        sysParams.validatorHashes.pollManagerHash,
+        fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+        pollId,
+      );
+
+      const allPollShards = await findAllPollShards(
+        context.lucid,
+        sysParams.validatorHashes.pollShardHash,
+        fromSystemParamsAsset(sysParams.pollShardParams.pollToken),
+        pollUtxo.datum.pollId,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        mergeShards(
+          pollUtxo.utxo,
+          A.takeLeft(2)(allPollShards).map((u) => u.utxo),
+          sysParams,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    const pollUtxo = await findPollManager(
+      context.lucid,
+      sysParams.validatorHashes.pollManagerHash,
+      fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+      pollId,
+    );
+
+    const govUtxoRes = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      endProposal(
+        pollUtxo.utxo,
+        govUtxoRes.utxo,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+      ),
+    );
+
+    await expect(
+      findExecute(
+        context.lucid,
+        sysParams.validatorHashes.executeHash,
+        fromSystemParamsAsset(sysParams.executeParams.upgradeToken),
+        pollId,
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  // TODO: end failed proposal
 });

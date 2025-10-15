@@ -67,6 +67,8 @@ import {
   StakingPosLockedAmt,
 } from '../types/indigo/staking-new';
 import { updateStakingLockedAmount } from '../helpers/staking-helpers';
+import { pollPassQuorum } from '../helpers/poll-helpers';
+import { serialiseExecuteDatum } from '../types/indigo/execute';
 
 function proposalDeposit(baseDeposit: bigint, activeProposals: bigint): bigint {
   return baseDeposit * (2n ^ activeProposals);
@@ -643,6 +645,152 @@ export async function mergeShards(
     .addSigner(ownAddr);
 }
 
-// export function endProposal(proposalId: bigint) {}
+export async function endProposal(
+  pollManagerOref: OutRef,
+  govOref: OutRef,
+  sysParams: SystemParams,
+  lucid: LucidEvolution,
+  currentSlot: number,
+): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  const ownAddr = await lucid.wallet().address();
+
+  const pollManagerRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.pollManagerValidatorRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single poll shard ref Script UTXO'),
+  );
+  const govRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.governanceValidatorRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single Gov Ref Script UTXO'),
+  );
+  const pollAuthTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.authTokenPolicies.pollManagerTokenRef,
+      ),
+    ]),
+    (_) =>
+      new Error('Expected a single poll auth token policy ref Script UTXO'),
+  );
+  const upgradeTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.authTokenPolicies.upgradeTokenRef,
+      ),
+    ]),
+    (_) =>
+      new Error('Expected a single upgrade auth token policy ref Script UTXO'),
+  );
+
+  const pollManagerUtxo = matchSingle(
+    await lucid.utxosByOutRef([pollManagerOref]),
+    (_) => new Error('Expected a single Poll manager UTXO'),
+  );
+  const pollManager = parsePollManagerOrThrow(
+    getInlineDatumOrThrow(pollManagerUtxo),
+  );
+
+  const govUtxo = matchSingle(
+    await lucid.utxosByOutRef([govOref]),
+    (_) => new Error('Expected a single Gov UTXO'),
+  );
+  const govDatum = parseGovDatumOrThrow(getInlineDatumOrThrow(govUtxo));
+
+  const pollNft = fromSystemParamsAsset(sysParams.govParams.pollToken);
+  const indyAsset = fromSystemParamsAsset(
+    sysParams.pollManagerParams.indyAsset,
+  );
+
+  const proposalExpired = currentTime > pollManager.expirationTime;
+  const proposalPassed =
+    !proposalExpired &&
+    pollPassQuorum(
+      sysParams.pollManagerParams.initialIndyDistribution,
+      pollManager.status,
+      currentTime,
+      pollManager.minimumQuorum,
+      govDatum.treasuryIndyWithdrawnAmt,
+    );
+
+  const upgradeTokenVal = mkAssetsOf(
+    fromSystemParamsAsset(sysParams.govParams.upgradeToken),
+    1n,
+  );
+
+  const tx = lucid
+    .newTx()
+    .validFrom(Number(currentTime) - ONE_SECOND)
+    .validTo(
+      Number(currentTime + sysParams.pollManagerParams.pBiasTime) - ONE_SECOND,
+    )
+    .readFrom([
+      pollManagerRefScriptUtxo,
+      govRefScriptUtxo,
+      pollAuthTokenPolicyRefScriptUtxo,
+      upgradeTokenPolicyRefScriptUtxo,
+    ])
+    .collectFrom(
+      [pollManagerUtxo],
+      serialisePollManagerRedeemer({ EndPoll: { currentTime: currentTime } }),
+    )
+    .collectFrom(
+      [govUtxo],
+      serialiseGovRedeemer({ WitnessEndPoll: { currentTime: currentTime } }),
+    )
+    .mintAssets(mkAssetsOf(pollNft, -1n), Data.to(new Constr(0, [])))
+    .pay.ToContract(
+      govUtxo.address,
+      {
+        kind: 'inline',
+        value: serialiseGovDatum({
+          ...govDatum,
+          activeProposals: govDatum.activeProposals - 1n,
+        }),
+      },
+      govUtxo.assets,
+    )
+    .addSigner(ownAddr);
+
+  if (proposalPassed) {
+    tx.pay
+      .ToContract(
+        createScriptAddress(network, sysParams.validatorHashes.executeHash),
+        {
+          kind: 'inline',
+          value: serialiseExecuteDatum({
+            id: pollManager.pollId,
+            content: pollManager.content,
+            passedTime: currentTime,
+            votingEndTime: pollManager.votingEndTime,
+            protocolVersion: pollManager.protocolVersion,
+            treasuryWithdrawal: pollManager.treasuryWithdrawal,
+          }),
+        },
+        upgradeTokenVal,
+      )
+      .mintAssets(upgradeTokenVal, Data.to(new Constr(0, [])));
+  } else {
+    tx.pay.ToContract(
+      createScriptAddress(network, sysParams.validatorHashes.treasuryHash),
+      { kind: 'inline', value: Data.void() },
+      mkAssetsOf(
+        indyAsset,
+        assetClassValueOf(pollManagerUtxo.assets, indyAsset),
+      ),
+    );
+  }
+
+  return tx;
+}
 
 // export function executeProposal(upgradeId: bigint) {}
