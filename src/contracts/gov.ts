@@ -71,7 +71,7 @@ import { pollPassQuorum } from '../helpers/poll-helpers';
 import { serialiseExecuteDatum } from '../types/indigo/execute';
 
 function proposalDeposit(baseDeposit: bigint, activeProposals: bigint): bigint {
-  return baseDeposit * (2n ^ activeProposals);
+  return baseDeposit * 2n ** activeProposals;
 }
 
 /**
