@@ -1,8 +1,9 @@
 import { Data, Datum } from '@lucid-evolution/lucid';
-import { ProposalContentSchema, TreasuryWithdrawalSchema } from './gov';
+import { TreasuryWithdrawalSchema } from './gov';
 import { AddressSchema } from '../generic';
 import { option as O, function as F } from 'fp-ts';
 import { match, P } from 'ts-pattern';
+import { ProposalContentSchema } from './gov-new';
 
 const PollStatusSchema = Data.Object({
   yesVotes: Data.Integer(),

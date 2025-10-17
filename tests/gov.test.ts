@@ -17,10 +17,12 @@ import {
   createScriptAddress,
   createShardsChunks,
   endProposal,
+  executeProposal,
   fromSystemParamsAsset,
   InterestOracleContract,
   matchSingle,
   mergeShards,
+  ONE_DAY,
   StakingContract,
   SystemParams,
   vote,
@@ -32,7 +34,7 @@ import {
   runAndAwaitTxBuilder,
 } from './test-helpers';
 import { startPriceOracleTx } from '../src/contracts/price-oracle';
-import { findAllIAssets } from './queries/iasset-queries';
+import { findAllIAssets, findIAsset } from './queries/iasset-queries';
 import {
   findAllPollShards,
   findPollManager,
@@ -48,6 +50,7 @@ import {
 } from 'fp-ts';
 import { findExecute } from './queries/execute-queries';
 import { getNewUtxosAtAddressAfterAction } from './utils';
+import { serialiseUpgradePaths } from '../src/types/indigo/gov-new';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -166,6 +169,57 @@ async function runMergeAllShards(
       ),
     );
   }
+}
+
+async function runEndProposal(
+  pollId: bigint,
+  sysParams: SystemParams,
+  context: MyContext,
+): Promise<void> {
+  const pollUtxo = await findPollManager(
+    context.lucid,
+    sysParams.validatorHashes.pollManagerHash,
+    fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+    pollId,
+  );
+
+  const govUtxo = await findGov(
+    context.lucid,
+    sysParams.validatorHashes.govHash,
+    fromSystemParamsAsset(sysParams.govParams.govNFT),
+  );
+
+  await runAndAwaitTx(
+    context.lucid,
+    endProposal(
+      pollUtxo.utxo,
+      govUtxo.utxo,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+    ),
+  );
+}
+
+async function waitForVotingEnd(
+  pollId: bigint,
+  sysParams: SystemParams,
+  context: MyContext,
+): Promise<void> {
+  const pollUtxo = await findPollManager(
+    context.lucid,
+    sysParams.validatorHashes.pollManagerHash,
+    fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
+    pollId,
+  );
+
+  const targetSlot = unixTimeToSlot(
+    context.lucid.config().network!,
+    Number(pollUtxo.datum.votingEndTime),
+  );
+  expect(targetSlot).toBeGreaterThan(context.emulator.slot);
+
+  context.emulator.awaitSlot(targetSlot - context.emulator.slot + 1);
 }
 
 describe('Gov', () => {
@@ -621,48 +675,11 @@ describe('Gov', () => {
 
     await runVote(pollId, 'Yes', sysParams, context);
 
-    {
-      const pollUtxo = await findPollManager(
-        context.lucid,
-        sysParams.validatorHashes.pollManagerHash,
-        fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
-        pollId,
-      );
-
-      const targetSlot = unixTimeToSlot(
-        context.lucid.config().network!,
-        Number(pollUtxo.datum.votingEndTime),
-      );
-      expect(targetSlot).toBeGreaterThan(context.emulator.slot);
-
-      context.emulator.awaitSlot(targetSlot - context.emulator.slot + 1);
-    }
+    await waitForVotingEnd(pollId, sysParams, context);
 
     await runMergeAllShards(pollId, sysParams, context);
 
-    const pollUtxo = await findPollManager(
-      context.lucid,
-      sysParams.validatorHashes.pollManagerHash,
-      fromSystemParamsAsset(sysParams.pollManagerParams.pollToken),
-      pollId,
-    );
-
-    const govUtxo = await findGov(
-      context.lucid,
-      sysParams.validatorHashes.govHash,
-      fromSystemParamsAsset(sysParams.govParams.govNFT),
-    );
-
-    await runAndAwaitTx(
-      context.lucid,
-      endProposal(
-        pollUtxo.utxo,
-        govUtxo.utxo,
-        sysParams,
-        context.lucid,
-        context.emulator.slot,
-      ),
-    );
+    await runEndProposal(pollId, sysParams, context);
 
     await expect(
       findExecute(
@@ -778,5 +795,447 @@ describe('Gov', () => {
         pollId,
       ),
     ).rejects.toThrow();
+  });
+
+  test<MyContext>('Execute text proposal', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const [tx, pollId] = await createProposal(
+      { TextProposal: { bytes: fromText('smth') } },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      (
+        await findGov(
+          context.lucid,
+          sysParams.validatorHashes.govHash,
+          fromSystemParamsAsset(sysParams.govParams.govNFT),
+        )
+      ).utxo,
+      [],
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    await runCreateAllShards(pollId, sysParams, context);
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+    );
+
+    await runVote(pollId, 'Yes', sysParams, context);
+
+    await waitForVotingEnd(pollId, sysParams, context);
+
+    await runMergeAllShards(pollId, sysParams, context);
+
+    await runEndProposal(pollId, sysParams, context);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+    const executeUtxo = await findExecute(
+      context.lucid,
+      sysParams.validatorHashes.executeHash,
+      fromSystemParamsAsset(sysParams.executeParams.upgradeToken),
+      pollId,
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      executeProposal(
+        executeUtxo.utxo,
+        govUtxo.utxo,
+        null,
+        null,
+        null,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+      ),
+    );
+  });
+
+  test<MyContext>('Execute create asset proposal', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const [pkh, _] = await addrDetails(context.lucid);
+
+    const [startInterestTx, interestOracleNft] =
+      await InterestOracleContract.startInterestOracle(
+        0n,
+        0n,
+        0n,
+        {
+          biasTime: 120_000n,
+          owner: pkh.hash,
+        },
+        context.lucid,
+      );
+    await runAndAwaitTxBuilder(context.lucid, startInterestTx);
+
+    const [priceOracleTx, priceOranceNft] = await startPriceOracleTx(
+      context.lucid,
+      'IBTC_ORACLE',
+      { getOnChainInt: 1_000_000n },
+      { biasTime: 120_000n, expiration: 1_800_000n, owner: pkh.hash },
+    );
+    await runAndAwaitTxBuilder(context.lucid, priceOracleTx);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    const [tx, pollId] = await createProposal(
+      {
+        ProposeAsset: {
+          asset: fromText('iBTC'),
+          priceOracleNft: priceOranceNft,
+          interestOracleNft: interestOracleNft,
+          redemptionRatioPercentage: { getOnChainInt: 200_000_000n },
+          maintenanceRatioPercentage: { getOnChainInt: 150_000_000n },
+          liquidationRatioPercentage: { getOnChainInt: 120_000_000n },
+          debtMintingFeePercentage: { getOnChainInt: 500_000n },
+          liquidationProcessingFeePercentage: { getOnChainInt: 2_000_000n },
+          stabilityPoolWithdrawalFeePercentage: { getOnChainInt: 500_000n },
+          redemptionReimbursementPercentage: { getOnChainInt: 1_000_000n },
+          redemptionProcessingFeePercentage: { getOnChainInt: 1_000_000n },
+          interestCollectorPortionPercentage: { getOnChainInt: 40_000_000n },
+        },
+      },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      (
+        await findAllIAssets(
+          context.lucid,
+          sysParams.validatorHashes.cdpHash,
+          fromSystemParamsAsset(sysParams.cdpParams.iAssetAuthToken),
+        )
+      ).map((iasset) => iasset.utxo),
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    await runCreateAllShards(pollId, sysParams, context);
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+    );
+
+    await runVote(pollId, 'Yes', sysParams, context);
+
+    await waitForVotingEnd(pollId, sysParams, context);
+
+    await runMergeAllShards(pollId, sysParams, context);
+
+    await runEndProposal(pollId, sysParams, context);
+
+    const executeUtxo = await findExecute(
+      context.lucid,
+      sysParams.validatorHashes.executeHash,
+      fromSystemParamsAsset(sysParams.executeParams.upgradeToken),
+      pollId,
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      executeProposal(
+        executeUtxo.utxo,
+        (
+          await findGov(
+            context.lucid,
+            sysParams.validatorHashes.govHash,
+            fromSystemParamsAsset(sysParams.govParams.govNFT),
+          )
+        ).utxo,
+        null,
+        (
+          await findAllIAssets(
+            context.lucid,
+            sysParams.validatorHashes.cdpHash,
+            fromSystemParamsAsset(sysParams.cdpParams.iAssetAuthToken),
+          )
+        ).map((iasset) => iasset.utxo),
+        null,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+      ),
+    );
+  });
+
+  test<MyContext>('Execute modify asset proposal', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    const iassetToModify = await findIAsset(
+      context.lucid,
+      sysParams.validatorHashes.cdpHash,
+      fromSystemParamsAsset(sysParams.cdpParams.iAssetAuthToken),
+      'iUSD',
+    );
+
+    const [tx, pollId] = await createProposal(
+      {
+        ModifyAsset: {
+          asset: fromText('iUSD'),
+          newAssetPriceInfo: iassetToModify.datum.price,
+          newInterestOracleNft: iassetToModify.datum.interestOracleNft,
+          newRedemptionRatioPercentage: iassetToModify.datum.redemptionRatio,
+          newMaintenanceRatioPercentage: iassetToModify.datum.maintenanceRatio,
+          newLiquidationRatioPercentage: iassetToModify.datum.liquidationRatio,
+          newDebtMintingFeePercentage:
+            iassetToModify.datum.debtMintingFeePercentage,
+          newLiquidationProcessingFeePercentage:
+            iassetToModify.datum.liquidationProcessingFeePercentage,
+          newStabilityPoolWithdrawalFeePercentage:
+            iassetToModify.datum.stabilityPoolWithdrawalFeePercentage,
+          newRedemptionReimbursementPercentage:
+            iassetToModify.datum.redemptionReimbursementPercentage,
+          newRedemptionProcessingFeePercentage:
+            iassetToModify.datum.redemptionProcessingFeePercentage,
+          newInterestCollectorPortionPercentage:
+            iassetToModify.datum.interestCollectorPortionPercentage,
+        },
+      },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    await runCreateAllShards(pollId, sysParams, context);
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+    );
+
+    await runVote(pollId, 'Yes', sysParams, context);
+
+    await waitForVotingEnd(pollId, sysParams, context);
+
+    await runMergeAllShards(pollId, sysParams, context);
+
+    await runEndProposal(pollId, sysParams, context);
+
+    const executeUtxo = await findExecute(
+      context.lucid,
+      sysParams.validatorHashes.executeHash,
+      fromSystemParamsAsset(sysParams.executeParams.upgradeToken),
+      pollId,
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      executeProposal(
+        executeUtxo.utxo,
+        (
+          await findGov(
+            context.lucid,
+            sysParams.validatorHashes.govHash,
+            fromSystemParamsAsset(sysParams.govParams.govNFT),
+          )
+        ).utxo,
+        null,
+        null,
+        iassetToModify.utxo,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+      ),
+    );
+  });
+
+  test<MyContext>('Execute modify protocol params proposal', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    const [tx, pollId] = await createProposal(
+      {
+        ModifyProtocolParams: {
+          newParams: {
+            proposalDeposit: govUtxo.datum.protocolParams.proposalDeposit * 2n,
+            votingPeriod: ONE_DAY * 2n,
+            effectiveDelay: govUtxo.datum.protocolParams.effectiveDelay,
+            expirationPeriod: ONE_DAY * 2n,
+            collateralFeePercentage:
+              govUtxo.datum.protocolParams.collateralFeePercentage,
+            proposingPeriod: ONE_DAY,
+            /// Total numer of shards used for voting.
+            totalShards: govUtxo.datum.protocolParams.totalShards,
+            /// The minimum number of votes (yes + no votes) for a proposal to be possible to pass.
+            minimumQuorum: govUtxo.datum.protocolParams.minimumQuorum,
+            /// Maximum amount of lovelaces that can be spent at once from the treasury.
+            maxTreasuryLovelaceSpend:
+              govUtxo.datum.protocolParams.maxTreasuryLovelaceSpend,
+            /// Maximum amount of INDY that can be spent at once from the treasury.
+            maxTreasuryIndySpend:
+              govUtxo.datum.protocolParams.maxTreasuryIndySpend,
+          },
+        },
+      },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    await runCreateAllShards(pollId, sysParams, context);
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+    );
+
+    await runVote(pollId, 'Yes', sysParams, context);
+
+    await waitForVotingEnd(pollId, sysParams, context);
+
+    await runMergeAllShards(pollId, sysParams, context);
+
+    await runEndProposal(pollId, sysParams, context);
+
+    const executeUtxo = await findExecute(
+      context.lucid,
+      sysParams.validatorHashes.executeHash,
+      fromSystemParamsAsset(sysParams.executeParams.upgradeToken),
+      pollId,
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      executeProposal(
+        executeUtxo.utxo,
+        (
+          await findGov(
+            context.lucid,
+            sysParams.validatorHashes.govHash,
+            fromSystemParamsAsset(sysParams.govParams.govNFT),
+          )
+        ).utxo,
+        null,
+        null,
+        null,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+      ),
+    );
+  });
+
+  test<MyContext>('Execute upgrade protocol proposal', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const sysParams = await init(context.lucid);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    const [tx, pollId] = await createProposal(
+      {
+        UpgradeProtocol: {
+          content: serialiseUpgradePaths({
+            upgradeId: govUtxo.datum.currentVersion + 1n,
+            upgradePaths: new Map([
+              [
+                sysParams.validatorHashes.cdpHash,
+                // NOTICE: this is just a placeholder, in real scenario it needs upgrade minting policy hash
+                { upgradeSymbol: sysParams.validatorHashes.cdpCreatorHash },
+              ],
+            ]),
+          }),
+        },
+      },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    await runCreateAllShards(pollId, sysParams, context);
+
+    await runAndAwaitTx(
+      context.lucid,
+      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+    );
+
+    await runVote(pollId, 'Yes', sysParams, context);
+
+    await waitForVotingEnd(pollId, sysParams, context);
+
+    await runMergeAllShards(pollId, sysParams, context);
+
+    await runEndProposal(pollId, sysParams, context);
+
+    const executeUtxo = await findExecute(
+      context.lucid,
+      sysParams.validatorHashes.executeHash,
+      fromSystemParamsAsset(sysParams.executeParams.upgradeToken),
+      pollId,
+    );
+
+    await runAndAwaitTx(
+      context.lucid,
+      executeProposal(
+        executeUtxo.utxo,
+        (
+          await findGov(
+            context.lucid,
+            sysParams.validatorHashes.govHash,
+            fromSystemParamsAsset(sysParams.govParams.govNFT),
+          )
+        ).utxo,
+        null,
+        null,
+        null,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+      ),
+    );
   });
 });

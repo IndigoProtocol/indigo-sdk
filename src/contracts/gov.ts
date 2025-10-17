@@ -2,7 +2,6 @@
 import {
   addAssets,
   Assets,
-  Constr,
   LucidEvolution,
   OutRef,
   paymentCredentialOf,
@@ -13,7 +12,6 @@ import {
 } from '@lucid-evolution/lucid';
 import {
   parseGovDatumOrThrow,
-  ProposalContent,
   serialiseGovDatum,
   serialiseGovRedeemer,
   TreasuryWithdrawal,
@@ -32,23 +30,18 @@ import {
 } from '../types/indigo/poll';
 import {
   assetClassValueOf,
+  isAssetsZero,
   lovelacesAmt,
   mkAssetsOf,
   mkLovelacesOf,
+  negateAssets,
 } from '../helpers/value-helpers';
 import { Data } from '@lucid-evolution/lucid';
-import { IAssetHelpers, IAssetOutput } from '../helpers/asset-helpers';
-import { array } from 'fp-ts';
 import { pipe } from 'fp-ts/lib/function';
-import {
-  array as A,
-  option as O,
-  string as S,
-  ord as Ord,
-  function as F,
-} from 'fp-ts';
+import { array as A, option as O, function as F } from 'fp-ts';
 import { match, P } from 'ts-pattern';
 import {
+  fromSysParamsScriptCredential,
   fromSystemParamsAsset,
   fromSystemParamsScriptRef,
   SystemParams,
@@ -68,53 +61,34 @@ import {
 } from '../types/indigo/staking-new';
 import { updateStakingLockedAmount } from '../helpers/staking-helpers';
 import { pollPassQuorum } from '../helpers/poll-helpers';
-import { serialiseExecuteDatum } from '../types/indigo/execute';
-
-function proposalDeposit(baseDeposit: bigint, activeProposals: bigint): bigint {
-  return baseDeposit * 2n ** activeProposals;
-}
-
-/**
- * Find the IAsset that should be a preceding one for the new IAsset token name.
- * In case there are no iassets, none should be returned.
- */
-async function findRelativeIAssetForInsertion(
-  /**
-   * UFT encoded
-   */
-  newIAssetTokenName: string,
-  allIAssetOrefs: OutRef[],
-  lucid: LucidEvolution,
-): Promise<O.Option<IAssetOutput>> {
-  const iassetUtxos = await Promise.all(
-    allIAssetOrefs.map((oref) => IAssetHelpers.findIAssetByRef(oref, lucid)),
-  );
-
-  // The iasset just before the new token name based on assets ordering
-  return pipe(
-    // Sort the asset names
-    iassetUtxos,
-
-    array.sort(
-      Ord.contramap<string, IAssetOutput>((x) => toText(x.datum.assetName))(
-        S.Ord,
-      ),
-    ),
-    // split head and tail
-    array.foldLeft(
-      () => O.none,
-      (head, rest) => O.some<[IAssetOutput, IAssetOutput[]]>([head, rest]),
-    ),
-    // find the preceding iasset for the new token name
-    O.flatMap(([firstIAsset, rest]) =>
-      O.some(
-        array.reduce<IAssetOutput, IAssetOutput>(firstIAsset, (acc, iasset) =>
-          toText(iasset.datum.assetName) < newIAssetTokenName ? iasset : acc,
-        )(rest),
-      ),
-    ),
-  );
-}
+import {
+  parseExecuteDatumOrThrow,
+  serialiseExecuteDatum,
+} from '../types/indigo/execute';
+import {
+  serialiseTreasuryRedeemer,
+  serialiseWithdrawalOutputDatum,
+} from '../types/indigo/treasury';
+import { bigintMin } from '../utils';
+import { OCD_DECIMAL_UNIT } from '../types/on-chain-decimal';
+import {
+  parseIAssetDatumOrThrow,
+  serialiseCdpRedeemer,
+  serialiseIAssetDatum,
+} from '../types/indigo/cdp';
+import {
+  createValueFromWithdrawal,
+  findRelativeIAssetForInsertion,
+  iassetCreationDatumHelper,
+  proposalDeposit,
+} from '../helpers/gov-helpers';
+import { serialiseStabilityPoolDatum } from '../types/indigo/stability-pool';
+import {
+  initEpochToScaleToSumMap,
+  initSpSnapshot,
+} from '../helpers/stability-pool-helpers';
+import { serialiseVersionRecordDatum } from '../types/indigo/version-record-new';
+import { parseUpgradePaths, ProposalContent } from '../types/indigo/gov-new';
 
 /**
  * Returns the new PollId.
@@ -205,7 +179,7 @@ export async function createProposal(
 
   return [
     tx
-      .mintAssets(pollNftValue, Data.to(new Constr(0, [])))
+      .mintAssets(pollNftValue, Data.void())
       // Ref scripts
       .readFrom([govRefScriptUtxo, pollAuthTokenPolicyRefScriptUtxo])
       .collectFrom(
@@ -338,7 +312,7 @@ export async function createShardsChunks(
     .validTo(
       Number(currentTime + sysParams.pollManagerParams.pBiasTime) - ONE_SECOND,
     )
-    .mintAssets(mkAssetsOf(pollNft, shardsCount), Data.to(new Constr(0, [])))
+    .mintAssets(mkAssetsOf(pollNft, shardsCount), Data.void())
     // Ref scripts
     .readFrom([pollAuthTokenPolicyRefScriptUtxo, pollManagerRefScriptUtxo])
     .collectFrom(
@@ -602,10 +576,7 @@ export async function mergeShards(
       pollManagerRefScriptUtxo,
       pollAuthTokenPolicyRefScriptUtxo,
     ])
-    .mintAssets(
-      mkAssetsOf(pollNft, -BigInt(shardsOutRefs.length)),
-      Data.to(new Constr(0, [])),
-    )
+    .mintAssets(mkAssetsOf(pollNft, -BigInt(shardsOutRefs.length)), Data.void())
     .collectFrom(
       [pollManagerUtxo],
       serialisePollManagerRedeemer({
@@ -747,7 +718,7 @@ export async function endProposal(
       [govUtxo],
       serialiseGovRedeemer({ WitnessEndPoll: { currentTime: currentTime } }),
     )
-    .mintAssets(mkAssetsOf(pollNft, -1n), Data.to(new Constr(0, [])))
+    .mintAssets(mkAssetsOf(pollNft, -1n), Data.void())
     .pay.ToContract(
       govUtxo.address,
       {
@@ -778,7 +749,7 @@ export async function endProposal(
         },
         upgradeTokenVal,
       )
-      .mintAssets(upgradeTokenVal, Data.to(new Constr(0, [])));
+      .mintAssets(upgradeTokenVal, Data.void());
   } else {
     tx.pay.ToContract(
       createScriptAddress(network, sysParams.validatorHashes.treasuryHash),
@@ -793,4 +764,458 @@ export async function endProposal(
   return tx;
 }
 
-// export function executeProposal(upgradeId: bigint) {}
+export async function executeProposal(
+  executeOref: OutRef,
+  govOref: OutRef,
+  treasuryWithdrawalOref: OutRef | null,
+  allIAssetOrefs: OutRef[] | null,
+  modifyIAssetOref: OutRef | null,
+  sysParams: SystemParams,
+  lucid: LucidEvolution,
+  currentSlot: number,
+): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  const ownAddr = await lucid.wallet().address();
+
+  const govUtxo = matchSingle(
+    await lucid.utxosByOutRef([govOref]),
+    (_) => new Error('Expected a single gov UTXO'),
+  );
+
+  const govDatum = parseGovDatumOrThrow(getInlineDatumOrThrow(govUtxo));
+
+  const govRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.governanceValidatorRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single Gov Ref Script UTXO'),
+  );
+  const executeRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.executeValidatorRef),
+    ]),
+    (_) => new Error('Expected a single execute Ref Script UTXO'),
+  );
+
+  const upgradeTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.authTokenPolicies.upgradeTokenRef,
+      ),
+    ]),
+    (_) =>
+      new Error('Expected a single upgrade auth token policy ref Script UTXO'),
+  );
+
+  const executeUtxo = matchSingle(
+    await lucid.utxosByOutRef([executeOref]),
+    (_) => new Error('Expected a single execute UTXO'),
+  );
+
+  const executeDatum = parseExecuteDatumOrThrow(
+    getInlineDatumOrThrow(executeUtxo),
+  );
+
+  const indyWithdrawalAmt = assetClassValueOf(
+    executeDatum.treasuryWithdrawal
+      ? createValueFromWithdrawal(executeDatum.treasuryWithdrawal)
+      : {},
+    fromSystemParamsAsset(sysParams.govParams.indyAsset),
+  );
+  const newTreasuryWithdrawnIndyAmtCapped = bigintMin(
+    4_822_081n * OCD_DECIMAL_UNIT,
+    govDatum.treasuryIndyWithdrawnAmt + indyWithdrawalAmt,
+  );
+
+  const tx = lucid.newTx();
+
+  // Handle treasury withdrawal
+  await pipe(
+    O.fromNullable(executeDatum.treasuryWithdrawal),
+    O.match(
+      () => {
+        if (treasuryWithdrawalOref) {
+          throw new Error('Cannot provide withdrawal oref when no withdrawal.');
+        }
+        return Promise.resolve();
+      },
+      async (withdrawal) => {
+        if (!treasuryWithdrawalOref) {
+          throw new Error('Have to provide withdrawal oref when withdrawal.');
+        }
+
+        const treasuryRefScriptUtxo = matchSingle(
+          await lucid.utxosByOutRef([
+            fromSystemParamsScriptRef(
+              sysParams.scriptReferences.treasuryValidatorRef,
+            ),
+          ]),
+          (_) => new Error('Expected a single Treasury Ref Script UTXO'),
+        );
+
+        const treasuryWithdrawalUtxo = matchSingle(
+          await lucid.utxosByOutRef([treasuryWithdrawalOref]),
+          (_) => new Error('Expected a single withdrawal UTXO'),
+        );
+
+        const withdrawalVal = createValueFromWithdrawal(withdrawal);
+        const withdrawalChangeVal = addAssets(
+          treasuryWithdrawalUtxo.assets,
+          negateAssets(withdrawalVal),
+        );
+
+        if (!isAssetsZero(withdrawalChangeVal)) {
+          tx.pay.ToContract(
+            createScriptAddress(
+              network,
+              sysParams.validatorHashes.treasuryHash,
+              sysParams.treasuryParams.treasuryUtxosStakeCredential
+                ? fromSysParamsScriptCredential(
+                    sysParams.treasuryParams.treasuryUtxosStakeCredential,
+                  )
+                : undefined,
+            ),
+            { kind: 'inline', value: Data.void() },
+            withdrawalChangeVal,
+          );
+        }
+
+        tx.readFrom([treasuryRefScriptUtxo])
+          .collectFrom(
+            [treasuryWithdrawalUtxo],
+            serialiseTreasuryRedeemer('Withdraw'),
+          )
+          .pay.ToAddressWithData(
+            withdrawal.destination,
+            {
+              kind: 'inline',
+              value: serialiseWithdrawalOutputDatum([
+                'IndigoTreasuryWithdrawal',
+                {
+                  txHash: { hash: executeUtxo.txHash },
+                  outputIndex: BigInt(executeUtxo.outputIndex),
+                },
+              ]),
+            },
+            withdrawalVal,
+          );
+      },
+    ),
+  );
+
+  await match(executeDatum.content)
+    .with({ ProposeAsset: P.select() }, async (proposeContent) => {
+      const iassetTokenPolicyRefScriptUtxo = matchSingle(
+        await lucid.utxosByOutRef([
+          fromSystemParamsScriptRef(
+            sysParams.scriptReferences.authTokenPolicies.iAssetAuthTokenRef,
+          ),
+        ]),
+        (_) =>
+          new Error(
+            'Expected a single iasset auth token policy ref Script UTXO',
+          ),
+      );
+      const stabilityPoolTokenPolicyRefScriptUtxo = matchSingle(
+        await lucid.utxosByOutRef([
+          fromSystemParamsScriptRef(
+            sysParams.scriptReferences.authTokenPolicies
+              .stabilityPoolAuthTokenRef,
+          ),
+        ]),
+        (_) =>
+          new Error('Expected a single SP auth token policy ref Script UTXO'),
+      );
+
+      const cdpRefScriptUtxo = matchSingle(
+        await lucid.utxosByOutRef([
+          fromSystemParamsScriptRef(sysParams.scriptReferences.cdpValidatorRef),
+        ]),
+        (_) => new Error('Expected a single CDP Ref Script UTXO'),
+      );
+
+      if (!allIAssetOrefs) {
+        throw new Error('Have to provide all iasset orefs when propose asset.');
+      }
+
+      const iassetToReference = await findRelativeIAssetForInsertion(
+        toText(proposeContent.asset),
+        allIAssetOrefs,
+        lucid,
+      );
+
+      const { newIAsset, newReferencedIAsset } = iassetCreationDatumHelper(
+        proposeContent,
+        F.pipe(
+          iassetToReference,
+          O.map((i) => i.datum),
+        ),
+      );
+
+      const iassetAuthVal = mkAssetsOf(
+        fromSystemParamsAsset(sysParams.executeParams.iAssetToken),
+        1n,
+      );
+      const spAuthVal = mkAssetsOf(
+        fromSystemParamsAsset(sysParams.executeParams.stabilityPoolToken),
+        1n,
+      );
+
+      tx.readFrom([
+        govRefScriptUtxo,
+        cdpRefScriptUtxo,
+        iassetTokenPolicyRefScriptUtxo,
+        stabilityPoolTokenPolicyRefScriptUtxo,
+      ])
+        .mintAssets(spAuthVal, Data.void())
+        .mintAssets(iassetAuthVal, Data.void())
+        .collectFrom([govUtxo], serialiseGovRedeemer('UpgradeGov'))
+        .pay.ToContract(
+          govUtxo.address,
+          {
+            kind: 'inline',
+            value: serialiseGovDatum({
+              ...govDatum,
+              treasuryIndyWithdrawnAmt: newTreasuryWithdrawnIndyAmtCapped,
+              iassetsCount: govDatum.iassetsCount + 1n,
+            }),
+          },
+          govUtxo.assets,
+        )
+        .pay.ToContract(
+          createScriptAddress(network, sysParams.validatorHashes.cdpHash),
+          { kind: 'inline', value: serialiseIAssetDatum(newIAsset) },
+          iassetAuthVal,
+        )
+        .pay.ToContract(
+          createScriptAddress(
+            network,
+            sysParams.validatorHashes.stabilityPoolHash,
+          ),
+          {
+            kind: 'inline',
+            value: serialiseStabilityPoolDatum({
+              StabilityPool: {
+                content: {
+                  asset: proposeContent.asset,
+                  snapshot: initSpSnapshot,
+                  epochToScaleToSum: initEpochToScaleToSumMap,
+                },
+              },
+            }),
+          },
+          spAuthVal,
+        );
+
+      F.pipe(
+        iassetToReference,
+        O.match(
+          () => {
+            // no action
+          },
+          (i) =>
+            F.pipe(
+              newReferencedIAsset,
+              O.match(
+                () => {
+                  throw new Error('Expected some referenced iasset.');
+                },
+                (newRefIAsset) => {
+                  tx.collectFrom(
+                    [i.utxo],
+                    serialiseCdpRedeemer('UpdateOrInsertAsset'),
+                  ).pay.ToContract(
+                    i.utxo.address,
+                    {
+                      kind: 'inline',
+                      value: serialiseIAssetDatum(newRefIAsset),
+                    },
+                    i.utxo.assets,
+                  );
+                },
+              ),
+            ),
+        ),
+      );
+    })
+    .with({ ModifyAsset: P.select() }, async (modifyContent) => {
+      const cdpRefScriptUtxo = matchSingle(
+        await lucid.utxosByOutRef([
+          fromSystemParamsScriptRef(sysParams.scriptReferences.cdpValidatorRef),
+        ]),
+        (_) => new Error('Expected a single CDP Ref Script UTXO'),
+      );
+
+      if (!modifyIAssetOref) {
+        throw new Error('Have to provide iasset oref when modify asset.');
+      }
+
+      const iassetUtxo = matchSingle(
+        await lucid.utxosByOutRef([modifyIAssetOref]),
+        (_) => new Error('Expected a single iasset UTXO'),
+      );
+
+      const iassetDatum = parseIAssetDatumOrThrow(
+        getInlineDatumOrThrow(iassetUtxo),
+      );
+
+      tx.readFrom([cdpRefScriptUtxo])
+        .collectFrom([iassetUtxo], serialiseCdpRedeemer('UpdateOrInsertAsset'))
+        .pay.ToContract(
+          createScriptAddress(network, sysParams.validatorHashes.cdpHash),
+          {
+            kind: 'inline',
+            value: serialiseIAssetDatum({
+              assetName: iassetDatum.assetName,
+              price: modifyContent.newAssetPriceInfo,
+              interestOracleNft: modifyContent.newInterestOracleNft,
+              redemptionRatio: modifyContent.newRedemptionRatioPercentage,
+              maintenanceRatio: modifyContent.newMaintenanceRatioPercentage,
+              liquidationRatio: modifyContent.newLiquidationRatioPercentage,
+              debtMintingFeePercentage:
+                modifyContent.newDebtMintingFeePercentage,
+              liquidationProcessingFeePercentage:
+                modifyContent.newLiquidationProcessingFeePercentage,
+              stabilityPoolWithdrawalFeePercentage:
+                modifyContent.newStabilityPoolWithdrawalFeePercentage,
+              redemptionReimbursementPercentage:
+                modifyContent.newRedemptionReimbursementPercentage,
+              redemptionProcessingFeePercentage:
+                modifyContent.newRedemptionProcessingFeePercentage,
+              interestCollectorPortionPercentage:
+                modifyContent.newInterestCollectorPortionPercentage,
+              firstIAsset: iassetDatum.firstIAsset,
+              nextIAsset: iassetDatum.nextIAsset,
+            }),
+          },
+          iassetUtxo.assets,
+        );
+
+      if (indyWithdrawalAmt > 0) {
+        tx.readFrom([govRefScriptUtxo])
+          .collectFrom([govUtxo], serialiseGovRedeemer('UpgradeGov'))
+          .pay.ToContract(
+            govUtxo.address,
+            {
+              kind: 'inline',
+              value: serialiseGovDatum({
+                ...govDatum,
+                treasuryIndyWithdrawnAmt: newTreasuryWithdrawnIndyAmtCapped,
+              }),
+            },
+            govUtxo.assets,
+          );
+      } else {
+        tx.readFrom([govUtxo]);
+      }
+    })
+    .with({ TextProposal: P.any }, () => {
+      if (indyWithdrawalAmt > 0) {
+        tx.readFrom([govRefScriptUtxo])
+          .collectFrom([govUtxo], serialiseGovRedeemer('UpgradeGov'))
+          .pay.ToContract(
+            govUtxo.address,
+            {
+              kind: 'inline',
+              value: serialiseGovDatum({
+                ...govDatum,
+                treasuryIndyWithdrawnAmt: newTreasuryWithdrawnIndyAmtCapped,
+              }),
+            },
+            govUtxo.assets,
+          );
+      } else {
+        tx.readFrom([govUtxo]);
+      }
+    })
+    .with(
+      { ModifyProtocolParams: { newParams: P.select() } },
+      (newProtocolParams) => {
+        tx.readFrom([govRefScriptUtxo])
+          .collectFrom([govUtxo], serialiseGovRedeemer('UpgradeGov'))
+          .pay.ToContract(
+            govUtxo.address,
+            {
+              kind: 'inline',
+              value: serialiseGovDatum({
+                ...govDatum,
+                protocolParams: newProtocolParams,
+                treasuryIndyWithdrawnAmt: newTreasuryWithdrawnIndyAmtCapped,
+              }),
+            },
+            govUtxo.assets,
+          );
+      },
+    )
+    .with({ UpgradeProtocol: P.select() }, async (d) => {
+      const upgradeDetails = parseUpgradePaths(d.content);
+
+      const versionRecordTokenPolicyRefScriptUtxo = matchSingle(
+        await lucid.utxosByOutRef([
+          fromSystemParamsScriptRef(
+            sysParams.scriptReferences.versionRecordTokenPolicyRef,
+          ),
+        ]),
+        (_) =>
+          new Error(
+            'Expected a single version record token policy ref Script UTXO',
+          ),
+      );
+
+      const versionRecordNftVal = mkAssetsOf(
+        fromSystemParamsAsset(sysParams.executeParams.versionRecordToken),
+        1n,
+      );
+
+      tx.readFrom([govRefScriptUtxo, versionRecordTokenPolicyRefScriptUtxo])
+        .mintAssets(versionRecordNftVal, Data.void())
+        .pay.ToContract(
+          createScriptAddress(
+            network,
+            sysParams.validatorHashes.versionRegistryHash,
+          ),
+          {
+            kind: 'inline',
+            value: serialiseVersionRecordDatum({
+              upgradeId: upgradeDetails.upgradeId,
+              upgradePaths: new Map(
+                upgradeDetails.upgradePaths
+                  .entries()
+                  .map(([h1, h2]) => [h1, h2.upgradeSymbol]),
+              ),
+            }),
+          },
+          versionRecordNftVal,
+        )
+        .collectFrom([govUtxo], serialiseGovRedeemer('UpgradeGov'))
+        .pay.ToContract(
+          govUtxo.address,
+          {
+            kind: 'inline',
+            value: serialiseGovDatum({
+              ...govDatum,
+              currentVersion: govDatum.currentVersion + 1n,
+              treasuryIndyWithdrawnAmt: newTreasuryWithdrawnIndyAmtCapped,
+            }),
+          },
+          govUtxo.assets,
+        );
+    })
+    .exhaustive();
+
+  tx.readFrom([upgradeTokenPolicyRefScriptUtxo, executeRefScriptUtxo])
+    .validFrom(Number(currentTime) - ONE_SECOND)
+    .validTo(Number(currentTime + sysParams.govParams.gBiasTime) - ONE_SECOND)
+    .collectFrom([executeUtxo], Data.void())
+    .mintAssets(
+      mkAssetsOf(fromSystemParamsAsset(sysParams.govParams.upgradeToken), -1n),
+      Data.void(),
+    )
+    .addSigner(ownAddr);
+
+  return tx;
+}

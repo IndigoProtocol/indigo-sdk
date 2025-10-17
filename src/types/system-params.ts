@@ -1,4 +1,4 @@
-import { fromText, OutRef, toText } from '@lucid-evolution/lucid';
+import { Credential, fromText, OutRef, toText } from '@lucid-evolution/lucid';
 import { AssetClass, CurrencySymbol, TokenName } from './generic';
 
 /**
@@ -147,8 +147,10 @@ export interface AuthTokenPolicies {
   upgradeTokenRef: ScriptReference;
   stakingTokenRef: ScriptReference;
   stabilityPoolTokenRef: ScriptReference;
+  stabilityPoolAuthTokenRef: ScriptReference;
   snapshotEpochToScaleToSumTokenRef: ScriptReference;
   pollManagerTokenRef: ScriptReference;
+  iAssetAuthTokenRef: ScriptReference;
   iAssetTokenRef: ScriptReference;
   cdpAuthTokenRef: ScriptReference;
   accountTokenRef: ScriptReference;
@@ -258,4 +260,10 @@ export function fromSystemParamsAsset(asset: AssetClassSP): AssetClass {
 
 export function fromSystemParamsScriptRef(ref: ScriptReference): OutRef {
   return { outputIndex: ref.input.index, txHash: ref.input.transactionId };
+}
+
+export function fromSysParamsScriptCredential(
+  cred: ScriptCredential,
+): Credential {
+  return { type: 'Script', hash: cred.contents.contents };
 }

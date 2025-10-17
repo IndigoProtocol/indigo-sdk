@@ -52,6 +52,10 @@ import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool
 import { runAndAwaitTxBuilder } from '../test-helpers';
 import { startPriceOracleTx } from '../../src/contracts/price-oracle';
 import { serialiseStakingDatum } from '../../src/types/indigo/staking-new';
+import {
+  initEpochToScaleToSumMap,
+  initSpSnapshot,
+} from '../../src/helpers/stability-pool-helpers';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -377,14 +381,8 @@ async function initializeAsset(
 
   const stabilityPoolDatum: StabilityPoolContent = {
     asset: fromText(asset.name),
-    snapshot: {
-      productVal: { value: 1n },
-      depositVal: { value: 0n },
-      sumVal: { value: 0n },
-      epoch: 0n,
-      scale: 0n,
-    },
-    epochToScaleToSum: new Map(),
+    snapshot: initSpSnapshot,
+    epochToScaleToSum: initEpochToScaleToSumMap,
   };
 
   const spTx = lucid.newTx().pay.ToContract(

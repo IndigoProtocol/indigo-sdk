@@ -1,7 +1,8 @@
 import { Data, Datum } from '@lucid-evolution/lucid';
 import { AssetClassSchema } from '../generic';
-import { ProposalContentSchema, TreasuryWithdrawalSchema } from './gov';
+import { TreasuryWithdrawalSchema } from './gov';
 import { option as O, function as F } from 'fp-ts';
+import { ProposalContentSchema } from './gov-new';
 
 const ExecuteParamsSchema = Data.Object({
   govNFT: AssetClassSchema,

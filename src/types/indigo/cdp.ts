@@ -1,5 +1,5 @@
-import { Data, Datum } from '@lucid-evolution/lucid';
-import { AssetClassSchema } from '../generic';
+import { Data, Datum, Redeemer } from '@lucid-evolution/lucid';
+import { AssetClassSchema, OutputReferenceSchema } from '../generic';
 import { OnChainDecimalSchema } from '../on-chain-decimal';
 import { OracleAssetNftSchema } from './price-oracle';
 import { match, P } from 'ts-pattern';
@@ -67,6 +67,32 @@ export type CDPContent = Data.Static<typeof CDPContentSchema>;
 const CDPContent = CDPContentSchema as unknown as CDPContent;
 export type IAssetContent = Data.Static<typeof IAssetContentSchema>;
 const IAssetContent = IAssetContentSchema as unknown as IAssetContent;
+
+const CDPRedeemerSchema = Data.Enum([
+  Data.Object({
+    AdjustCdp: Data.Object({
+      currentTime: Data.Integer(),
+      mintedAmtChange: Data.Integer(),
+      collateralAmtChange: Data.Integer(),
+    }),
+  }),
+  Data.Object({ CloseCdp: Data.Object({ currentTime: Data.Integer() }) }),
+  Data.Object({ RedeemCdp: Data.Object({ currentTime: Data.Integer() }) }),
+  Data.Object({ FreezeCdp: Data.Object({ currentTime: Data.Integer() }) }),
+  Data.Literal('MergeCdps'),
+  Data.Object({
+    MergeAuxiliary: Data.Object({ mainMergeUtxo: OutputReferenceSchema }),
+  }),
+  Data.Literal('Liquidate'),
+  Data.Literal('UpdateOrInsertAsset'),
+  Data.Literal('UpgradeVersion'),
+]);
+export type CDPRedeemer = Data.Static<typeof CDPRedeemerSchema>;
+const CDPRedeemer = CDPRedeemerSchema as unknown as CDPRedeemer;
+
+export function serialiseCdpRedeemer(r: CDPRedeemer): Redeemer {
+  return Data.to<CDPRedeemer>(r, CDPRedeemer);
+}
 
 export function parseCDPDatum(datum: Datum): CDPContent {
   return match(Data.from<CDPDatum>(datum, CDPDatum))

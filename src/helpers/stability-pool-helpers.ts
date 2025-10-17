@@ -12,8 +12,21 @@ import {
   spSub,
   StabilityPoolSnapshot,
 } from '../types/indigo/stability-pool';
+import { getInlineDatumOrThrow } from './lucid-utils';
 
 const newScaleMultiplier = 1000000000n;
+
+export const initSpSnapshot: StabilityPoolSnapshot = {
+  productVal: { value: 1n },
+  depositVal: { value: 0n },
+  sumVal: { value: 0n },
+  epoch: 0n,
+  scale: 0n,
+};
+
+export const initEpochToScaleToSumMap: EpochToScaleToSum = new Map([
+  [{ epoch: 0n, scale: 0n }, { value: 0n }],
+]);
 
 export function getSumFromEpochToScaleToSum(
   e2s2s: EpochToScaleToSum,
@@ -104,11 +117,11 @@ function findEpochToScaleToSum(
   let ess1: EpochToScaleToSum;
   try {
     ess1 = parseSnapshotEpochToScaleToSumDatum(
-      snapshotEpochToScaleToSumTokenRef1.datum,
+      getInlineDatumOrThrow(snapshotEpochToScaleToSumTokenRef1),
     ).snapshot;
   } catch (_) {
     ess1 = parseStabilityPoolDatum(
-      snapshotEpochToScaleToSumTokenRef1.datum,
+      getInlineDatumOrThrow(snapshotEpochToScaleToSumTokenRef1),
     ).epochToScaleToSum;
   }
 
@@ -119,7 +132,7 @@ function findEpochToScaleToSum(
 
   if (snapshotEpochToScaleToSumTokenRef2) {
     const ess2 = parseSnapshotEpochToScaleToSumDatum(
-      snapshotEpochToScaleToSumTokenRef2.datum,
+      getInlineDatumOrThrow(snapshotEpochToScaleToSumTokenRef2),
     );
     const ess2Ref: SnapshotESSSearchResult = {
       utxo: snapshotEpochToScaleToSumTokenRef2,
