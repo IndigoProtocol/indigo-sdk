@@ -6,14 +6,11 @@ import {
   parseIAssetDatumOrThrow,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
-  parseStabilityPoolDatum,
   serialiseCDPDatum,
   serialiseFeedInterestOracleRedeemer,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
-  serialiseStabilityPoolDatum,
-  StabilityPoolContent,
 } from '../src/index';
 import { fromText } from '@lucid-evolution/lucid';
 import {
@@ -23,6 +20,11 @@ import {
   StakingManager,
   StakingPosition,
 } from '../src/types/indigo/staking-new';
+import {
+  parseStabilityPoolDatum,
+  serialiseStabilityPoolDatum,
+  StabilityPoolContent,
+} from '../src/types/indigo/stability-pool-new';
 
 describe('Datum checks', () => {
   it('Price Oracle', () => {
@@ -185,7 +187,7 @@ describe('Datum checks', () => {
       'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffa2d8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffff';
     const stabilityPoolObject: StabilityPoolContent = {
       asset: fromText('iUSD'),
-      snapshot: {
+      poolSnapshot: {
         productVal: { value: 736247675907734314n },
         depositVal: { value: 2502085246000826468068228145850n },
         sumVal: { value: 1143417026613401054n },
@@ -200,11 +202,9 @@ describe('Datum checks', () => {
     expect(parseStabilityPoolDatum(stabilityPoolDatum)).toEqual(
       stabilityPoolObject,
     );
-    expect(
-      serialiseStabilityPoolDatum({
-        StabilityPool: { content: stabilityPoolObject },
-      }),
-    ).toEqual(stabilityPoolDatum);
+    expect(serialiseStabilityPoolDatum(stabilityPoolObject)).toEqual(
+      stabilityPoolDatum,
+    );
   });
 
   // it('Stability Pool Account', () => {

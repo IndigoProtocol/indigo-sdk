@@ -82,13 +82,13 @@ import {
   iassetCreationDatumHelper,
   proposalDeposit,
 } from '../helpers/gov-helpers';
-import { serialiseStabilityPoolDatum } from '../types/indigo/stability-pool';
 import {
   initEpochToScaleToSumMap,
   initSpSnapshot,
 } from '../helpers/stability-pool-helpers';
 import { serialiseVersionRecordDatum } from '../types/indigo/version-record-new';
 import { parseUpgradePaths, ProposalContent } from '../types/indigo/gov-new';
+import { serialiseStabilityPoolDatum } from '../types/indigo/stability-pool-new';
 
 /**
  * Returns the new PollId.
@@ -999,13 +999,9 @@ export async function executeProposal(
           {
             kind: 'inline',
             value: serialiseStabilityPoolDatum({
-              StabilityPool: {
-                content: {
-                  asset: proposeContent.asset,
-                  snapshot: initSpSnapshot,
-                  epochToScaleToSum: initEpochToScaleToSumMap,
-                },
-              },
+              asset: proposeContent.asset,
+              poolSnapshot: initSpSnapshot,
+              epochToScaleToSum: initEpochToScaleToSumMap(),
             }),
           },
           spAuthVal,

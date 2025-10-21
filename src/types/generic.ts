@@ -7,6 +7,7 @@ import {
   Credential,
 } from '@lucid-evolution/lucid';
 import { match, P } from 'ts-pattern';
+import { Data as EvoData } from '@evolution-sdk/evolution';
 
 export const AssetClassSchema = Data.Object({
   currencySymbol: Data.Bytes(),
@@ -130,4 +131,12 @@ export interface CurrencySymbol {
 
 export interface TokenName {
   unTokenName: string;
+}
+
+export function cborToEvoData(d: string): EvoData.Data {
+  return EvoData.fromCBORHex(d);
+}
+
+export function evoDataToCbor(d: EvoData.Data): string {
+  return EvoData.toCBORHex(d);
 }

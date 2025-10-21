@@ -112,7 +112,3 @@ export function serialiseUpgradePaths(d: UpgradePaths): Data {
 export function parseUpgradePaths(d: Data): UpgradePaths {
   return EvoData.withSchema(UpgradePathsSchema).fromCBORHex(Data.to(d));
 }
-
-export function serialiseProposalContent(d: ProposalContent): string {
-  return Data.to<ProposalContent>(d, ProposalContent);
-}

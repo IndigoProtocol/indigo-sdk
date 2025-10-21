@@ -330,12 +330,14 @@ describe('LRP', () => {
           testCtx.oracleValHash,
           testCtx.oracleNft,
         ),
-        await findIAsset(
-          lucid,
-          testCtx.iassetValHash,
-          testCtx.iassetNft,
-          toText(iassetTokenName),
-        ),
+        (
+          await findIAsset(
+            lucid,
+            testCtx.iassetValHash,
+            testCtx.iassetNft,
+            toText(iassetTokenName),
+          )
+        ).utxo,
         lucid,
         lrpParams,
         network,
@@ -456,12 +458,14 @@ describe('LRP', () => {
           testCtx.oracleValHash,
           testCtx.oracleNft,
         ),
-        await findIAsset(
-          lucid,
-          testCtx.iassetValHash,
-          testCtx.iassetNft,
-          toText(iassetTokenName),
-        ),
+        (
+          await findIAsset(
+            lucid,
+            testCtx.iassetValHash,
+            testCtx.iassetNft,
+            toText(iassetTokenName),
+          )
+        ).utxo,
         lucid,
         lrpParams,
         network,
@@ -588,12 +592,14 @@ describe('LRP', () => {
           testCtx.oracleValHash,
           testCtx.oracleNft,
         ),
-        await findIAsset(
-          lucid,
-          testCtx.iassetValHash,
-          testCtx.iassetNft,
-          toText(iassetTokenName),
-        ),
+        (
+          await findIAsset(
+            lucid,
+            testCtx.iassetValHash,
+            testCtx.iassetNft,
+            toText(iassetTokenName),
+          )
+        ).utxo,
         lucid,
         lrpParams,
         network,
@@ -719,12 +725,14 @@ describe('LRP', () => {
           testCtx.oracleValHash,
           testCtx.oracleNft,
         ),
-        await findIAsset(
-          lucid,
-          testCtx.iassetValHash,
-          testCtx.iassetNft,
-          toText(iassetTokenName),
-        ),
+        (
+          await findIAsset(
+            lucid,
+            testCtx.iassetValHash,
+            testCtx.iassetNft,
+            toText(iassetTokenName),
+          )
+        ).utxo,
         lucid,
         lrpParams,
         network,

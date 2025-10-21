@@ -31,8 +31,6 @@ import {
   runOneShotMintTx,
   serialiseGovDatum,
   serialiseIAssetDatum,
-  serialiseStabilityPoolDatum,
-  StabilityPoolContent,
   StabilityPoolParamsSP,
   StakingParams,
   SystemParams,
@@ -56,6 +54,10 @@ import {
   initEpochToScaleToSumMap,
   initSpSnapshot,
 } from '../../src/helpers/stability-pool-helpers';
+import {
+  serialiseStabilityPoolDatum,
+  StabilityPoolContent,
+} from '../../src/types/indigo/stability-pool-new';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -381,8 +383,8 @@ async function initializeAsset(
 
   const stabilityPoolDatum: StabilityPoolContent = {
     asset: fromText(asset.name),
-    snapshot: initSpSnapshot,
-    epochToScaleToSum: initEpochToScaleToSumMap,
+    poolSnapshot: initSpSnapshot,
+    epochToScaleToSum: initEpochToScaleToSumMap(),
   };
 
   const spTx = lucid.newTx().pay.ToContract(
@@ -394,9 +396,7 @@ async function initializeAsset(
     }),
     {
       kind: 'inline',
-      value: serialiseStabilityPoolDatum({
-        StabilityPool: { content: stabilityPoolDatum },
-      }),
+      value: serialiseStabilityPoolDatum(stabilityPoolDatum),
     },
     {
       [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,
