@@ -9,6 +9,7 @@ export async function findIAsset(
   lucid: LucidEvolution,
   iassetScriptHash: ScriptHash,
   iassetNft: AssetClass,
+  // Ascii encoded
   iassetName: string,
 ): Promise<IAssetOutput> {
   const iassetUtxos = await lucid.utxosAtWithUnit(

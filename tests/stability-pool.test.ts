@@ -4,13 +4,23 @@ import { EmulatorAccount, fromText, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { init } from './endpoints/initialize';
-import { addrDetails, CDPContract, StabilityPoolContract } from '../src';
+import {
+  addrDetails,
+  fromSystemParamsAsset,
+  openCdp,
+  StabilityPoolContract,
+} from '../src';
 import {
   findStabilityPool,
   findStabilityPoolAccount,
 } from './queries/stability-pool-queries';
 import { findIAsset } from './queries/iasset-queries';
 import { findGov } from './queries/governance-queries';
+import { findRandomCdpCreator } from './queries/cdp-queries';
+import { findPriceOracle } from './queries/price-oracle-queries';
+import { match, P } from 'ts-pattern';
+import { findInterestOracle } from './queries/interest-oracle-queries';
+import { findRandomCollector } from './queries/collector-queries';
 
 let originalDateNow: () => number;
 
@@ -51,13 +61,38 @@ test<MyContext>('Stability Pool - Create Account', async ({
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 
+  const iasset = await findIAsset(
+    lucid,
+    systemParams.validatorHashes.cdpHash,
+    fromSystemParamsAsset(systemParams.cdpParams.iAssetAuthToken),
+    'iUSD',
+  );
+
   await runAndAwaitTx(
     lucid,
-    CDPContract.openPosition(
-      'iUSD',
+    openCdp(
       1_000_000_000n,
       20n,
       systemParams,
+      await findRandomCdpCreator(
+        lucid,
+        systemParams.validatorHashes.cdpCreatorHash,
+        fromSystemParamsAsset(systemParams.cdpCreatorParams.cdpCreatorNft),
+      ),
+      iasset.utxo,
+      await findPriceOracle(
+        lucid,
+        match(iasset.datum.price)
+          .with({ Oracle: { content: P.select() } }, (oracleNft) => oracleNft)
+          .otherwise(() => {
+            throw new Error('Expected active oracle');
+          }),
+      ),
+      await findInterestOracle(lucid, iasset.datum.interestOracleNft),
+      await findRandomCollector(
+        lucid,
+        systemParams.validatorHashes.collectorHash,
+      ),
       lucid,
       emulator.slot,
     ),
@@ -133,13 +168,38 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 
+  const iasset = await findIAsset(
+    lucid,
+    systemParams.validatorHashes.cdpHash,
+    fromSystemParamsAsset(systemParams.cdpParams.iAssetAuthToken),
+    'iUSD',
+  );
+
   await runAndAwaitTx(
     lucid,
-    CDPContract.openPosition(
-      'iUSD',
+    openCdp(
       1_000_000_000n,
       20n,
       systemParams,
+      await findRandomCdpCreator(
+        lucid,
+        systemParams.validatorHashes.cdpCreatorHash,
+        fromSystemParamsAsset(systemParams.cdpCreatorParams.cdpCreatorNft),
+      ),
+      iasset.utxo,
+      await findPriceOracle(
+        lucid,
+        match(iasset.datum.price)
+          .with({ Oracle: { content: P.select() } }, (oracleNft) => oracleNft)
+          .otherwise(() => {
+            throw new Error('Expected active oracle');
+          }),
+      ),
+      await findInterestOracle(lucid, iasset.datum.interestOracleNft),
+      await findRandomCollector(
+        lucid,
+        systemParams.validatorHashes.collectorHash,
+      ),
       lucid,
       emulator.slot,
     ),
@@ -270,13 +330,38 @@ test<MyContext>('Stability Pool - Close Account', async ({
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 
+  const iasset = await findIAsset(
+    lucid,
+    systemParams.validatorHashes.cdpHash,
+    fromSystemParamsAsset(systemParams.cdpParams.iAssetAuthToken),
+    'iUSD',
+  );
+
   await runAndAwaitTx(
     lucid,
-    CDPContract.openPosition(
-      'iUSD',
+    openCdp(
       1_000_000_000n,
       20n,
       systemParams,
+      await findRandomCdpCreator(
+        lucid,
+        systemParams.validatorHashes.cdpCreatorHash,
+        fromSystemParamsAsset(systemParams.cdpCreatorParams.cdpCreatorNft),
+      ),
+      iasset.utxo,
+      await findPriceOracle(
+        lucid,
+        match(iasset.datum.price)
+          .with({ Oracle: { content: P.select() } }, (oracleNft) => oracleNft)
+          .otherwise(() => {
+            throw new Error('Expected active oracle');
+          }),
+      ),
+      await findInterestOracle(lucid, iasset.datum.interestOracleNft),
+      await findRandomCollector(
+        lucid,
+        systemParams.validatorHashes.collectorHash,
+      ),
       lucid,
       emulator.slot,
     ),

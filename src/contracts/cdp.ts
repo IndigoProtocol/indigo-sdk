@@ -1,9 +1,9 @@
 import {
+  addAssets,
   applyParamsToScript,
   Assets,
   Constr,
   Credential,
-  credentialToAddress,
   Data,
   fromText,
   LucidEvolution,
@@ -17,199 +17,211 @@ import {
 } from '@lucid-evolution/lucid';
 import {
   CdpParams,
+  fromSystemParamsAsset,
+  fromSystemParamsScriptRef,
   ScriptReferences,
   SystemParams,
 } from '../types/system-params';
-import { IAssetHelpers, IAssetOutput } from '../helpers/asset-helpers';
+import { IAssetHelpers } from '../helpers/asset-helpers';
 import { CollectorContract } from './collector';
 import { TreasuryContract } from './treasury';
-import { addrDetails, scriptRef } from '../helpers/lucid-utils';
 import {
-  calculateFeeFromPercentage,
-  getRandomElement,
-} from '../helpers/helpers';
+  addrDetails,
+  createScriptAddress,
+  getInlineDatumOrThrow,
+  scriptRef,
+} from '../helpers/lucid-utils';
+import { calculateFeeFromPercentage, matchSingle } from '../helpers/helpers';
 import {
   CDPContent,
   parseCDPDatum,
+  parseIAssetDatumOrThrow,
   serialiseCDPDatum,
 } from '../types/indigo/cdp';
 import { _cdpValidator } from '../scripts/cdp-validator';
 import { parsePriceOracleDatum } from '../types/indigo/price-oracle';
 import { parseInterestOracleDatum } from '../types/indigo/interest-oracle';
-import { castCDPCreatorRedeemer } from '../types/indigo/cdp-creator';
 import { parseGovDatumOrThrow } from '../types/indigo/gov';
 import {
   calculateAccruedInterest,
   calculateUnitaryInterestSinceOracleLastUpdated,
 } from '../helpers/interest-oracle';
 import { oracleExpirationAwareValidity } from '../helpers/price-oracle-helpers';
+import { match, P } from 'ts-pattern';
+import { serialiseCDPCreatorRedeemer } from '../types/indigo/cdp-creator';
+import { mkAssetsOf, mkLovelacesOf } from '../helpers/value-helpers';
 
-export class CDPContract {
-  static async openPosition(
-    asset: string,
-    collateralAmount: bigint,
-    mintedAmount: bigint,
-    params: SystemParams,
-    lucid: LucidEvolution,
-    currentSlot: number,
-    assetRef?: OutRef,
-    priceOracleRef?: OutRef,
-    interestOracleRef?: OutRef,
-    cdpCreatorRef?: OutRef,
-    collectorRef?: OutRef,
-  ): Promise<TxBuilder> {
-    const network = lucid.config().network!;
-    const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+export async function openCdp(
+  collateralAmount: bigint,
+  mintedAmount: bigint,
+  sysParams: SystemParams,
+  cdpCreatorRef: OutRef,
+  iassetOref: OutRef,
+  priceOracleOref: OutRef,
+  interestOracleRef: OutRef,
+  collectorRef: OutRef,
+  lucid: LucidEvolution,
+  currentSlot: number,
+): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
-    const [pkh, skh] = await addrDetails(lucid);
-    const assetOut: IAssetOutput = await (assetRef
-      ? IAssetHelpers.findIAssetByRef(assetRef, lucid)
-      : IAssetHelpers.findIAssetByName(asset, params, lucid));
-    if (!assetOut || !assetOut.datum) throw new Error('Unable to find IAsset');
-    // Fail if delisted asset
-    if ('Delisted' in assetOut.datum.price)
-      return Promise.reject(
-        new Error('Trying to open CDP against delisted asset'),
-      );
+  const [pkh, skh] = await addrDetails(lucid);
 
-    const oracleAsset = assetOut.datum.price.Oracle.content.oracleNft;
-    const oracleOut = priceOracleRef
-      ? (await lucid.utxosByOutRef([priceOracleRef]))[0]
-      : await lucid.utxoByUnit(
-          oracleAsset.currencySymbol + oracleAsset.tokenName,
-        );
-    if (!oracleOut.datum)
-      return Promise.reject(new Error('Price Oracle datum not found'));
-    const oracleDatum = parsePriceOracleDatum(oracleOut.datum);
+  const cdpCreatorRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.cdpCreatorValidatorRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single cdp creator Ref Script UTXO'),
+  );
+  const cdpAuthTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.authTokenPolicies.cdpAuthTokenRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single cdp auth token policy Ref Script UTXO'),
+  );
+  const iAssetTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.iAssetTokenPolicyRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single cdp auth token policy Ref Script UTXO'),
+  );
 
-    const interestOracleAsset = assetOut.datum.interestOracleNft;
-    const interestOracleOut = interestOracleRef
-      ? (await lucid.utxosByOutRef([interestOracleRef]))[0]
-      : await lucid.utxoByUnit(
-          interestOracleAsset.currencySymbol + interestOracleAsset.tokenName,
-        );
-    if (!interestOracleOut.datum)
-      return Promise.reject(new Error('Interest Oracle datum not found'));
-    const interestOracleDatum = parseInterestOracleDatum(
-      interestOracleOut.datum,
-    );
+  const iassetUtxo = matchSingle(
+    await lucid.utxosByOutRef([iassetOref]),
+    (_) => new Error('Expected a single iasset UTXO'),
+  );
 
-    const cdpCreatorOut = getRandomElement(
-      cdpCreatorRef
-        ? await lucid.utxosByOutRef([cdpCreatorRef])
-        : await lucid.utxosAtWithUnit(
-            credentialToAddress(network, {
-              type: 'Script',
-              hash: params.validatorHashes.cdpCreatorHash,
-            }),
-            params.cdpCreatorParams.cdpCreatorNft[0].unCurrencySymbol +
-              fromText(params.cdpCreatorParams.cdpCreatorNft[1].unTokenName),
-          ),
-    );
+  const iassetDatum = parseIAssetDatumOrThrow(
+    getInlineDatumOrThrow(iassetUtxo),
+  );
 
-    const cdpCreatorRedeemer = castCDPCreatorRedeemer({
-      CreateCDP: {
-        cdpOwner: pkh.hash,
-        minted: mintedAmount,
-        collateral: collateralAmount,
-        currentTime: currentTime,
-      },
-    });
+  match(iassetDatum.price)
+    .with({ Delisted: P.any }, () => {
+      throw new Error('Trying to open CDP against delisted asset');
+    })
+    .otherwise(() => {});
 
-    const cdpCreatorScriptRefUtxo = await scriptRef(
-      params.scriptReferences.cdpCreatorValidatorRef,
-      lucid,
-    );
+  const priceOracleUtxo = matchSingle(
+    await lucid.utxosByOutRef([priceOracleOref]),
+    (_) => new Error('Expected a single price oracle UTXO'),
+  );
 
-    const cdpAddress = CDPContract.address(params.cdpParams, lucid, skh);
-    const cdpToken =
-      params.cdpParams.cdpAuthToken[0].unCurrencySymbol +
-      fromText(params.cdpParams.cdpAuthToken[1].unTokenName);
+  const priceOracleDatum = parsePriceOracleDatum(
+    getInlineDatumOrThrow(priceOracleUtxo),
+  );
 
-    const cdpValue: Assets = {
-      lovelace: collateralAmount,
-    };
-    cdpValue[cdpToken] = 1n;
-    const newSnapshot =
-      calculateUnitaryInterestSinceOracleLastUpdated(
-        currentTime,
-        interestOracleDatum,
-      ) + interestOracleDatum.unitaryInterest;
-    const cdpDatum: CDPContent = {
-      cdpOwner: pkh.hash,
-      iasset: fromText(asset),
-      mintedAmt: mintedAmount,
-      cdpFees: {
-        ActiveCDPInterestTracking: {
-          lastSettled: currentTime,
-          unitaryInterestSnapshot: newSnapshot,
+  const interestOracleUtxo = matchSingle(
+    await lucid.utxosByOutRef([interestOracleRef]),
+    (_) => new Error('Expected a single interest oracle UTXO'),
+  );
+
+  const interestOracleDatum = parseInterestOracleDatum(
+    getInlineDatumOrThrow(interestOracleUtxo),
+  );
+
+  const cdpCreatorUtxo = matchSingle(
+    await lucid.utxosByOutRef([cdpCreatorRef]),
+    (_) => new Error('Expected a single CDP creator UTXO'),
+  );
+
+  const cdpNftVal = mkAssetsOf(
+    fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+    1n,
+  );
+
+  const iassetTokensVal = mkAssetsOf(
+    {
+      currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
+      tokenName: iassetDatum.assetName,
+    },
+    mintedAmount,
+  );
+
+  const txValidity = oracleExpirationAwareValidity(
+    currentSlot,
+    Number(sysParams.cdpCreatorParams.biasTime),
+    Number(priceOracleDatum.expiration),
+    network,
+  );
+
+  const tx = lucid
+    .newTx()
+    .validFrom(txValidity.validFrom)
+    .validTo(txValidity.validTo)
+    .readFrom([
+      cdpCreatorRefScriptUtxo,
+      cdpAuthTokenPolicyRefScriptUtxo,
+      iAssetTokenPolicyRefScriptUtxo,
+    ])
+    .mintAssets(cdpNftVal, Data.void())
+    .mintAssets(iassetTokensVal, Data.void())
+    .collectFrom(
+      [cdpCreatorUtxo],
+      serialiseCDPCreatorRedeemer({
+        CreateCDP: {
+          cdpOwner: pkh.hash,
+          minted: mintedAmount,
+          collateral: collateralAmount,
+          currentTime: currentTime,
         },
+      }),
+    )
+    .pay.ToContract(
+      createScriptAddress(network, sysParams.validatorHashes.cdpHash, skh),
+      {
+        kind: 'inline',
+        value: serialiseCDPDatum({
+          cdpOwner: pkh.hash,
+          iasset: iassetDatum.assetName,
+          mintedAmt: mintedAmount,
+          cdpFees: {
+            ActiveCDPInterestTracking: {
+              lastSettled: currentTime,
+              unitaryInterestSnapshot:
+                calculateUnitaryInterestSinceOracleLastUpdated(
+                  currentTime,
+                  interestOracleDatum,
+                ) + interestOracleDatum.unitaryInterest,
+            },
+          },
+        }),
       },
-    };
+      addAssets(cdpNftVal, mkLovelacesOf(collateralAmount)),
+    )
+    .pay.ToContract(
+      cdpCreatorUtxo.address,
+      { kind: 'inline', value: Data.void() },
+      cdpCreatorUtxo.assets,
+    )
+    .readFrom([priceOracleUtxo, interestOracleUtxo, iassetUtxo])
+    .addSignerKey(pkh.hash);
 
-    const assetToken =
-      params.cdpParams.cdpAssetSymbol.unCurrencySymbol + fromText(asset);
-    const cdpTokenMintValue: Assets = {};
-    cdpTokenMintValue[cdpToken] = 1n;
-    const iassetTokenMintValue: Assets = {};
-    iassetTokenMintValue[assetToken] = BigInt(mintedAmount);
+  const debtMintingFee = calculateFeeFromPercentage(
+    BigInt(iassetDatum.debtMintingFeePercentage.getOnChainInt),
+    (mintedAmount * priceOracleDatum.price.getOnChainInt) / 1_000_000n,
+  );
 
-    const cdpAuthTokenScriptRefUtxo = await CDPContract.cdpAuthTokenRef(
-      params.scriptReferences,
+  if (debtMintingFee > 0) {
+    await CollectorContract.feeTx(
+      debtMintingFee,
       lucid,
+      sysParams,
+      tx,
+      collectorRef,
     );
-    const iAssetTokenScriptRefUtxo = await CDPContract.assetTokenRef(
-      params.scriptReferences,
-      lucid,
-    );
-
-    const debtMintingFee = calculateFeeFromPercentage(
-      BigInt(assetOut.datum.debtMintingFeePercentage.getOnChainInt),
-      (mintedAmount * oracleDatum.price.getOnChainInt) / 1_000_000n,
-    );
-
-    const txValidity = oracleExpirationAwareValidity(
-      currentSlot,
-      Number(params.cdpCreatorParams.biasTime),
-      Number(oracleDatum.expiration),
-      network,
-    );
-
-    const tx = lucid
-      .newTx()
-      .collectFrom([cdpCreatorOut], Data.to(cdpCreatorRedeemer))
-      .readFrom([cdpCreatorScriptRefUtxo])
-      .pay.ToContract(
-        cdpAddress,
-        { kind: 'inline', value: serialiseCDPDatum(cdpDatum) },
-        cdpValue,
-      )
-      .pay.ToContract(
-        cdpCreatorOut.address,
-        { kind: 'inline', value: cdpCreatorOut.datum },
-        cdpCreatorOut.assets,
-      )
-      .readFrom([oracleOut, interestOracleOut, assetOut.utxo])
-      .mintAssets(cdpTokenMintValue, Data.to(new Constr(0, [])))
-      .readFrom([cdpAuthTokenScriptRefUtxo])
-      .mintAssets(iassetTokenMintValue, Data.to(new Constr(0, [])))
-      .readFrom([iAssetTokenScriptRefUtxo])
-      .addSignerKey(pkh.hash)
-      .validFrom(txValidity.validFrom)
-      .validTo(txValidity.validTo);
-
-    if (debtMintingFee > 0) {
-      await CollectorContract.feeTx(
-        debtMintingFee,
-        lucid,
-        params,
-        tx,
-        collectorRef,
-      );
-    }
-    return tx;
   }
 
+  return tx;
+}
+
+export class CDPContract {
   static async deposit(
     cdpRef: OutRef,
     amount: bigint,

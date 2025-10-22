@@ -19,7 +19,7 @@ import {
   SystemParams,
 } from '../types/system-params';
 import { scriptRef } from '../helpers/lucid-utils';
-import { getRandomElement } from '../helpers/helpers';
+import { matchSingle } from '../helpers/helpers';
 
 export class CollectorContract {
   static async feeTx(
@@ -27,15 +27,12 @@ export class CollectorContract {
     lucid: LucidEvolution,
     params: SystemParams,
     tx: TxBuilder,
-    collectorRef?: OutRef,
+    collectorOref: OutRef,
   ): Promise<void> {
-    const collectorUtxo: UTxO = collectorRef
-      ? getRandomElement(await lucid.utxosByOutRef([collectorRef]))
-      : getRandomElement(
-          await lucid.utxosAt(
-            CollectorContract.address(params.collectorParams, lucid),
-          ),
-        );
+    const collectorUtxo: UTxO = matchSingle(
+      await lucid.utxosByOutRef([collectorOref]),
+      (_) => new Error('Expected a single collector UTXO'),
+    );
 
     const collectorScriptRefUtxo = await CollectorContract.scriptRef(
       params.scriptReferences,
