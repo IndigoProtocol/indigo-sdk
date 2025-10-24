@@ -6,7 +6,7 @@ import {
   Lucid,
   OutRef,
 } from '@lucid-evolution/lucid';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { assert, beforeEach, describe, expect, test } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
 import { lovelacesAmt, mkLovelacesOf } from '../src/helpers/value-helpers';
 import { init } from './endpoints/initialize';
@@ -14,6 +14,7 @@ import {
   addrDetails,
   burnCdp,
   closeCdp,
+  createScriptAddress,
   depositCdp,
   fromSystemParamsAsset,
   IAssetOutput,
@@ -30,6 +31,7 @@ import { findInterestOracle } from './queries/interest-oracle-queries';
 import { findRandomCollector } from './queries/collector-queries';
 import { findGov } from './queries/governance-queries';
 import { findRandomTreasuryUtxo } from './queries/treasury-queries';
+import { getValueChangeAtAddressAfterAction } from './utils';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -164,6 +166,8 @@ describe('CDP', () => {
       );
     }
 
+    context.emulator.awaitSlot(1000);
+
     {
       const cdp = await findCdp(
         context.lucid,
@@ -174,21 +178,34 @@ describe('CDP', () => {
       );
       const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
 
-      await runAndAwaitTx(
+      const [_, treasuryValChange] = await getValueChangeAtAddressAfterAction(
         context.lucid,
-        depositCdp(
-          1_000_000n,
-          cdp.utxo,
-          orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
-          orefs.govOref,
-          orefs.treasuryOref,
-          sysParams,
-          context.lucid,
-          context.emulator.slot,
+        createScriptAddress(
+          context.lucid.config().network!,
+          sysParams.validatorHashes.treasuryHash,
         ),
+        () =>
+          runAndAwaitTx(
+            context.lucid,
+            depositCdp(
+              1_000_000n,
+              cdp.utxo,
+              orefs.iasset.utxo,
+              orefs.priceOracleOref,
+              orefs.interestOracleOref,
+              orefs.collectorOref,
+              orefs.govOref,
+              orefs.treasuryOref,
+              sysParams,
+              context.lucid,
+              context.emulator.slot,
+            ),
+          ),
+      );
+
+      assert(
+        lovelacesAmt(treasuryValChange) > 0,
+        'Expected some interest paid to treasury',
       );
     }
 
@@ -236,6 +253,8 @@ describe('CDP', () => {
       );
     }
 
+    context.emulator.awaitSlot(100);
+
     {
       const cdp = await findCdp(
         context.lucid,
@@ -246,21 +265,34 @@ describe('CDP', () => {
       );
       const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
 
-      await runAndAwaitTx(
+      const [_, treasuryValChange] = await getValueChangeAtAddressAfterAction(
         context.lucid,
-        withdrawCdp(
-          5_000_000n,
-          cdp.utxo,
-          orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
-          orefs.govOref,
-          orefs.treasuryOref,
-          sysParams,
-          context.lucid,
-          context.emulator.slot,
+        createScriptAddress(
+          context.lucid.config().network!,
+          sysParams.validatorHashes.treasuryHash,
         ),
+        () =>
+          runAndAwaitTx(
+            context.lucid,
+            withdrawCdp(
+              4_000_000n,
+              cdp.utxo,
+              orefs.iasset.utxo,
+              orefs.priceOracleOref,
+              orefs.interestOracleOref,
+              orefs.collectorOref,
+              orefs.govOref,
+              orefs.treasuryOref,
+              sysParams,
+              context.lucid,
+              context.emulator.slot,
+            ),
+          ),
+      );
+
+      assert(
+        lovelacesAmt(treasuryValChange) > 0,
+        'Expected some interest paid to treasury',
       );
     }
 
@@ -273,7 +305,7 @@ describe('CDP', () => {
     );
 
     expect(cdp.datum.mintedAmt).toBe(initialMint);
-    expect(lovelacesAmt(cdp.utxo.assets)).toBe(initialCollateral - 5_000_000n);
+    expect(lovelacesAmt(cdp.utxo.assets)).toBe(initialCollateral - 4_000_000n);
   });
 
   test<MyContext>('Mint CDP', async (context: MyContext) => {
@@ -286,7 +318,7 @@ describe('CDP', () => {
     const asset = 'iUSD';
 
     const initialMint = 500_000n;
-    const initialCollateral = 10_000_000n;
+    const initialCollateral = 12_000_000n;
 
     {
       const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
@@ -308,6 +340,8 @@ describe('CDP', () => {
       );
     }
 
+    context.emulator.awaitSlot(100);
+
     {
       const cdp = await findCdp(
         context.lucid,
@@ -318,21 +352,34 @@ describe('CDP', () => {
       );
       const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
 
-      await runAndAwaitTx(
+      const [_, treasuryValChange] = await getValueChangeAtAddressAfterAction(
         context.lucid,
-        mintCdp(
-          1_000n,
-          cdp.utxo,
-          orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
-          orefs.govOref,
-          orefs.treasuryOref,
-          sysParams,
-          context.lucid,
-          context.emulator.slot,
+        createScriptAddress(
+          context.lucid.config().network!,
+          sysParams.validatorHashes.treasuryHash,
         ),
+        () =>
+          runAndAwaitTx(
+            context.lucid,
+            mintCdp(
+              1_000n,
+              cdp.utxo,
+              orefs.iasset.utxo,
+              orefs.priceOracleOref,
+              orefs.interestOracleOref,
+              orefs.collectorOref,
+              orefs.govOref,
+              orefs.treasuryOref,
+              sysParams,
+              context.lucid,
+              context.emulator.slot,
+            ),
+          ),
+      );
+
+      assert(
+        lovelacesAmt(treasuryValChange) > 0,
+        'Expected some interest paid to treasury',
       );
     }
 
@@ -358,7 +405,7 @@ describe('CDP', () => {
     const asset = 'iUSD';
 
     const initialMint = 500_000n;
-    const initialCollateral = 10_000_000n;
+    const initialCollateral = 12_000_000n;
 
     {
       const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
@@ -380,6 +427,8 @@ describe('CDP', () => {
       );
     }
 
+    context.emulator.awaitSlot(1000);
+
     {
       const cdp = await findCdp(
         context.lucid,
@@ -390,21 +439,34 @@ describe('CDP', () => {
       );
       const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
 
-      await runAndAwaitTx(
+      const [_, treasuryValChange] = await getValueChangeAtAddressAfterAction(
         context.lucid,
-        burnCdp(
-          1_000n,
-          cdp.utxo,
-          orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
-          orefs.govOref,
-          orefs.treasuryOref,
-          sysParams,
-          context.lucid,
-          context.emulator.slot,
+        createScriptAddress(
+          context.lucid.config().network!,
+          sysParams.validatorHashes.treasuryHash,
         ),
+        () =>
+          runAndAwaitTx(
+            context.lucid,
+            burnCdp(
+              1_000n,
+              cdp.utxo,
+              orefs.iasset.utxo,
+              orefs.priceOracleOref,
+              orefs.interestOracleOref,
+              orefs.collectorOref,
+              orefs.govOref,
+              orefs.treasuryOref,
+              sysParams,
+              context.lucid,
+              context.emulator.slot,
+            ),
+          ),
+      );
+
+      assert(
+        lovelacesAmt(treasuryValChange) > 0,
+        'Expected some interest paid to treasury',
       );
     }
 
@@ -448,6 +510,8 @@ describe('CDP', () => {
         ),
       );
     }
+
+    context.emulator.awaitSlot(1000);
 
     {
       const cdp = await findCdp(

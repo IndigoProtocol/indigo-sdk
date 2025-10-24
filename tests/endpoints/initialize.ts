@@ -78,7 +78,7 @@ const accountTokenName = 'SP_ACCOUNT';
 
 const totalIndySupply = 35000000000000n;
 // const totalIndyDistribution = 0n;
-const treasuryIndyAmount = 0n;
+const treasuryIndyAmount = 100_000n;
 
 const numCdpCreators = 2n;
 const numCollectors = 2n;
