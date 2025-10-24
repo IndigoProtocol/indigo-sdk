@@ -5,6 +5,24 @@ import { OracleAssetNftSchema } from './price-oracle';
 import { match, P } from 'ts-pattern';
 import { option as O, function as F } from 'fp-ts';
 
+const CdpParamsSchema = Data.Object({
+  cdp_auth_token: AssetClassSchema,
+  cdp_asset_symbol: Data.Bytes(),
+  iasset_auth_token: AssetClassSchema,
+  stability_pool_auth_token: AssetClassSchema,
+  version_record_token: AssetClassSchema,
+  upgrade_token: AssetClassSchema,
+  collector_val_hash: Data.Bytes(),
+  sp_val_hash: Data.Bytes(),
+  gov_nft: AssetClassSchema,
+  min_collateral_in_lovelace: Data.Integer(),
+  partial_redemption_extra_fee_lovelace: Data.Integer(),
+  bias_time: Data.Integer(),
+  treasury_val_hash: Data.Bytes(),
+});
+export type CdpParams = Data.Static<typeof CdpParamsSchema>;
+const CdpParams = CdpParamsSchema as unknown as CdpParams;
+
 export const CDPFeesSchema = Data.Enum([
   Data.Object({
     ActiveCDPInterestTracking: Data.Object({
@@ -94,15 +112,22 @@ export function serialiseCdpRedeemer(r: CDPRedeemer): Redeemer {
   return Data.to<CDPRedeemer>(r, CDPRedeemer);
 }
 
-export function parseCDPDatum(datum: Datum): CDPContent {
+export function parseCdpDatum(datum: Datum): O.Option<CDPContent> {
   return match(Data.from<CDPDatum>(datum, CDPDatum))
-    .with({ CDP: { content: P.select() } }, (res) => res)
-    .otherwise(() => {
-      throw new Error('Expected an CDP datum.');
-    });
+    .with({ CDP: { content: P.select() } }, (res) => O.some(res))
+    .otherwise(() => O.none);
 }
 
-export function serialiseCDPDatum(cdpDatum: CDPContent): Datum {
+export function parseCdpDatumOrThrow(datum: Datum): CDPContent {
+  return F.pipe(
+    parseCdpDatum(datum),
+    O.match(() => {
+      throw new Error('Expected a CDP datum.');
+    }, F.identity),
+  );
+}
+
+export function serialiseCdpDatum(cdpDatum: CDPContent): Datum {
   return Data.to<CDPDatum>({ CDP: { content: cdpDatum } }, CDPDatum);
 }
 
@@ -127,4 +152,8 @@ export function parseIAssetDatumOrThrow(datum: Datum): IAssetContent {
 
 export function serialiseIAssetDatum(iassetDatum: IAssetContent): Datum {
   return Data.to<CDPDatum>({ IAsset: { content: iassetDatum } }, CDPDatum);
+}
+
+export function castCdpParams(params: CdpParams): Data {
+  return Data.castTo(params, CdpParams);
 }

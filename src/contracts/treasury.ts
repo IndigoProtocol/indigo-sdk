@@ -19,7 +19,7 @@ import {
   TreasuryParams,
 } from '../types/system-params';
 import { scriptRef } from '../helpers/lucid-utils';
-import { getRandomElement } from '../helpers/helpers';
+import { matchSingle } from '../helpers/helpers';
 
 export class TreasuryContract {
   static async feeTx(
@@ -27,15 +27,12 @@ export class TreasuryContract {
     lucid: LucidEvolution,
     params: SystemParams,
     tx: TxBuilder,
-    treasuryRef?: OutRef,
+    treasuryOref: OutRef,
   ): Promise<void> {
-    const treasuryUtxo: UTxO = treasuryRef
-      ? getRandomElement(await lucid.utxosByOutRef([treasuryRef]))
-      : getRandomElement(
-          await lucid.utxosAt(
-            TreasuryContract.address(params.treasuryParams, lucid),
-          ),
-        );
+    const treasuryUtxo = matchSingle(
+      await lucid.utxosByOutRef([treasuryOref]),
+      (_) => new Error('Expected a single treasury UTXO'),
+    );
 
     const treasuryScriptRefUtxo = await TreasuryContract.scriptRef(
       params.scriptReferences,

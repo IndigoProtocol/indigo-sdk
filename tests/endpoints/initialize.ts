@@ -12,11 +12,11 @@ import {
 import {
   addrDetails,
   AssetClass,
-  CDPContract,
   CDPCreatorParamsSP,
-  CdpParams,
+  CdpParamsSP,
   CollectorContract,
   CollectorParams,
+  createScriptAddress,
   ExecuteParamsSP,
   GovDatum,
   GovParamsSP,
@@ -24,6 +24,7 @@ import {
   Input,
   InterestOracleContract,
   mkCDPCreatorValidatorFromSP,
+  mkCdpValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
   PollManagerParamsSP,
@@ -297,7 +298,7 @@ async function initStakingManager(
 
 async function initializeAsset(
   lucid: LucidEvolution,
-  cdpParams: CdpParams,
+  cdpParams: CdpParamsSP,
   iassetToken: AssetClass,
   stabilityPoolParams: StabilityPoolParamsSP,
   stabilityPoolToken: AssetClass,
@@ -369,7 +370,10 @@ async function initializeAsset(
   const assetTx = lucid
     .newTx()
     .pay.ToContract(
-      CDPContract.address(cdpParams, lucid),
+      createScriptAddress(
+        lucid.config().network!,
+        validatorToScriptHash(mkCdpValidatorFromSP(cdpParams)),
+      ),
       { kind: 'inline', value: serialiseIAssetDatum(iassetDatum) },
       { [iassetToken.currencySymbol + iassetToken.tokenName]: 1n },
     );
@@ -684,7 +688,7 @@ export async function init(
     treasuryIndyAmount,
   );
 
-  const cdpParams: CdpParams = {
+  const cdpParams: CdpParamsSP = {
     cdpAuthToken: toSystemParamsAsset(cdpToken),
     cdpAssetSymbol: { unCurrencySymbol: assetSymbol },
     iAssetAuthToken: toSystemParamsAsset(iassetToken),
@@ -699,7 +703,7 @@ export async function init(
     biasTime: 120_000,
     treasuryValHash: treasuryValHash,
   };
-  const cdpValHash = CDPContract.validatorHash(cdpParams);
+  const cdpValHash = validatorToScriptHash(mkCdpValidatorFromSP(cdpParams));
 
   const cdpCreatorParams: CDPCreatorParamsSP = {
     cdpCreatorNft: toSystemParamsAsset(cdpCreatorAsset),
@@ -827,7 +831,7 @@ export async function init(
         input: await initScriptRef(lucid, cdpCreatorValidator),
       },
       cdpValidatorRef: {
-        input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
+        input: await initScriptRef(lucid, mkCdpValidatorFromSP(cdpParams)),
       },
       collectorValidatorRef: {
         input: await initScriptRef(lucid, collectorValidator),

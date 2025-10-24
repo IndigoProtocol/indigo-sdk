@@ -1,7 +1,52 @@
-import { LucidEvolution, UTxO } from '@lucid-evolution/lucid';
-import { AssetClass, createScriptAddress, getRandomElement } from '../../src';
+import {
+  Credential,
+  LucidEvolution,
+  ScriptHash,
+  UTxO,
+} from '@lucid-evolution/lucid';
+import {
+  AssetClass,
+  CDPContent,
+  createScriptAddress,
+  getRandomElement,
+  matchSingle,
+  parseCdpDatum,
+} from '../../src';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
-import { option as O, function as F } from 'fp-ts';
+import { option as O, array as A, function as F } from 'fp-ts';
+
+export async function findCdp(
+  lucid: LucidEvolution,
+  cdpScriptHash: ScriptHash,
+  cdpNft: AssetClass,
+  ownerPkh: string,
+  stakeCred?: Credential,
+): Promise<{ utxo: UTxO; datum: CDPContent }> {
+  const cdpUtxos = await lucid.utxosAtWithUnit(
+    createScriptAddress(lucid.config().network!, cdpScriptHash, stakeCred),
+    assetClassToUnit(cdpNft),
+  );
+
+  return matchSingle(
+    F.pipe(
+      cdpUtxos.map((utxo) =>
+        F.pipe(
+          O.fromNullable(utxo.datum),
+          O.flatMap(parseCdpDatum),
+          O.flatMap((datum) => {
+            if (datum.cdpOwner === ownerPkh) {
+              return O.some({ utxo, datum: datum });
+            } else {
+              return O.none;
+            }
+          }),
+        ),
+      ),
+      A.compact,
+    ),
+    (res) => new Error('Expected a single CDP UTXO.: ' + JSON.stringify(res)),
+  );
+}
 
 export async function findAllCdpCreators(
   lucid: LucidEvolution,
