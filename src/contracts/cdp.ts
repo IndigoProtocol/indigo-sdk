@@ -41,6 +41,9 @@ import {
   mkAssetsOf,
   mkLovelacesOf,
 } from '../helpers/value-helpers';
+import { calculateMinCollateralCappedIAssetRedemptionAmt } from '../helpers/cdp-helpers';
+import { bigintMin } from '../utils';
+import { ocdMul } from '../types/on-chain-decimal';
 
 export async function openCdp(
   collateralAmount: bigint,
@@ -697,6 +700,157 @@ export async function closeCdp(
       collectorOref,
     );
   }
+
+  return tx;
+}
+
+export async function redeemCdp(
+  attemptedRedemptionIAssetAmt: bigint,
+  cdpOref: OutRef,
+  iassetOref: OutRef,
+  priceOracleOref: OutRef,
+  interestOracleOref: OutRef,
+  sysParams: SystemParams,
+  lucid: LucidEvolution,
+  currentSlot: number,
+): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  // Find Pkh, Skh
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [pkh, _] = await addrDetails(lucid);
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  const cdpRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.cdpValidatorRef),
+    ]),
+    (_) => new Error('Expected a single cdp Ref Script UTXO'),
+  );
+
+  const iAssetTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.iAssetTokenPolicyRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single iasset token policy Ref Script UTXO'),
+  );
+
+  const cdpUtxo = matchSingle(
+    await lucid.utxosByOutRef([cdpOref]),
+    (_) => new Error('Expected a single cdp UTXO'),
+  );
+  const cdpDatum = parseCdpDatumOrThrow(getInlineDatumOrThrow(cdpUtxo));
+
+  const iassetUtxo = matchSingle(
+    await lucid.utxosByOutRef([iassetOref]),
+    (_) => new Error('Expected a single iasset UTXO'),
+  );
+  const iassetDatum = parseIAssetDatumOrThrow(
+    getInlineDatumOrThrow(iassetUtxo),
+  );
+
+  const priceOracleUtxo = matchSingle(
+    await lucid.utxosByOutRef([priceOracleOref]),
+    (_) => new Error('Expected a single price oracle UTXO'),
+  );
+  const priceOracleDatum = parsePriceOracleDatum(
+    getInlineDatumOrThrow(priceOracleUtxo),
+  );
+
+  const interestOracleUtxo = matchSingle(
+    await lucid.utxosByOutRef([interestOracleOref]),
+    (_) => new Error('Expected a single interest oracle UTXO'),
+  );
+  const interestOracleDatum = parseInterestOracleDatum(
+    getInlineDatumOrThrow(interestOracleUtxo),
+  );
+
+  const interestAdaAmt = match(cdpDatum.cdpFees)
+    .with({ FrozenCDPAccumulatedFees: P.any }, () => {
+      throw new Error('CDP fees wrong');
+    })
+    .with({ ActiveCDPInterestTracking: P.select() }, (interest) => {
+      const interestPaymentIAssetAmt = calculateAccruedInterest(
+        currentTime,
+        interest.unitaryInterestSnapshot,
+        cdpDatum.mintedAmt,
+        interest.lastSettled,
+        interestOracleDatum,
+      );
+
+      return (
+        (interestPaymentIAssetAmt * priceOracleDatum.price.getOnChainInt) /
+        1_000_000n
+      );
+    })
+    .exhaustive();
+
+  const collateralAmtMinusInterest =
+    lovelacesAmt(cdpUtxo.assets) - interestAdaAmt;
+
+  const [isPartial, redemptionIAssetAmt] = (() => {
+    const res = calculateMinCollateralCappedIAssetRedemptionAmt(
+      collateralAmtMinusInterest,
+      cdpDatum.mintedAmt,
+      priceOracleDatum.price,
+      iassetDatum.redemptionRatio,
+      iassetDatum.redemptionReimbursementPercentage,
+      BigInt(sysParams.cdpParams.minCollateralInLovelace),
+    );
+
+    const redemptionAmt = bigintMin(
+      attemptedRedemptionIAssetAmt,
+      res.cappedIAssetRedemptionAmt,
+    );
+
+    return [redemptionAmt < res.cappedIAssetRedemptionAmt, redemptionAmt];
+  })();
+
+  const redemptionLovelacesAmt = ocdMul(priceOracleDatum.price, {
+    getOnChainInt: redemptionIAssetAmt,
+  }).getOnChainInt;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const partialRedemptionFee = isPartial
+    ? sysParams.cdpParams.partialRedemptionExtraFeeLovelace
+    : 0n;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const processingFee = calculateFeeFromPercentage(
+    iassetDatum.redemptionProcessingFeePercentage.getOnChainInt,
+    redemptionLovelacesAmt,
+  );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const reimburstmentFee = calculateFeeFromPercentage(
+    iassetDatum.redemptionReimbursementPercentage.getOnChainInt,
+    redemptionLovelacesAmt,
+  );
+
+  const txValidity = oracleExpirationAwareValidity(
+    currentSlot,
+    Number(sysParams.cdpCreatorParams.biasTime),
+    Number(priceOracleDatum.expiration),
+    network,
+  );
+
+  const tx = lucid
+    .newTx()
+    .readFrom([cdpRefScriptUtxo, iAssetTokenPolicyRefScriptUtxo])
+    .validFrom(txValidity.validFrom)
+    .validTo(txValidity.validTo)
+    .collectFrom(
+      [cdpUtxo],
+      serialiseCdpRedeemer({ RedeemCdp: { currentTime: currentTime } }),
+    )
+    .mintAssets(
+      mkAssetsOf(
+        {
+          currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
+          tokenName: iassetDatum.assetName,
+        },
+        -cdpDatum.mintedAmt,
+      ),
+      Data.void(),
+    );
 
   return tx;
 }
