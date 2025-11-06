@@ -12,11 +12,11 @@ import {
 import {
   addrDetails,
   AssetClass,
-  CDPContract,
   CDPCreatorParamsSP,
-  CdpParams,
+  CdpParamsSP,
   CollectorContract,
   CollectorParams,
+  createScriptAddress,
   ExecuteParamsSP,
   GovDatum,
   GovParamsSP,
@@ -24,6 +24,7 @@ import {
   Input,
   InterestOracleContract,
   mkCDPCreatorValidatorFromSP,
+  mkCdpValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
   PollManagerParamsSP,
@@ -77,7 +78,7 @@ const accountTokenName = 'SP_ACCOUNT';
 
 const totalIndySupply = 35000000000000n;
 // const totalIndyDistribution = 0n;
-const treasuryIndyAmount = 0n;
+const treasuryIndyAmount = 100_000n;
 
 const numCdpCreators = 2n;
 const numCollectors = 2n;
@@ -112,37 +113,37 @@ type InitialAsset = {
   nextAsset?: string;
 };
 
-const initialAssets: InitialAsset[] = [
-  {
-    name: 'iUSD',
-    priceOracle: {
-      tokenName: 'iUSD_ORACLE',
-      startPrice: 1_000_000n,
-      params: {
-        biasTime: 120_000n,
-        expirationTime: 1_800_000n,
-      },
+export const iusdInitialAssetCfg: InitialAsset = {
+  name: 'iUSD',
+  priceOracle: {
+    tokenName: 'iUSD_ORACLE',
+    startPrice: 1_000_000n,
+    params: {
+      biasTime: 120_000n,
+      expirationTime: 1_800_000n,
     },
-    initerestOracle: {
-      tokenName: 'iUSD_ORACLE',
-      initialInterestRate: 1_000_000n,
-      params: {
-        biasTime: 120_000n,
-      },
-    },
-    redemptionRatioPercentage: 200_000_000n,
-    maintenanceRatioPercentage: 150_000_000n,
-    liquidationRatioPercentage: 120_000_000n,
-    debtMintingFeePercentage: 500_000n,
-    liquidationProcessingFeePercentage: 2_000_000n,
-    stabilityPoolWithdrawalFeePercentage: 500_000n,
-    redemptionReimbursementPercentage: 1_000_000n,
-    redemptionProcessingFeePercentage: 1_000_000n,
-    interestCollectorPortionPercentage: 40_000_000n,
-    firstAsset: true,
-    nextAsset: undefined,
   },
-];
+  initerestOracle: {
+    tokenName: 'iUSD_ORACLE',
+    initialInterestRate: 1_000_000n,
+    params: {
+      biasTime: 120_000n,
+    },
+  },
+  redemptionRatioPercentage: 200_000_000n,
+  maintenanceRatioPercentage: 150_000_000n,
+  liquidationRatioPercentage: 120_000_000n,
+  debtMintingFeePercentage: 500_000n,
+  liquidationProcessingFeePercentage: 2_000_000n,
+  stabilityPoolWithdrawalFeePercentage: 500_000n,
+  redemptionReimbursementPercentage: 1_000_000n,
+  redemptionProcessingFeePercentage: 1_000_000n,
+  interestCollectorPortionPercentage: 40_000_000n,
+  firstAsset: true,
+  nextAsset: undefined,
+};
+
+const initialAssets: InitialAsset[] = [iusdInitialAssetCfg];
 
 const alwaysFailValidatorHash =
   'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
@@ -297,7 +298,7 @@ async function initStakingManager(
 
 async function initializeAsset(
   lucid: LucidEvolution,
-  cdpParams: CdpParams,
+  cdpParams: CdpParamsSP,
   iassetToken: AssetClass,
   stabilityPoolParams: StabilityPoolParamsSP,
   stabilityPoolToken: AssetClass,
@@ -369,7 +370,10 @@ async function initializeAsset(
   const assetTx = lucid
     .newTx()
     .pay.ToContract(
-      CDPContract.address(cdpParams, lucid),
+      createScriptAddress(
+        lucid.config().network!,
+        validatorToScriptHash(mkCdpValidatorFromSP(cdpParams)),
+      ),
       { kind: 'inline', value: serialiseIAssetDatum(iassetDatum) },
       { [iassetToken.currencySymbol + iassetToken.tokenName]: 1n },
     );
@@ -684,7 +688,7 @@ export async function init(
     treasuryIndyAmount,
   );
 
-  const cdpParams: CdpParams = {
+  const cdpParams: CdpParamsSP = {
     cdpAuthToken: toSystemParamsAsset(cdpToken),
     cdpAssetSymbol: { unCurrencySymbol: assetSymbol },
     iAssetAuthToken: toSystemParamsAsset(iassetToken),
@@ -699,7 +703,7 @@ export async function init(
     biasTime: 120_000,
     treasuryValHash: treasuryValHash,
   };
-  const cdpValHash = CDPContract.validatorHash(cdpParams);
+  const cdpValHash = validatorToScriptHash(mkCdpValidatorFromSP(cdpParams));
 
   const cdpCreatorParams: CDPCreatorParamsSP = {
     cdpCreatorNft: toSystemParamsAsset(cdpCreatorAsset),
@@ -827,7 +831,7 @@ export async function init(
         input: await initScriptRef(lucid, cdpCreatorValidator),
       },
       cdpValidatorRef: {
-        input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
+        input: await initScriptRef(lucid, mkCdpValidatorFromSP(cdpParams)),
       },
       collectorValidatorRef: {
         input: await initScriptRef(lucid, collectorValidator),

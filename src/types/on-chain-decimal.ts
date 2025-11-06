@@ -7,6 +7,16 @@ export const OnChainDecimalSchema = Data.Object({
 });
 export type OnChainDecimal = Data.Static<typeof OnChainDecimalSchema>;
 
+export function ocdCeil(a: OnChainDecimal): bigint {
+  const whole = a.getOnChainInt / OCD_DECIMAL_UNIT;
+
+  return a.getOnChainInt > whole * OCD_DECIMAL_UNIT ? whole + 1n : whole;
+}
+
+export function ocdNegate(a: OnChainDecimal): OnChainDecimal {
+  return { getOnChainInt: -a.getOnChainInt };
+}
+
 export function ocdMul(a: OnChainDecimal, b: OnChainDecimal): OnChainDecimal {
   return {
     getOnChainInt: (a.getOnChainInt * b.getOnChainInt) / OCD_DECIMAL_UNIT,
@@ -16,6 +26,18 @@ export function ocdMul(a: OnChainDecimal, b: OnChainDecimal): OnChainDecimal {
 export function ocdDiv(a: OnChainDecimal, b: OnChainDecimal): OnChainDecimal {
   return {
     getOnChainInt: (a.getOnChainInt * OCD_DECIMAL_UNIT) / b.getOnChainInt,
+  };
+}
+
+export function ocdAdd(a: OnChainDecimal, b: OnChainDecimal): OnChainDecimal {
+  return {
+    getOnChainInt: a.getOnChainInt + b.getOnChainInt,
+  };
+}
+
+export function ocdSub(a: OnChainDecimal, b: OnChainDecimal): OnChainDecimal {
+  return {
+    getOnChainInt: a.getOnChainInt - b.getOnChainInt,
   };
 }
 
