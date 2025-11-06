@@ -39,7 +39,9 @@
   "author": "3rd Eye Labs",
   "license": "MIT",
   "dependencies": {
-    "@lucid-evolution/experimental": "^0.0.9",
+    "@effect/platform": "^0.90.10",
+    "@evolution-sdk/evolution": "^0.2.0",
+    "@harmoniclabs/crypto": "^0.3.0",
     "@lucid-evolution/lucid": "^0.4.29",
     "dotenv": "^16.5.0",
     "fp-ts": "^2.16.10",

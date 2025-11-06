@@ -7,11 +7,11 @@ import {
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
+import { matchSingle } from '../../src';
 import {
-  matchSingle,
   parseAccountDatum,
   parseStabilityPoolDatum,
-} from '../../src';
+} from '../../src/types/indigo/stability-pool-new';
 
 export async function findStabilityPool(
   lucid: LucidEvolution,
@@ -20,7 +20,7 @@ export async function findStabilityPool(
   asset: string,
 ): Promise<UTxO> {
   const stakingUtxos = await lucid.utxosAtWithUnit(
-    createScriptAddress(lucid.config().network, stabilityPoolHash),
+    createScriptAddress(lucid.config().network!, stabilityPoolHash),
     assetClassToUnit(stabilityPoolToken),
   );
 
@@ -51,7 +51,7 @@ export async function findStabilityPoolAccount(
   asset: string,
 ): Promise<UTxO> {
   const accountUtxos = await lucid.utxosAt(
-    createScriptAddress(lucid.config().network, stabilityPoolHash),
+    createScriptAddress(lucid.config().network!, stabilityPoolHash),
   );
 
   return matchSingle(

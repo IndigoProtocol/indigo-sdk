@@ -25,3 +25,13 @@ export function assetClassValueOf(
 ): bigint {
   return assets[assetClassToUnit(assetClass)] ?? 0n;
 }
+
+export function negateAssets(assets: Assets): Assets {
+  return Object.fromEntries(
+    Object.entries(assets).map(([asset, amt]) => [asset, -amt]),
+  );
+}
+
+export function isAssetsZero(assets: Assets): boolean {
+  return Object.entries(assets).every(([_, amt]) => amt === 0n);
+}
