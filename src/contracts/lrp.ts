@@ -72,8 +72,6 @@ export async function cancelLrp(
   lrpRefScriptOutRef: OutRef,
   lucid: LucidEvolution,
 ): Promise<TxBuilder> {
-  const ownAddr = await lucid.wallet().address();
-  // TODO: use Promise.all
   const lrpScriptRefUtxo = matchSingle(
     await lucid.utxosByOutRef([lrpRefScriptOutRef]),
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
@@ -84,11 +82,13 @@ export async function cancelLrp(
     (_) => new Error('Expected a single LRP UTXO.'),
   );
 
+  const lrpDatum = parseLrpDatum(getInlineDatumOrThrow(lrpUtxo));
+
   return lucid
     .newTx()
     .readFrom([lrpScriptRefUtxo])
     .collectFrom([lrpUtxo], serialiseLrpRedeemer('Cancel'))
-    .addSigner(ownAddr);
+    .addSignerKey(lrpDatum.owner);
 }
 
 export async function redeemLrp(
