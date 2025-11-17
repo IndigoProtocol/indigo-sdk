@@ -8,6 +8,7 @@ export * from './contracts/treasury';
 export * from './helpers/asset-helpers';
 export * from './helpers/helpers';
 export * from './helpers/lucid-utils';
+export * from './helpers/stability-pool-helpers';
 export * from './helpers/time-helpers';
 export * from './scripts/cdp-creator-validator';
 export * from './scripts/cdp-validator';
