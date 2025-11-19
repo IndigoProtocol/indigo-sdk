@@ -253,6 +253,62 @@ test<LucidContext>('Stability Pool - Adjust Account', async ({
       lucid,
     ),
   );
+
+  // Withdraw 10n iUSD from the stability pool account.
+  lucid.selectWallet.fromSeed(users.user.seedPhrase);
+
+  stabilityPoolUtxo = await findStabilityPool(
+    lucid,
+    systemParams.validatorHashes.stabilityPoolHash,
+    {
+      currencySymbol:
+        systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
+      ),
+    },
+    'iUSD',
+  );
+
+  accountUtxo = await findStabilityPoolAccount(
+    lucid,
+    systemParams.validatorHashes.stabilityPoolHash,
+    pkh.hash,
+    'iUSD',
+  );
+
+  await runAndAwaitTx(
+    lucid,
+    StabilityPoolContract.adjustAccount(
+      'iUSD',
+      -10n,
+      accountUtxo,
+      systemParams,
+      lucid,
+    ),
+  );
+  lucid.selectWallet.fromSeed(users.admin.seedPhrase);
+
+  accountUtxo = await findStabilityPoolAccount(
+    lucid,
+    systemParams.validatorHashes.stabilityPoolHash,
+    pkh.hash,
+    'iUSD',
+  );
+
+  await runAndAwaitTx(
+    lucid,
+    StabilityPoolContract.processRequest(
+      'iUSD',
+      stabilityPoolUtxo,
+      accountUtxo,
+      govUtxo,
+      assetUtxo,
+      undefined,
+      systemParams,
+      lucid,
+    ),
+  );
 });
 
 test<LucidContext>('Stability Pool - Close Account', async ({

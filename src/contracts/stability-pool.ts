@@ -113,6 +113,7 @@ export class StabilityPoolContract {
     const oldAccountDatum: AccountContent = parseAccountDatum(
       accountUtxo.datum,
     );
+
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
       request,
@@ -123,6 +124,22 @@ export class StabilityPoolContract {
         action: request,
       },
     };
+
+    const value = {
+      lovelace: BigInt(
+        params.stabilityPoolParams.requestCollateralLovelaces +
+          params.stabilityPoolParams.accountAdjustmentFeeLovelaces,
+      ),
+      [params.stabilityPoolParams.accountToken[0].unCurrencySymbol +
+      fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
+    };
+
+    if (amount > 0n) {
+      value[
+        params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
+          fromText(asset)
+      ] = amount;
+    }
 
     return lucid
       .newTx()
@@ -143,16 +160,7 @@ export class StabilityPoolContract {
             },
           }),
         },
-        {
-          lovelace: BigInt(
-            params.stabilityPoolParams.requestCollateralLovelaces +
-              params.stabilityPoolParams.accountAdjustmentFeeLovelaces,
-          ),
-          [params.stabilityPoolParams.accountToken[0].unCurrencySymbol +
-          fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
-          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
-          fromText(asset)]: amount,
-        },
+        value,
       )
       .addSignerKey(pkh.hash);
   }
@@ -394,9 +402,10 @@ export class StabilityPoolContract {
       const isDepositOrRewardWithdrawal: boolean = amount > 0n;
       const bigIntMax = (...args: bigint[]): bigint =>
         args.reduce((m, e) => (e > m ? e : m));
+
       const balanceChange: bigint = isDepositOrRewardWithdrawal
         ? amount
-        : bigIntMax(amount, fromSPInteger(accountDatum.snapshot.depositVal));
+        : bigIntMax(amount, -fromSPInteger(updatedAccountSnapshot.depositVal));
       const newAccountSnapshot: StabilityPoolSnapshot = {
         ...updatedAccountSnapshot,
         depositVal: spAdd(
@@ -463,7 +472,6 @@ export class StabilityPoolContract {
       await CollectorContract.feeTx(rewardLovelacesFee, lucid, params, tx);
 
       tx.readFrom([govUtxo, iAssetUtxo, ...refInputs]);
-
       tx.pay.ToContract(
         stabilityPoolUtxo.address,
         {
