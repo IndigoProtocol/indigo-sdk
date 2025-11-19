@@ -113,6 +113,7 @@ export class StabilityPoolContract {
     const oldAccountDatum: AccountContent = parseAccountDatum(
       accountUtxo.datum,
     );
+
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
       request,
@@ -404,7 +405,7 @@ export class StabilityPoolContract {
 
       const balanceChange: bigint = isDepositOrRewardWithdrawal
         ? amount
-        : bigIntMax(amount, fromSPInteger(updatedAccountSnapshot.depositVal));
+        : bigIntMax(amount, -fromSPInteger(updatedAccountSnapshot.depositVal));
       const newAccountSnapshot: StabilityPoolSnapshot = {
         ...updatedAccountSnapshot,
         depositVal: spAdd(
