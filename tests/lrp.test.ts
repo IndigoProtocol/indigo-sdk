@@ -324,12 +324,7 @@ describe('LRP', () => {
       redeemLrp(
         [[lrpUtxo, redemptionIAssetAmt]],
         lrpRefScriptOutRef,
-        await findPriceOracle(
-          lucid,
-          network,
-          testCtx.oracleValHash,
-          testCtx.oracleNft,
-        ),
+        await findPriceOracle(lucid, testCtx.oracleNft),
         (
           await findIAsset(
             lucid,
@@ -452,12 +447,7 @@ describe('LRP', () => {
       redeemLrp(
         [[lrpUtxo, redemptionIAssetAmt]],
         lrpRefScriptOutRef,
-        await findPriceOracle(
-          lucid,
-          network,
-          testCtx.oracleValHash,
-          testCtx.oracleNft,
-        ),
+        await findPriceOracle(lucid, testCtx.oracleNft),
         (
           await findIAsset(
             lucid,
@@ -586,12 +576,7 @@ describe('LRP', () => {
       redeemLrp(
         [[lrpUtxo, redemptionIAssetAmt]],
         lrpRefScriptOutRef,
-        await findPriceOracle(
-          lucid,
-          network,
-          testCtx.oracleValHash,
-          testCtx.oracleNft,
-        ),
+        await findPriceOracle(lucid, testCtx.oracleNft),
         (
           await findIAsset(
             lucid,
@@ -719,12 +704,7 @@ describe('LRP', () => {
           [lrpUtxo2, 4_000_000n],
         ],
         lrpRefScriptOutRef,
-        await findPriceOracle(
-          lucid,
-          network,
-          testCtx.oracleValHash,
-          testCtx.oracleNft,
-        ),
+        await findPriceOracle(lucid, testCtx.oracleNft),
         (
           await findIAsset(
             lucid,
