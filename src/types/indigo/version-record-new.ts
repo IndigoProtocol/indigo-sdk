@@ -1,14 +1,17 @@
-import { Data, TSchema } from '@evolution-sdk/evolution';
+import { Core as EvoCore } from '@evolution-sdk/evolution';
 
-const VersionRecordDatumSchema = TSchema.Struct({
-  upgradeId: TSchema.Integer,
+const VersionRecordDatumSchema = EvoCore.TSchema.Struct({
+  upgradeId: EvoCore.TSchema.Integer,
   /// Underlying representation of the following mapping: ValidatorHash -> UpgradePath
-  upgradePaths: TSchema.Map(TSchema.ByteArray, TSchema.ByteArray),
+  upgradePaths: EvoCore.TSchema.Map(
+    EvoCore.TSchema.ByteArray,
+    EvoCore.TSchema.ByteArray,
+  ),
 });
 export type VersionRecordDatum = typeof VersionRecordDatumSchema.Type;
 
 export function serialiseVersionRecordDatum(d: VersionRecordDatum): string {
-  return Data.withSchema(VersionRecordDatumSchema).toCBORHex(d, {
+  return EvoCore.Data.withSchema(VersionRecordDatumSchema, {
     mode: 'custom',
     useIndefiniteArrays: true,
     // This is important to match aiken's Map encoding.
@@ -17,5 +20,5 @@ export function serialiseVersionRecordDatum(d: VersionRecordDatum): string {
     sortMapKeys: false,
     useMinimalEncoding: true,
     mapsAsObjects: false,
-  });
+  }).toCBORHex(d);
 }

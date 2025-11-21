@@ -1,13 +1,12 @@
 import {
   credentialToAddress,
-  Credential as LucidCredential,
   Data,
-  LucidEvolution,
   getAddressDetails,
   Credential,
+  Network,
 } from '@lucid-evolution/lucid';
 import { match, P } from 'ts-pattern';
-import { Data as EvoData } from '@evolution-sdk/evolution';
+import { Core as EvoCore } from '@evolution-sdk/evolution';
 
 export const AssetClassSchema = Data.Object({
   currencySymbol: Data.Bytes(),
@@ -60,32 +59,29 @@ export const AddressSchema = Data.Object({
 export type AddressD = Data.Static<typeof AddressSchema>;
 export const AddressD = AddressSchema as unknown as AddressD;
 
-export function addressToBech32(
-  lucid: LucidEvolution,
-  address: AddressD,
-): string {
-  const paymentCredential: LucidCredential =
-    'PublicKeyCredential' in address.paymentCredential
-      ? { type: 'Key', hash: address.paymentCredential.PublicKeyCredential[0] }
-      : { type: 'Script', hash: address.paymentCredential.ScriptCredential[0] };
-  const stakeCredential: LucidCredential | undefined =
-    address.stakeCredential && 'Inline' in address.stakeCredential
-      ? 'PublicKeyCredential' in address.stakeCredential.Inline[0]
-        ? {
-            type: 'Key',
-            hash: address.stakeCredential.Inline[0].PublicKeyCredential[0],
-          }
-        : {
-            type: 'Script',
-            hash: address.stakeCredential.Inline[0].ScriptCredential[0],
-          }
-      : undefined;
+export function addressToBech32(address: AddressD, network: Network): string {
+  const matchCred = (cred: CredentialD) =>
+    match(cred)
+      .returnType<Credential>()
+      .with({ PublicKeyCredential: [P.select()] }, (pkh) => {
+        return { type: 'Key', hash: pkh };
+      })
+      .with({ ScriptCredential: [P.select()] }, (scriptCred) => {
+        return { type: 'Script', hash: scriptCred };
+      })
+      .exhaustive();
 
-  return credentialToAddress(
-    lucid.config().network!,
-    paymentCredential,
-    stakeCredential,
-  );
+  const stakeCred: Credential | undefined = match(address.stakeCredential)
+    .returnType<Credential | undefined>()
+    .with(P.nullish, () => undefined)
+    .with({ Inline: [P.select()] }, (cred) => matchCred(cred))
+    .otherwise(() => {
+      throw new Error('Unexpected stake credential format.');
+    });
+
+  const cred: Credential = matchCred(address.paymentCredential);
+
+  return credentialToAddress(network, cred, stakeCred);
 }
 
 export function addressFromBech32(address: string): AddressD {
@@ -133,10 +129,10 @@ export interface TokenName {
   unTokenName: string;
 }
 
-export function cborToEvoData(d: string): EvoData.Data {
-  return EvoData.fromCBORHex(d);
+export function cborToEvoData(d: string): EvoCore.Data.Data {
+  return EvoCore.Data.fromCBORHex(d);
 }
 
-export function evoDataToCbor(d: EvoData.Data): string {
-  return EvoData.toCBORHex(d);
+export function evoDataToCbor(d: EvoCore.Data.Data): string {
+  return EvoCore.Data.toCBORHex(d);
 }

@@ -1,55 +1,58 @@
-import { Data as EvoData, TSchema } from '@evolution-sdk/evolution';
+import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { match, P } from 'ts-pattern';
 
-export const SPIntegerSchema = TSchema.Struct({
-  value: TSchema.Integer,
+export const SPIntegerSchema = EvoCore.TSchema.Struct({
+  value: EvoCore.TSchema.Integer,
 });
 
 export type SPInteger = typeof SPIntegerSchema.Type;
 
-export const EpochToScaleToSumSchema = TSchema.Map(
-  TSchema.Struct({ epoch: TSchema.Integer, scale: TSchema.Integer }),
+export const EpochToScaleToSumSchema = EvoCore.TSchema.Map(
+  EvoCore.TSchema.Struct({
+    epoch: EvoCore.TSchema.Integer,
+    scale: EvoCore.TSchema.Integer,
+  }),
   SPIntegerSchema,
 );
 
 export type EpochToScaleToSum = typeof EpochToScaleToSumSchema.Type;
 
-const StabilityPoolSnapshotSchema = TSchema.Struct({
+const StabilityPoolSnapshotSchema = EvoCore.TSchema.Struct({
   productVal: SPIntegerSchema,
   depositVal: SPIntegerSchema,
   sumVal: SPIntegerSchema,
-  epoch: TSchema.Integer,
-  scale: TSchema.Integer,
+  epoch: EvoCore.TSchema.Integer,
+  scale: EvoCore.TSchema.Integer,
 });
 
 export type StabilityPoolSnapshot = typeof StabilityPoolSnapshotSchema.Type;
 
-export const StabilityPoolContentSchema = TSchema.Struct({
-  asset: TSchema.ByteArray,
+export const StabilityPoolContentSchema = EvoCore.TSchema.Struct({
+  asset: EvoCore.TSchema.ByteArray,
   poolSnapshot: StabilityPoolSnapshotSchema,
   epochToScaleToSum: EpochToScaleToSumSchema,
 });
 
 export type StabilityPoolContent = typeof StabilityPoolContentSchema.Type;
 
-export const AccountContentSchema = TSchema.Struct({
-  owner: TSchema.ByteArray,
-  asset: TSchema.ByteArray,
+export const AccountContentSchema = EvoCore.TSchema.Struct({
+  owner: EvoCore.TSchema.ByteArray,
+  asset: EvoCore.TSchema.ByteArray,
   accountSnapshot: StabilityPoolSnapshotSchema,
-  request: TSchema.NullOr(EvoData.DataSchema),
+  request: EvoCore.TSchema.NullOr(EvoCore.Data.DataSchema),
 });
 
 export type AccountContent = typeof AccountContentSchema.Type;
 
-export const SnapshotEpochToScaleToSumContentSchema = TSchema.Struct({
-  asset: TSchema.ByteArray,
+export const SnapshotEpochToScaleToSumContentSchema = EvoCore.TSchema.Struct({
+  asset: EvoCore.TSchema.ByteArray,
   snapshot: EpochToScaleToSumSchema,
 });
 
 export type SnapshotEpochToScaleToSumContent =
   typeof SnapshotEpochToScaleToSumContentSchema.Type;
 
-export const StabilityPoolDatumSchema = TSchema.Union(
+export const StabilityPoolDatumSchema = EvoCore.TSchema.Union(
   StabilityPoolContentSchema,
   AccountContentSchema,
   SnapshotEpochToScaleToSumContentSchema,
@@ -58,7 +61,7 @@ export const StabilityPoolDatumSchema = TSchema.Union(
 export function serialiseStabilityPoolDatum(
   d: typeof StabilityPoolDatumSchema.Type,
 ): string {
-  return EvoData.withSchema(StabilityPoolDatumSchema).toCBORHex(d, {
+  return EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
     mode: 'custom',
     useIndefiniteArrays: true,
     // This is important to match aiken's Map encoding.
@@ -67,11 +70,13 @@ export function serialiseStabilityPoolDatum(
     sortMapKeys: false,
     useMinimalEncoding: true,
     mapsAsObjects: false,
-  });
+  }).toCBORHex(d);
 }
 
 export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
-  return match(EvoData.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum))
+  return match(
+    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+  )
     .with({ poolSnapshot: P.any }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');
@@ -79,7 +84,9 @@ export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
 }
 
 export function parseAccountDatum(datum: string): AccountContent {
-  return match(EvoData.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum))
+  return match(
+    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+  )
     .with({ accountSnapshot: P.any }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');
@@ -88,7 +95,9 @@ export function parseAccountDatum(datum: string): AccountContent {
 export function parseSnapshotEpochToScaleToSumDatum(
   datum: string,
 ): SnapshotEpochToScaleToSumContent {
-  return match(EvoData.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum))
+  return match(
+    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+  )
     .with({ snapshot: P.any }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');

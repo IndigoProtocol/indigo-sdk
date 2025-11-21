@@ -2,6 +2,7 @@
 import {
   addAssets,
   Assets,
+  fromHex,
   fromText,
   LucidEvolution,
   OutRef,
@@ -891,7 +892,7 @@ export async function executeProposal(
             serialiseTreasuryRedeemer('Withdraw'),
           )
           .pay.ToAddressWithData(
-            addressToBech32(lucid, withdrawal.destination),
+            addressToBech32(withdrawal.destination, lucid.config().network!),
             {
               kind: 'inline',
               value: serialiseWithdrawalOutputDatum([
@@ -1000,7 +1001,7 @@ export async function executeProposal(
           {
             kind: 'inline',
             value: serialiseStabilityPoolDatum({
-              asset: proposeContent.asset,
+              asset: fromHex(proposeContent.asset),
               poolSnapshot: initSpSnapshot,
               epochToScaleToSum: initEpochToScaleToSumMap(),
             }),

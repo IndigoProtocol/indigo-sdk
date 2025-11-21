@@ -2,6 +2,7 @@ import {
   Constr,
   credentialToAddress,
   Data,
+  fromHex,
   fromText,
   LucidEvolution,
   mintingPolicyToId,
@@ -382,7 +383,7 @@ async function initializeAsset(
   await lucid.awaitTx(assetTxHash);
 
   const stabilityPoolDatum: StabilityPoolContent = {
-    asset: fromText(asset.name),
+    asset: fromHex(fromText(asset.name)),
     poolSnapshot: initSpSnapshot,
     epochToScaleToSum: initEpochToScaleToSumMap(),
   };

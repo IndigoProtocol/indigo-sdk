@@ -3,6 +3,7 @@ import {
   Data,
   Emulator,
   EmulatorAccount,
+  fromHex,
   fromText,
   generateEmulatorAccount,
   Lucid,
@@ -1696,9 +1697,13 @@ describe('Gov', () => {
             upgradeId: govUtxo.datum.currentVersion + 1n,
             upgradePaths: new Map([
               [
-                sysParams.validatorHashes.cdpHash,
+                fromHex(sysParams.validatorHashes.cdpHash),
                 // NOTICE: this is just a placeholder, in real scenario it needs upgrade minting policy hash
-                { upgradeSymbol: sysParams.validatorHashes.cdpCreatorHash },
+                {
+                  upgradeSymbol: fromHex(
+                    sysParams.validatorHashes.cdpCreatorHash,
+                  ),
+                },
               ],
             ]),
           }),
@@ -1782,9 +1787,13 @@ describe('Gov', () => {
             upgradeId: govUtxo.datum.currentVersion + 1n,
             upgradePaths: new Map([
               [
-                sysParams.validatorHashes.cdpHash,
+                fromHex(sysParams.validatorHashes.cdpHash),
                 // NOTICE: this is just a placeholder, in real scenario it needs upgrade minting policy hash
-                { upgradeSymbol: sysParams.validatorHashes.cdpCreatorHash },
+                {
+                  upgradeSymbol: fromHex(
+                    sysParams.validatorHashes.cdpCreatorHash,
+                  ),
+                },
               ],
             ]),
           }),

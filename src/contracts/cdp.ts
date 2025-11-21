@@ -105,7 +105,7 @@ export class CDPContract {
             params.cdpCreatorParams.cdpCreatorNft[0].unCurrencySymbol +
               fromText(params.cdpCreatorParams.cdpCreatorNft[1].unTokenName),
           ),
-    );
+    )!;
 
     const cdpCreatorRedeemer = castCDPCreatorRedeemer({
       CreateCDP: {
@@ -186,7 +186,7 @@ export class CDPContract {
       )
       .pay.ToContract(
         cdpCreatorOut.address,
-        { kind: 'inline', value: cdpCreatorOut.datum },
+        { kind: 'inline', value: cdpCreatorOut.datum! },
         cdpCreatorOut.assets,
       )
       .readFrom([oracleOut, interestOracleOut, assetOut.utxo])

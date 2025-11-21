@@ -1,4 +1,4 @@
-import { Data as EvoData, TSchema } from '@evolution-sdk/evolution';
+import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { Data } from '@lucid-evolution/lucid';
 import { OracleAssetNftSchema } from './price-oracle';
 import { AssetClassSchema } from '../generic';
@@ -83,20 +83,23 @@ export type ProposalContent = Data.Static<typeof ProposalContentSchema>;
 export const ProposalContent =
   ProposalContentSchema as unknown as ProposalContent;
 
-const UpgradePathSchema = TSchema.Struct({
-  upgradeSymbol: TSchema.ByteArray,
+const UpgradePathSchema = EvoCore.TSchema.Struct({
+  upgradeSymbol: EvoCore.TSchema.ByteArray,
 });
 
-const UpgradePathsSchema = TSchema.Struct({
-  upgradeId: TSchema.Integer,
+const UpgradePathsSchema = EvoCore.TSchema.Struct({
+  upgradeId: EvoCore.TSchema.Integer,
   /// Underlying representation of the following mapping: ValidatorHash -> UpgradePath
-  upgradePaths: TSchema.Map(TSchema.ByteArray, UpgradePathSchema),
+  upgradePaths: EvoCore.TSchema.Map(
+    EvoCore.TSchema.ByteArray,
+    UpgradePathSchema,
+  ),
 });
 export type UpgradePaths = typeof UpgradePathsSchema.Type;
 
 export function serialiseUpgradePaths(d: UpgradePaths): Data {
   return Data.from(
-    EvoData.withSchema(UpgradePathsSchema).toCBORHex(d, {
+    EvoCore.Data.withSchema(UpgradePathsSchema, {
       mode: 'custom',
       useIndefiniteArrays: true,
       // This is important to match aiken's Map encoding.
@@ -105,10 +108,10 @@ export function serialiseUpgradePaths(d: UpgradePaths): Data {
       sortMapKeys: false,
       useMinimalEncoding: true,
       mapsAsObjects: false,
-    }),
+    }).toCBORHex(d),
   );
 }
 
 export function parseUpgradePaths(d: Data): UpgradePaths {
-  return EvoData.withSchema(UpgradePathsSchema).fromCBORHex(Data.to(d));
+  return EvoCore.Data.withSchema(UpgradePathsSchema).fromCBORHex(Data.to(d));
 }

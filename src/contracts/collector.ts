@@ -30,12 +30,12 @@ export class CollectorContract {
     collectorRef?: OutRef,
   ): Promise<void> {
     const collectorUtxo: UTxO = collectorRef
-      ? getRandomElement(await lucid.utxosByOutRef([collectorRef]))
+      ? getRandomElement(await lucid.utxosByOutRef([collectorRef]))!
       : getRandomElement(
           await lucid.utxosAt(
             CollectorContract.address(params.collectorParams, lucid),
           ),
-        );
+        )!;
 
     const collectorScriptRefUtxo = await CollectorContract.scriptRef(
       params.scriptReferences,

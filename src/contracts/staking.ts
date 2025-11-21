@@ -3,6 +3,7 @@ import {
   applyParamsToScript,
   Constr,
   Data,
+  fromHex,
   fromText,
   LucidEvolution,
   OutRef,
@@ -62,7 +63,7 @@ export class StakingContract {
     };
 
     const stakingPositionDatum: StakingPosition = {
-      owner: pkh.hash,
+      owner: fromHex(pkh.hash),
       lockedAmount: new Map([]),
       positionSnapshot: {
         snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,

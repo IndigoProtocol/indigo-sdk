@@ -6,7 +6,7 @@ import {
   evoDataToCbor,
   OutputReferenceSchema,
 } from '../generic';
-import { Data as EvoData } from '@evolution-sdk/evolution';
+import { Core as EvoCore } from '@evolution-sdk/evolution';
 
 export const AccountActionSchema = Data.Enum([
   Data.Literal('Create'),
@@ -22,11 +22,11 @@ export const AccountActionSchema = Data.Enum([
 export type AccountAction = Data.Static<typeof AccountActionSchema>;
 export const AccountAction = AccountActionSchema as unknown as AccountAction;
 
-export function serialiseAccountAction(d: AccountAction): EvoData.Data {
+export function serialiseAccountAction(d: AccountAction): EvoCore.Data.Data {
   return cborToEvoData(Data.to<AccountAction>(d, AccountAction));
 }
 
-export function parseAccountAction(d: EvoData.Data): AccountAction {
+export function parseAccountAction(d: EvoCore.Data.Data): AccountAction {
   return Data.from<AccountAction>(evoDataToCbor(d), AccountAction);
 }
 

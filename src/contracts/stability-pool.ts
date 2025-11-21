@@ -7,6 +7,7 @@ import {
   Data,
   UTxO,
   credentialToAddress,
+  fromHex,
 } from '@lucid-evolution/lucid';
 import {
   serialiseStabilityPoolRedeemer,
@@ -61,8 +62,8 @@ export class StabilityPoolContract {
         params.stabilityPoolParams.requestCollateralLovelaces,
     );
     const datum: AccountContent = {
-      owner: pkh.hash,
-      asset: fromText(asset),
+      owner: fromHex(pkh.hash),
+      asset: fromHex(fromText(asset)),
       accountSnapshot: {
         productVal: { value: 0n },
         depositVal: { value: 0n },
@@ -370,8 +371,8 @@ export class StabilityPoolContract {
     } else if ('Adjust' in parsedReq) {
       const amount = parsedReq.Adjust.amount;
       const outputAddress = addressToBech32(
-        lucid,
         parsedReq.Adjust.outputAddress,
+        lucid.config().network!,
       );
       const myAddress = await lucid.wallet().address();
       const [updatedAccountSnapshot, reward, refInputs] = adjustmentHelper(
@@ -542,8 +543,8 @@ export class StabilityPoolContract {
       }
     } else if ('Close' in parsedReq) {
       const outputAddress = addressToBech32(
-        lucid,
         parsedReq.Close.outputAddress,
+        lucid.config().network!,
       );
       const myAddress = await lucid.wallet().address();
       const [updatedAccountSnapshot, reward, refInputs] = adjustmentHelper(
