@@ -3,26 +3,28 @@ import {
   CDPContent,
   IAssetContent,
   parseCDPDatum,
-  parseIAssetDatum,
+  parseIAssetDatumOrThrow,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
-  parseStabilityPoolDatum,
   serialiseCDPDatum,
   serialiseFeedInterestOracleRedeemer,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
-  serialiseStabilityPoolDatum,
-  StabilityPoolContent,
 } from '../src/index';
+import { fromHex, fromText } from '@lucid-evolution/lucid';
 import {
   parseStakingManagerDatum,
-  parseStakingPositionDatum,
+  parseStakingPositionOrThrow,
   serialiseStakingDatum,
-  StakingManagerContent,
-  StakingPositionContent,
-} from '../src/types/indigo/staking';
-import { fromText } from '@lucid-evolution/lucid';
+  StakingManager,
+  StakingPosition,
+} from '../src/types/indigo/staking-new';
+import {
+  parseStabilityPoolDatum,
+  serialiseStabilityPoolDatum,
+  StabilityPoolContent,
+} from '../src/types/indigo/stability-pool-new';
 
 describe('Datum checks', () => {
   it('Price Oracle', () => {
@@ -111,8 +113,8 @@ describe('Datum checks', () => {
       assetName: fromText('iETH'),
       price: {
         Oracle: {
-          oracleNft: {
-            asset: {
+          content: {
+            oracleNft: {
               currencySymbol:
                 '6c9497ffd7e8baf86c3c0d6fcd43c524daa49ad5fceba26d715468e9',
               tokenName: fromText('iETH20221219191302'),
@@ -138,13 +140,13 @@ describe('Datum checks', () => {
       nextIAsset: fromText('iSOL'),
     };
     expect(serialiseIAssetDatum(assetObject)).toEqual(assetDatum);
-    expect(parseIAssetDatum(assetDatum)).toEqual(assetObject);
+    expect(parseIAssetDatumOrThrow(assetDatum)).toEqual(assetObject);
   });
 
   it('Staking Manager', () => {
     const stakingManagerDatum =
       'd8799fd8799f1b000009c04704429ed8799f1b000001402802fec1ffffff';
-    const stakingManagerObject: StakingManagerContent = {
+    const stakingManagerObject: StakingManager = {
       totalStake: 10721429832350n,
       managerSnapshot: {
         snapshotAda: 1375060819649n,
@@ -154,40 +156,40 @@ describe('Datum checks', () => {
     expect(parseStakingManagerDatum(stakingManagerDatum)).toEqual(
       stakingManagerObject,
     );
-    expect(
-      serialiseStakingDatum({
-        StakingManager: { content: stakingManagerObject },
-      }),
-    ).toEqual(stakingManagerDatum);
+    expect(serialiseStakingDatum(stakingManagerObject)).toEqual(
+      stakingManagerDatum,
+    );
   });
 
   it('Staking Position', () => {
     const stakingPositionDatum =
-      'd87a9fd8799f581cd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43bf1853d8799f1a5c8c1cfb1b0000019616971410ffffd8799f1b0000013a7ed5b0fdffffff';
-    const stakingPositionObject: StakingPositionContent = {
-      owner: 'd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43',
-      lockedAmount: new Map([[83n, [1552686331n, 1744135722000n]]]),
+      'd87a9fd8799f581cd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43a11853d8799f1a5c8c1cfb1b0000019616971410ffd8799f1b0000013a7ed5b0fdffffff';
+    const stakingPositionObject: StakingPosition = {
+      owner: fromHex(
+        'd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43',
+      ),
+      lockedAmount: new Map([
+        [83n, { voteAmt: 1552686331n, votingEnd: 1744135722000n }],
+      ]),
       positionSnapshot: {
         snapshotAda: 1350747664637n,
       },
     };
 
-    expect(parseStakingPositionDatum(stakingPositionDatum)).toEqual(
+    expect(parseStakingPositionOrThrow(stakingPositionDatum)).toEqual(
       stakingPositionObject,
     );
-    expect(
-      serialiseStakingDatum({
-        StakingPosition: { content: stakingPositionObject },
-      }),
-    ).toEqual(stakingPositionDatum);
+    expect(serialiseStakingDatum(stakingPositionObject)).toEqual(
+      stakingPositionDatum,
+    );
   });
 
   it('Stability Pool', () => {
     const stabilityPoolDatum =
       'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffa2d8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffff';
     const stabilityPoolObject: StabilityPoolContent = {
-      asset: fromText('iUSD'),
-      snapshot: {
+      asset: fromHex(fromText('iUSD')),
+      poolSnapshot: {
         productVal: { value: 736247675907734314n },
         depositVal: { value: 2502085246000826468068228145850n },
         sumVal: { value: 1143417026613401054n },
@@ -202,11 +204,9 @@ describe('Datum checks', () => {
     expect(parseStabilityPoolDatum(stabilityPoolDatum)).toEqual(
       stabilityPoolObject,
     );
-    expect(
-      serialiseStabilityPoolDatum({
-        StabilityPool: { content: stabilityPoolObject },
-      }),
-    ).toEqual(stabilityPoolDatum);
+    expect(serialiseStabilityPoolDatum(stabilityPoolObject)).toEqual(
+      stabilityPoolDatum,
+    );
   });
 
   // it('Stability Pool Account', () => {

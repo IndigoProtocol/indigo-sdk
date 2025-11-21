@@ -3,7 +3,7 @@ import { AssetClassSchema } from '../generic';
 import { OnChainDecimalSchema } from '../on-chain-decimal';
 
 export const OracleAssetNftSchema = Data.Object({
-  oracleNft: Data.Object({ asset: AssetClassSchema }),
+  oracleNft: AssetClassSchema,
 });
 export type OracleAssetNft = Data.Static<typeof OracleAssetNftSchema>;
 

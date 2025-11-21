@@ -5,7 +5,8 @@
     "module": "nodenext",
     "target": "ESNext",
     "moduleResolution": "nodenext",
-    "allowUnreachableCode": true
+    "allowUnreachableCode": true,
+    "strict": true
   },
   "ts-node": {
     "compilerOptions": {

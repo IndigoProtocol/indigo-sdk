@@ -19,6 +19,7 @@ import { mkInterestOracleValidator } from '../scripts/interest-oracle-validator'
 import { findInterestOracle } from '../../tests/queries/interest-oracle-queries';
 import { ONE_SECOND } from '../helpers/time-helpers';
 import { calculateUnitaryInterestSinceOracleLastUpdated } from '../helpers/interest-oracle';
+import { getInlineDatumOrThrow } from '../helpers/lucid-utils';
 
 export class InterestOracleContract {
   static async startInterestOracle(
@@ -27,10 +28,12 @@ export class InterestOracleContract {
     initialLastInterestUpdate: bigint,
     oracleParams: InterestOracleParams,
     lucid: LucidEvolution,
+    interestTokenName?: string,
     withScriptRef: boolean = false,
     refOutRef?: OutRef,
-    interestTokenName?: string,
   ): Promise<[TxBuilder, AssetClass]> {
+    const network = lucid.config().network!;
+
     const tokenName = interestTokenName ?? 'INTEREST_ORACLE';
     if (!refOutRef) {
       refOutRef = (await lucid.wallet().getUtxos())[0];
@@ -52,7 +55,7 @@ export class InterestOracleContract {
     const validator = mkInterestOracleValidator(oracleParams);
 
     tx.pay.ToContract(
-      validatorToAddress(lucid.config().network, validator),
+      validatorToAddress(network, validator),
       {
         kind: 'inline',
         value: serialiseInterestOracleDatum({
@@ -71,7 +74,7 @@ export class InterestOracleContract {
 
     if (withScriptRef) {
       tx.pay.ToAddressWithData(
-        validatorToAddress(lucid.config().network, validator),
+        validatorToAddress(network, validator),
         undefined,
         undefined,
         validator,
@@ -104,7 +107,7 @@ export class InterestOracleContract {
 
     const now = BigInt(Date.now());
     const tx = lucid.newTx();
-    const datum = parseInterestOracleDatum(utxo.datum);
+    const datum = parseInterestOracleDatum(getInlineDatumOrThrow(utxo!));
 
     if (scriptRef) {
       tx.readFrom([scriptRef]);
@@ -113,7 +116,7 @@ export class InterestOracleContract {
     }
 
     tx.collectFrom(
-      [utxo],
+      [utxo!],
       serialiseFeedInterestOracleRedeemer({
         newInterestRate: {
           getOnChainInt: newInterestRate,
@@ -123,7 +126,7 @@ export class InterestOracleContract {
     );
 
     tx.pay.ToContract(
-      utxo.address,
+      utxo!.address,
       {
         kind: 'inline',
         value: serialiseInterestOracleDatum({
@@ -136,7 +139,7 @@ export class InterestOracleContract {
           lastUpdated: now,
         }),
       },
-      utxo.assets,
+      utxo!.assets,
     );
 
     tx.validFrom(Number(now) - ONE_SECOND);

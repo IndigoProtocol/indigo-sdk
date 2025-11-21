@@ -30,12 +30,12 @@ export class TreasuryContract {
     treasuryRef?: OutRef,
   ): Promise<void> {
     const treasuryUtxo: UTxO = treasuryRef
-      ? getRandomElement(await lucid.utxosByOutRef([treasuryRef]))
+      ? getRandomElement(await lucid.utxosByOutRef([treasuryRef]))!
       : getRandomElement(
           await lucid.utxosAt(
             TreasuryContract.address(params.treasuryParams, lucid),
           ),
-        );
+        )!;
 
     const treasuryScriptRefUtxo = await TreasuryContract.scriptRef(
       params.scriptReferences,
