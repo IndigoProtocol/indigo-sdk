@@ -117,6 +117,7 @@ export class StabilityPoolContract {
     const oldAccountDatum: AccountContent = parseAccountDatum(
       getInlineDatumOrThrow(accountUtxo),
     );
+
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
       request: serialiseAccountAction(request),
@@ -133,6 +134,22 @@ export class StabilityPoolContract {
       },
     };
 
+    const value = {
+      lovelace: BigInt(
+        params.stabilityPoolParams.requestCollateralLovelaces +
+          params.stabilityPoolParams.accountAdjustmentFeeLovelaces,
+      ),
+      [params.stabilityPoolParams.accountToken[0].unCurrencySymbol +
+      fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
+    };
+
+    if (amount > 0n) {
+      value[
+        params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
+          fromText(asset)
+      ] = amount;
+    }
+
     return lucid
       .newTx()
       .readFrom([stabilityPoolScriptRef])
@@ -148,16 +165,7 @@ export class StabilityPoolContract {
           kind: 'inline',
           value: serialiseStabilityPoolDatum(newAccountDatum),
         },
-        {
-          lovelace: BigInt(
-            params.stabilityPoolParams.requestCollateralLovelaces +
-              params.stabilityPoolParams.accountAdjustmentFeeLovelaces,
-          ),
-          [params.stabilityPoolParams.accountToken[0].unCurrencySymbol +
-          fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
-          [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
-          fromText(asset)]: amount,
-        },
+        value,
       )
       .addSignerKey(pkh.hash);
   }
@@ -395,12 +403,10 @@ export class StabilityPoolContract {
       const isDepositOrRewardWithdrawal: boolean = amount > 0n;
       const bigIntMax = (...args: bigint[]): bigint =>
         args.reduce((m, e) => (e > m ? e : m));
+
       const balanceChange: bigint = isDepositOrRewardWithdrawal
         ? amount
-        : bigIntMax(
-            amount,
-            fromSPInteger(accountDatum.accountSnapshot.depositVal),
-          );
+        : bigIntMax(amount, -fromSPInteger(updatedAccountSnapshot.depositVal));
       const newAccountSnapshot: StabilityPoolSnapshot = {
         ...updatedAccountSnapshot,
         depositVal: spAdd(
