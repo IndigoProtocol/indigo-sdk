@@ -1,5 +1,5 @@
 import { Data, Datum, Redeemer } from '@lucid-evolution/lucid';
-import { AssetClassSchema } from '../generic';
+import { AddressSchema, AssetClassSchema } from '../generic';
 import { option as O, function as F } from 'fp-ts';
 import { ProposalContentSchema, ProtocolParamsSchema } from './gov-new';
 
@@ -37,7 +37,7 @@ export type TreasuryWithdrawalItem = Data.Static<
 >;
 
 export const TreasuryWithdrawalSchema = Data.Object({
-  destination: Data.Bytes(),
+  destination: AddressSchema,
   value: Data.Array(ValueWithdrawalItemSchema),
 });
 export type TreasuryWithdrawal = Data.Static<typeof TreasuryWithdrawalSchema>;

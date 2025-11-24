@@ -2,6 +2,8 @@
 import {
   addAssets,
   Assets,
+  fromHex,
+  fromText,
   LucidEvolution,
   OutRef,
   paymentCredentialOf,
@@ -48,7 +50,7 @@ import {
 } from '../types/system-params';
 import { serialisePollManagerRedeemer } from '../types/indigo/poll-manager';
 import { ONE_SECOND } from '../helpers/time-helpers';
-import { addressFromBech32 } from '../types/generic';
+import { addressFromBech32, addressToBech32 } from '../types/generic';
 import { serialiseStakingRedeemer } from '../types/indigo/staking';
 import {
   serialisePollShardRedeemer,
@@ -890,11 +892,11 @@ export async function executeProposal(
             serialiseTreasuryRedeemer('Withdraw'),
           )
           .pay.ToAddressWithData(
-            withdrawal.destination,
+            addressToBech32(withdrawal.destination, lucid.config().network!),
             {
               kind: 'inline',
               value: serialiseWithdrawalOutputDatum([
-                'IndigoTreasuryWithdrawal',
+                fromText('IndigoTreasuryWithdrawal'),
                 {
                   txHash: { hash: executeUtxo.txHash },
                   outputIndex: BigInt(executeUtxo.outputIndex),
@@ -999,7 +1001,7 @@ export async function executeProposal(
           {
             kind: 'inline',
             value: serialiseStabilityPoolDatum({
-              asset: proposeContent.asset,
+              asset: fromHex(proposeContent.asset),
               poolSnapshot: initSpSnapshot,
               epochToScaleToSum: initEpochToScaleToSumMap(),
             }),

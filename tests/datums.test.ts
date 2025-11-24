@@ -2,17 +2,17 @@ import { describe, expect, it } from 'vitest';
 import {
   CDPContent,
   IAssetContent,
-  parseCDPDatum,
   parseIAssetDatumOrThrow,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
-  serialiseCDPDatum,
   serialiseFeedInterestOracleRedeemer,
   serialiseIAssetDatum,
   serialiseInterestOracleDatum,
   serialisePriceOracleDatum,
+  serialiseCdpDatum,
+  parseCdpDatum,
 } from '../src/index';
-import { fromText } from '@lucid-evolution/lucid';
+import { fromHex, fromText } from '@lucid-evolution/lucid';
 import {
   parseStakingManagerDatum,
   parseStakingPositionOrThrow,
@@ -25,6 +25,7 @@ import {
   serialiseStabilityPoolDatum,
   StabilityPoolContent,
 } from '../src/types/indigo/stability-pool-new';
+import { option as O } from 'fp-ts';
 
 describe('Datum checks', () => {
   it('Price Oracle', () => {
@@ -85,8 +86,8 @@ describe('Datum checks', () => {
         },
       },
     };
-    expect(serialiseCDPDatum(activeCDPObject)).toEqual(activeCDPDatum);
-    expect(parseCDPDatum(activeCDPDatum)).toEqual(activeCDPObject);
+    expect(serialiseCdpDatum(activeCDPObject)).toEqual(activeCDPDatum);
+    expect(parseCdpDatum(activeCDPDatum)).toEqual(O.some(activeCDPObject));
 
     // Frozen CDP
     const frozenCDPDatum =
@@ -102,8 +103,8 @@ describe('Datum checks', () => {
         },
       },
     };
-    expect(parseCDPDatum(frozenCDPDatum)).toEqual(frozenCDPObject);
-    expect(serialiseCDPDatum(frozenCDPObject)).toEqual(frozenCDPDatum);
+    expect(parseCdpDatum(frozenCDPDatum)).toEqual(O.some(frozenCDPObject));
+    expect(serialiseCdpDatum(frozenCDPObject)).toEqual(frozenCDPDatum);
   });
 
   it('iAsset', () => {
@@ -165,7 +166,9 @@ describe('Datum checks', () => {
     const stakingPositionDatum =
       'd87a9fd8799f581cd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43a11853d8799f1a5c8c1cfb1b0000019616971410ffd8799f1b0000013a7ed5b0fdffffff';
     const stakingPositionObject: StakingPosition = {
-      owner: 'd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43',
+      owner: fromHex(
+        'd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43',
+      ),
       lockedAmount: new Map([
         [83n, { voteAmt: 1552686331n, votingEnd: 1744135722000n }],
       ]),
@@ -186,7 +189,7 @@ describe('Datum checks', () => {
     const stabilityPoolDatum =
       'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffa2d8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffff';
     const stabilityPoolObject: StabilityPoolContent = {
-      asset: fromText('iUSD'),
+      asset: fromHex(fromText('iUSD')),
       poolSnapshot: {
         productVal: { value: 736247675907734314n },
         depositVal: { value: 2502085246000826468068228145850n },

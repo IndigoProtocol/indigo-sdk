@@ -3,10 +3,10 @@ import {
   loadSystemParamsFromFile,
   StakingContract,
   CollectorContract,
-  CDPContract,
   mkCDPCreatorValidatorFromSP,
   mkInterestOracleValidator,
   mkLrpValidatorFromSP,
+  mkCdpValidatorFromSP,
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
@@ -25,9 +25,9 @@ describe('Validator Hash checks', () => {
     ).toBe(systemParams.validatorHashes.cdpCreatorHash);
   });
   it('CDP validator hash', () => {
-    expect(CDPContract.validatorHash(systemParams.cdpParams)).toBe(
-      systemParams.validatorHashes.cdpHash,
-    );
+    expect(
+      validatorToScriptHash(mkCdpValidatorFromSP(systemParams.cdpParams)),
+    ).toBe(systemParams.validatorHashes.cdpHash);
   });
   it('Collector validator hash', () => {
     expect(CollectorContract.validatorHash(systemParams.collectorParams)).toBe(

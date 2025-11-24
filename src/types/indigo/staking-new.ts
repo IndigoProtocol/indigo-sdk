@@ -1,32 +1,35 @@
-import { Data, TSchema } from '@evolution-sdk/evolution';
+import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { option as O, function as F } from 'fp-ts';
 import { match, P } from 'ts-pattern';
 
-const StakingPosLockedAmtSchema = TSchema.Map(
-  TSchema.Integer,
-  TSchema.Struct({ voteAmt: TSchema.Integer, votingEnd: TSchema.Integer }),
+const StakingPosLockedAmtSchema = EvoCore.TSchema.Map(
+  EvoCore.TSchema.Integer,
+  EvoCore.TSchema.Struct({
+    voteAmt: EvoCore.TSchema.Integer,
+    votingEnd: EvoCore.TSchema.Integer,
+  }),
 );
 
 export type StakingPosLockedAmt = typeof StakingPosLockedAmtSchema.Type;
 
-const RewardSnapshotSchema = TSchema.Struct({
-  snapshotAda: TSchema.Integer,
+const RewardSnapshotSchema = EvoCore.TSchema.Struct({
+  snapshotAda: EvoCore.TSchema.Integer,
 });
 
-const StakingPositionSchema = TSchema.Struct({
-  owner: TSchema.ByteArray,
+const StakingPositionSchema = EvoCore.TSchema.Struct({
+  owner: EvoCore.TSchema.ByteArray,
   lockedAmount: StakingPosLockedAmtSchema,
   positionSnapshot: RewardSnapshotSchema,
 });
 export type StakingPosition = typeof StakingPositionSchema.Type;
 
-const StakingManagerSchema = TSchema.Struct({
-  totalStake: TSchema.Integer,
+const StakingManagerSchema = EvoCore.TSchema.Struct({
+  totalStake: EvoCore.TSchema.Integer,
   managerSnapshot: RewardSnapshotSchema,
 });
 export type StakingManager = typeof StakingManagerSchema.Type;
 
-const StakingDatumSchema = TSchema.Union(
+const StakingDatumSchema = EvoCore.TSchema.Union(
   StakingManagerSchema,
   StakingPositionSchema,
 );
@@ -34,7 +37,7 @@ type StakingDatum = typeof StakingDatumSchema.Type;
 
 export function parseStakingPosition(datum: string): O.Option<StakingPosition> {
   try {
-    return match(Data.withSchema(StakingDatumSchema).fromCBORHex(datum))
+    return match(EvoCore.Data.withSchema(StakingDatumSchema).fromCBORHex(datum))
       .with({ owner: P.any }, (res) => O.some(res))
       .otherwise(() => O.none);
   } catch (_) {
@@ -52,7 +55,7 @@ export function parseStakingPositionOrThrow(datum: string): StakingPosition {
 }
 
 export function parseStakingManagerDatum(datum: string): StakingManager {
-  return match(Data.withSchema(StakingDatumSchema).fromCBORHex(datum))
+  return match(EvoCore.Data.withSchema(StakingDatumSchema).fromCBORHex(datum))
     .with({ totalStake: P.any }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a StakingPosition datum.');
@@ -60,7 +63,7 @@ export function parseStakingManagerDatum(datum: string): StakingManager {
 }
 
 export function serialiseStakingDatum(d: StakingDatum): string {
-  return Data.withSchema(StakingDatumSchema).toCBORHex(d, {
+  return EvoCore.Data.withSchema(StakingDatumSchema, {
     mode: 'custom',
     useIndefiniteArrays: true,
     // This is important to match aiken's Map encoding.
@@ -69,5 +72,5 @@ export function serialiseStakingDatum(d: StakingDatum): string {
     sortMapKeys: false,
     useMinimalEncoding: true,
     mapsAsObjects: false,
-  });
+  }).toCBORHex(d);
 }
