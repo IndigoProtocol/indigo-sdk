@@ -24,7 +24,9 @@ import {
   IAssetContent,
   Input,
   InterestOracleContract,
+  LrpParamsSP,
   mkCDPCreatorValidatorFromSP,
+  mkLrpValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
   PollManagerParamsSP,
@@ -801,6 +803,16 @@ export async function init(
 
   await initGovernance(lucid, govParams, govNftAsset);
 
+  const lrpParams: LrpParamsSP = {
+    iassetNft: cdpParams.iAssetAuthToken,
+    iassetPolicyId: cdpParams.cdpAssetSymbol,
+    minRedemptionLovelacesAmt: 10_000_000n,
+    versionRecordToken: cdpParams.versionRecordToken,
+  };
+
+  const lrpValidator = mkLrpValidatorFromSP(lrpParams);
+  const lrpValHash = validatorToScriptHash(lrpValidator);
+
   return {
     cdpParams: cdpParams,
     cdpCreatorParams: cdpCreatorParams,
@@ -818,12 +830,16 @@ export async function init(
       totalINDYSupply: 35_000_000_000_000,
       initialIndyDistribution: 1_575_000_000_000,
     },
+    lrpParams: lrpParams,
     versionRecordParams: versionRecordParams,
     startTime: {
       slot: 0,
       blockHeader: '',
     },
     scriptReferences: {
+      lrpValidatorRef: {
+        input: await initScriptRef(lucid, lrpValidator),
+      },
       cdpCreatorValidatorRef: {
         input: await initScriptRef(lucid, cdpCreatorValidator),
       },
@@ -868,12 +884,6 @@ export async function init(
       },
       versionRecordTokenPolicyRef: {
         input: await initScriptRef(lucid, versionRecordTokenPolicy),
-      },
-      liquidityValidatorRef: {
-        input: undefined,
-      },
-      vestingValidatorRef: {
-        input: undefined,
       },
       authTokenPolicies: {
         cdpAuthTokenRef: {
@@ -926,6 +936,7 @@ export async function init(
       stakingHash: stakingValHash,
       collectorHash: collectorValHash,
       versionRegistryHash: versionRegistryValHash,
+      lrpHash: lrpValHash,
     },
   } as SystemParams;
 }

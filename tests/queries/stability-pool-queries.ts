@@ -2,6 +2,7 @@ import {
   fromText,
   LucidEvolution,
   ScriptHash,
+  toHex,
   UTxO,
 } from '@lucid-evolution/lucid';
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
@@ -30,7 +31,7 @@ export async function findStabilityPool(
         try {
           const stabilityPoolDatum = parseStabilityPoolDatum(utxo.datum);
 
-          return stabilityPoolDatum.asset == fromText(asset);
+          return toHex(stabilityPoolDatum.asset) == fromText(asset);
         } catch (_) {
           // when incompatible datum
           return false;
@@ -61,7 +62,8 @@ export async function findStabilityPoolAccount(
           const accountDatum = parseAccountDatum(utxo.datum);
 
           return (
-            accountDatum.asset == fromText(asset) && accountDatum.owner == owner
+            toHex(accountDatum.asset) == fromText(asset) &&
+            toHex(accountDatum.owner) == owner
           );
         } catch (_) {
           // when incompatible datum

@@ -1,4 +1,9 @@
-import { LucidEvolution, ScriptHash, UTxO } from '@lucid-evolution/lucid';
+import {
+  LucidEvolution,
+  ScriptHash,
+  toHex,
+  UTxO,
+} from '@lucid-evolution/lucid';
 import { createScriptAddress } from '../../src/helpers/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
@@ -29,7 +34,7 @@ export async function findStakingPosition(
           O.fromNullable(utxo.datum),
           O.flatMap(parseStakingPosition),
           O.flatMap((datum) => {
-            if (datum.owner === owner) {
+            if (toHex(datum.owner) === owner) {
               return O.some({ utxo, datum: datum });
             } else {
               return O.none;

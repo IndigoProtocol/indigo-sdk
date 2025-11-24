@@ -90,7 +90,6 @@ export interface StabilityPoolParamsSP {
 }
 
 export interface ScriptReferences {
-  vestingValidatorRef: ScriptReference;
   versionRegistryValidatorRef: ScriptReference;
   versionRecordTokenPolicyRef: ScriptReference;
   treasuryValidatorRef: ScriptReference;
@@ -99,7 +98,6 @@ export interface ScriptReferences {
   pollShardValidatorRef: ScriptReference;
   pollManagerValidatorRef: ScriptReference;
   lrpValidatorRef: ScriptReference;
-  liquidityValidatorRef: ScriptReference;
   iAssetTokenPolicyRef: ScriptReference;
   governanceValidatorRef: ScriptReference;
   executeValidatorRef: ScriptReference;
