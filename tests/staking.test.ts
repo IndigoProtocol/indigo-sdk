@@ -1,6 +1,6 @@
 import { beforeEach, test } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
-import { fromText, Lucid } from '@lucid-evolution/lucid';
+import { EmulatorAccount, fromText, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { StakingContract } from '../src/contracts/staking';
@@ -8,7 +8,11 @@ import { init } from './endpoints/initialize';
 import { addrDetails } from '../src/helpers/lucid-utils';
 import { findStakingPosition } from './queries/staking-queries';
 
-beforeEach<LucidContext>(async (context: LucidContext) => {
+type MyContext = LucidContext<{
+  admin: EmulatorAccount;
+}>;
+
+beforeEach<MyContext>(async (context: MyContext) => {
   context.users = {
     admin: generateEmulatorAccount({
       lovelace: BigInt(100_000_000_000_000),
@@ -20,10 +24,10 @@ beforeEach<LucidContext>(async (context: LucidContext) => {
   context.lucid = await Lucid(context.emulator, 'Custom');
 });
 
-test<LucidContext>('Staking - Create Position', async ({
+test<MyContext>('Staking - Create Position', async ({
   lucid,
   users,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid);
 
@@ -33,10 +37,10 @@ test<LucidContext>('Staking - Create Position', async ({
   );
 });
 
-test<LucidContext>('Staking - Adjust Position', async ({
+test<MyContext>('Staking - Adjust Position', async ({
   lucid,
   users,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid);
 
@@ -48,7 +52,6 @@ test<LucidContext>('Staking - Adjust Position', async ({
   const [pkh, _] = await addrDetails(lucid);
   const myStakingPosition = await findStakingPosition(
     lucid,
-    lucid.config().network,
     systemParams.validatorHashes.stakingHash,
     {
       currencySymbol:
@@ -63,7 +66,7 @@ test<LucidContext>('Staking - Adjust Position', async ({
   await runAndAwaitTx(
     lucid,
     StakingContract.adjustPosition(
-      myStakingPosition,
+      myStakingPosition.utxo,
       1_000_000n,
       systemParams,
       lucid,
@@ -71,10 +74,10 @@ test<LucidContext>('Staking - Adjust Position', async ({
   );
 });
 
-test<LucidContext>('Staking - Close Position', async ({
+test<MyContext>('Staking - Close Position', async ({
   lucid,
   users,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const systemParams = await init(lucid);
 
@@ -86,7 +89,6 @@ test<LucidContext>('Staking - Close Position', async ({
   const [pkh, _] = await addrDetails(lucid);
   const myStakingPosition = await findStakingPosition(
     lucid,
-    lucid.config().network,
     systemParams.validatorHashes.stakingHash,
     {
       currencySymbol:
@@ -100,6 +102,6 @@ test<LucidContext>('Staking - Close Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    StakingContract.closePosition(myStakingPosition, systemParams, lucid),
+    StakingContract.closePosition(myStakingPosition.utxo, systemParams, lucid),
   );
 });

@@ -7,28 +7,15 @@ import {
   Data,
   UTxO,
   credentialToAddress,
+  fromHex,
 } from '@lucid-evolution/lucid';
-import {
-  EpochToScaleToSum,
-  mkSPInteger,
-  parseAccountDatum,
-  parseStabilityPoolDatum,
-  serialiseStabilityPoolDatum,
-  serialiseStabilityPoolRedeemer,
-  spDiv,
-  spMul,
-  StabilityPoolDatum,
-  StabilityPoolRedeemer,
-  StabilityPoolSnapshot,
-  AccountAction,
-  AccountContent,
-  spAdd,
-  fromSPInteger,
-  ActionReturnDatum,
-  spSub,
-} from '../types/indigo/stability-pool';
+import { ActionReturnDatum } from '../types/indigo/stability-pool';
 import { SystemParams } from '../types/system-params';
-import { addrDetails, scriptRef } from '../helpers/lucid-utils';
+import {
+  addrDetails,
+  getInlineDatumOrThrow,
+  scriptRef,
+} from '../helpers/lucid-utils';
 import { mkStabilityPoolValidatorFromSP } from '../scripts/stability-pool-validator';
 import {
   adjustmentHelper,
@@ -36,10 +23,27 @@ import {
   updatePoolSnapshotWithdrawalFee,
 } from '../helpers/stability-pool-helpers';
 import { calculateFeeFromPercentage } from '../helpers/indigo-helpers';
-import { GovDatum, parseGovDatum } from '../types/indigo/gov';
-import { IAssetContent, parseIAssetDatum } from '../types/indigo/cdp';
+import { GovDatum, parseGovDatumOrThrow } from '../types/indigo/gov';
+import { IAssetContent, parseIAssetDatumOrThrow } from '../types/indigo/cdp';
 import { CollectorContract } from './collector';
-import { addressFromBech32, addressToBech32 } from '../types/generic';
+import { EvoCommon } from '@3rd-eye-labs/cardano-offchain-common';
+import {
+  AccountAction,
+  AccountContent,
+  EpochToScaleToSum,
+  fromSPInteger,
+  mkSPInteger,
+  parseAccountDatum,
+  parseStabilityPoolDatum,
+  serialiseStabilityPoolDatum,
+  serialiseStabilityPoolRedeemer,
+  spAdd,
+  spDiv,
+  spMul,
+  spSub,
+  StabilityPoolRedeemer,
+  StabilityPoolSnapshot,
+} from '../types/indigo/stability-pool-new';
 
 export class StabilityPoolContract {
   static async createAccount(
@@ -53,27 +57,23 @@ export class StabilityPoolContract {
       params.stabilityPoolParams.accountCreateFeeLovelaces +
         params.stabilityPoolParams.requestCollateralLovelaces,
     );
-    const datum: StabilityPoolDatum = {
-      Account: {
-        content: {
-          owner: pkh.hash,
-          asset: fromText(asset),
-          snapshot: {
-            productVal: { value: 0n },
-            depositVal: { value: 0n },
-            sumVal: { value: 0n },
-            epoch: 0n,
-            scale: 0n,
-          },
-          request: 'Create',
-        },
+    const datum: AccountContent = {
+      owner: fromHex(pkh.hash),
+      asset: fromHex(fromText(asset)),
+      accountSnapshot: {
+        productVal: { value: 0n },
+        depositVal: { value: 0n },
+        sumVal: { value: 0n },
+        epoch: 0n,
+        scale: 0n,
       },
+      request: 'Create',
     };
 
     return lucid
       .newTx()
       .pay.ToContract(
-        credentialToAddress(lucid.config().network, {
+        credentialToAddress(lucid.config().network!, {
           hash: validatorToScriptHash(
             mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
           ),
@@ -104,24 +104,17 @@ export class StabilityPoolContract {
       lucid,
     );
 
-    const request: AccountAction = {
-      Adjust: {
-        amount: amount,
-        outputAddress: addressFromBech32(myAddress),
-      },
-    };
     const oldAccountDatum: AccountContent = parseAccountDatum(
-      accountUtxo.datum,
+      getInlineDatumOrThrow(accountUtxo),
     );
 
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
-      request,
-    };
-
-    const redeemer: StabilityPoolRedeemer = {
-      RequestAction: {
-        action: request,
+      request: {
+        Adjust: {
+          amount: amount,
+          outputAddress: EvoCommon.addressFromBech32(myAddress),
+        },
       },
     };
 
@@ -144,9 +137,19 @@ export class StabilityPoolContract {
     return lucid
       .newTx()
       .readFrom([stabilityPoolScriptRef])
-      .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+      .collectFrom(
+        [accountUtxo],
+        serialiseStabilityPoolRedeemer({
+          RequestAction: {
+            Adjust: {
+              amount: amount,
+              outputAddress: EvoCommon.addressFromBech32(myAddress),
+            },
+          },
+        }),
+      )
       .pay.ToContract(
-        credentialToAddress(lucid.config().network, {
+        credentialToAddress(lucid.config().network!, {
           hash: validatorToScriptHash(
             mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
           ),
@@ -154,11 +157,7 @@ export class StabilityPoolContract {
         }),
         {
           kind: 'inline',
-          value: serialiseStabilityPoolDatum({
-            Account: {
-              content: newAccountDatum,
-            },
-          }),
+          value: serialiseStabilityPoolDatum(newAccountDatum),
         },
         value,
       )
@@ -180,29 +179,26 @@ export class StabilityPoolContract {
 
     const request: AccountAction = {
       Close: {
-        outputAddress: addressFromBech32(myAddress),
+        outputAddress: EvoCommon.addressFromBech32(myAddress),
       },
     };
     const oldAccountDatum: AccountContent = parseAccountDatum(
-      accountUtxo.datum,
+      getInlineDatumOrThrow(accountUtxo),
     );
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
-      request,
-    };
-
-    const redeemer: StabilityPoolRedeemer = {
-      RequestAction: {
-        action: request,
-      },
+      request: request,
     };
 
     return lucid
       .newTx()
       .readFrom([stabilityPoolScriptRef])
-      .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+      .collectFrom(
+        [accountUtxo],
+        serialiseStabilityPoolRedeemer({ RequestAction: request }),
+      )
       .pay.ToContract(
-        credentialToAddress(lucid.config().network, {
+        credentialToAddress(lucid.config().network!, {
           hash: validatorToScriptHash(
             mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
           ),
@@ -210,11 +206,7 @@ export class StabilityPoolContract {
         }),
         {
           kind: 'inline',
-          value: serialiseStabilityPoolDatum({
-            Account: {
-              content: newAccountDatum,
-            },
-          }),
+          value: serialiseStabilityPoolDatum(newAccountDatum),
         },
         {
           lovelace: BigInt(
@@ -240,10 +232,8 @@ export class StabilityPoolContract {
   ): Promise<TxBuilder> {
     const redeemer: StabilityPoolRedeemer = {
       ProcessRequest: {
-        requestRef: {
-          txHash: { hash: accountUtxo.txHash },
-          outputIndex: BigInt(accountUtxo.outputIndex),
-        },
+        txHash: { hash: fromHex(accountUtxo.txHash) },
+        outputIndex: BigInt(accountUtxo.outputIndex),
       },
     };
     const stabilityPoolScriptRef = await scriptRef(
@@ -251,8 +241,11 @@ export class StabilityPoolContract {
       lucid,
     );
 
-    const accountDatum = parseAccountDatum(accountUtxo.datum);
-    const stabilityPoolDatum = parseStabilityPoolDatum(stabilityPoolUtxo.datum);
+    const accountDatum = parseAccountDatum(getInlineDatumOrThrow(accountUtxo));
+
+    const stabilityPoolDatum = parseStabilityPoolDatum(
+      getInlineDatumOrThrow(stabilityPoolUtxo),
+    );
 
     const tx = lucid
       .newTx()
@@ -264,6 +257,7 @@ export class StabilityPoolContract {
       .readFrom([iAssetUtxo, govUtxo, stabilityPoolScriptRef]);
 
     if (!accountDatum.request) throw new Error('Account Request is null');
+
     if (accountDatum.request === 'Create') {
       const accountTokenScriptRef = await scriptRef(
         params.scriptReferences.authTokenPolicies.accountTokenRef,
@@ -277,43 +271,43 @@ export class StabilityPoolContract {
       const reqAmount = accountUtxo.assets[iassetUnit] ?? 0n;
 
       const newAccountSnapshot: StabilityPoolSnapshot = {
-        ...stabilityPoolDatum.snapshot,
+        ...stabilityPoolDatum.poolSnapshot,
         depositVal: {
-          value: spAdd(accountDatum.snapshot.depositVal, mkSPInteger(reqAmount))
-            .value,
+          value: spAdd(
+            accountDatum.accountSnapshot.depositVal,
+            mkSPInteger(reqAmount),
+          ).value,
         },
       };
 
       const newDeposit = spAdd(
-        stabilityPoolDatum.snapshot.depositVal,
+        stabilityPoolDatum.poolSnapshot.depositVal,
         mkSPInteger(reqAmount),
       );
+
       const newSum = spAdd(
-        stabilityPoolDatum.snapshot.sumVal,
+        stabilityPoolDatum.poolSnapshot.sumVal,
         spDiv(
           spMul(
             mkSPInteger(
               BigInt(params.stabilityPoolParams.accountCreateFeeLovelaces),
             ),
-            stabilityPoolDatum.snapshot.productVal,
+            stabilityPoolDatum.poolSnapshot.productVal,
           ),
           newDeposit,
         ),
       );
+
       const newStabilityPoolSnapshot: StabilityPoolSnapshot = {
-        ...stabilityPoolDatum.snapshot,
+        ...stabilityPoolDatum.poolSnapshot,
         depositVal: newDeposit,
         sumVal: newSum,
       };
 
-      const newEpochToScaleToSum: EpochToScaleToSum = new Map(
+      const newEpochToScaleToSum: EpochToScaleToSum = setSumInEpochToScaleToSum(
         stabilityPoolDatum.epochToScaleToSum,
-      );
-      newEpochToScaleToSum.set(
-        {
-          epoch: stabilityPoolDatum.snapshot.epoch,
-          scale: stabilityPoolDatum.snapshot.scale,
-        },
+        stabilityPoolDatum.poolSnapshot.epoch,
+        stabilityPoolDatum.poolSnapshot.scale,
         newSum,
       );
 
@@ -343,13 +337,9 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            StabilityPool: {
-              content: {
-                ...stabilityPoolDatum,
-                snapshot: newStabilityPoolSnapshot,
-                epochToScaleToSum: newEpochToScaleToSum,
-              },
-            },
+            ...stabilityPoolDatum,
+            poolSnapshot: newStabilityPoolSnapshot,
+            epochToScaleToSum: newEpochToScaleToSum,
           }),
         },
         poolOutputValue,
@@ -360,13 +350,9 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            Account: {
-              content: {
-                ...accountDatum,
-                snapshot: newAccountSnapshot,
-                request: null,
-              },
-            },
+            ...accountDatum,
+            accountSnapshot: newAccountSnapshot,
+            request: null,
           }),
         },
         {
@@ -379,22 +365,24 @@ export class StabilityPoolContract {
       );
     } else if ('Adjust' in accountDatum.request) {
       const amount = accountDatum.request.Adjust.amount;
-      const outputAddress = addressToBech32(
-        lucid,
+      const outputAddress = EvoCommon.addressToBech32(
         accountDatum.request.Adjust.outputAddress,
+        lucid.config().network!,
       );
       const myAddress = await lucid.wallet().address();
-
       const [updatedAccountSnapshot, reward, refInputs] = adjustmentHelper(
         stabilityPoolUtxo,
         newSnapshotUtxo,
-        stabilityPoolDatum.snapshot,
+        stabilityPoolDatum.poolSnapshot,
         stabilityPoolDatum.epochToScaleToSum,
-        accountDatum.snapshot,
+        accountDatum.accountSnapshot,
       );
-
-      const govDatum: GovDatum = parseGovDatum(govUtxo.datum);
-      const iassetDatum: IAssetContent = parseIAssetDatum(iAssetUtxo.datum);
+      const govDatum: GovDatum = parseGovDatumOrThrow(
+        getInlineDatumOrThrow(govUtxo),
+      );
+      const iassetDatum: IAssetContent = parseIAssetDatumOrThrow(
+        getInlineDatumOrThrow(iAssetUtxo),
+      );
       const rewardLovelacesFee = calculateFeeFromPercentage(
         govDatum.protocolParams.collateralFeePercentage,
         reward,
@@ -413,16 +401,14 @@ export class StabilityPoolContract {
           mkSPInteger(balanceChange),
         ),
       };
-
       const _newPoolDepositExcludingFee = spAdd(
-        stabilityPoolDatum.snapshot.depositVal,
+        stabilityPoolDatum.poolSnapshot.depositVal,
         mkSPInteger(balanceChange),
       );
       const newPoolDepositExcludingFee =
         _newPoolDepositExcludingFee.value > 0n
           ? _newPoolDepositExcludingFee
           : mkSPInteger(0n);
-
       const withdrawalFee =
         isDepositOrRewardWithdrawal || newPoolDepositExcludingFee.value === 0n
           ? 0n
@@ -436,16 +422,16 @@ export class StabilityPoolContract {
       );
       const newPoolProduct =
         withdrawalFee === 0n
-          ? stabilityPoolDatum.snapshot.productVal
+          ? stabilityPoolDatum.poolSnapshot.productVal
           : spMul(
-              stabilityPoolDatum.snapshot.productVal,
+              stabilityPoolDatum.poolSnapshot.productVal,
               spAdd(
                 mkSPInteger(1n),
                 spDiv(mkSPInteger(withdrawalFee), newPoolDepositExcludingFee),
               ),
             );
       const newPoolSum = spAdd(
-        stabilityPoolDatum.snapshot.sumVal,
+        stabilityPoolDatum.poolSnapshot.sumVal,
         spDiv(
           spMul(
             mkSPInteger(
@@ -457,33 +443,27 @@ export class StabilityPoolContract {
         ),
       );
       const newPoolSnapshot: StabilityPoolSnapshot = {
-        ...stabilityPoolDatum.snapshot,
+        ...stabilityPoolDatum.poolSnapshot,
         depositVal: newPoolDeposit,
         sumVal: newPoolSum,
         productVal: newPoolProduct,
       };
       const newEpochToScaleToSum: EpochToScaleToSum = setSumInEpochToScaleToSum(
         stabilityPoolDatum.epochToScaleToSum,
-        stabilityPoolDatum.snapshot.epoch,
-        stabilityPoolDatum.snapshot.scale,
+        stabilityPoolDatum.poolSnapshot.epoch,
+        stabilityPoolDatum.poolSnapshot.scale,
         newPoolSum,
       );
-
       await CollectorContract.feeTx(rewardLovelacesFee, lucid, params, tx);
-
       tx.readFrom([govUtxo, iAssetUtxo, ...refInputs]);
       tx.pay.ToContract(
         stabilityPoolUtxo.address,
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            StabilityPool: {
-              content: {
-                ...stabilityPoolDatum,
-                snapshot: newPoolSnapshot,
-                epochToScaleToSum: newEpochToScaleToSum,
-              },
-            },
+            ...stabilityPoolDatum,
+            poolSnapshot: newPoolSnapshot,
+            epochToScaleToSum: newEpochToScaleToSum,
           }),
         },
         {
@@ -505,19 +485,14 @@ export class StabilityPoolContract {
             withdrawalFee,
         },
       );
-
       tx.pay.ToContract(
         stabilityPoolUtxo.address,
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            Account: {
-              content: {
-                ...accountDatum,
-                snapshot: newAccountSnapshot,
-                request: null,
-              },
-            },
+            ...accountDatum,
+            accountSnapshot: newAccountSnapshot,
+            request: null,
           }),
         },
         {
@@ -529,7 +504,6 @@ export class StabilityPoolContract {
           fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
         },
       );
-
       if (myAddress !== outputAddress) {
         tx.pay.ToAddressWithData(
           outputAddress,
@@ -561,30 +535,31 @@ export class StabilityPoolContract {
         // TODO: User is self-handling the process request, so we will need to handle the change datum
       }
     } else if ('Close' in accountDatum.request) {
-      const outputAddress = addressToBech32(
-        lucid,
+      const outputAddress = EvoCommon.addressToBech32(
         accountDatum.request.Close.outputAddress,
+        lucid.config().network!,
       );
       const myAddress = await lucid.wallet().address();
-
       const [updatedAccountSnapshot, reward, refInputs] = adjustmentHelper(
         stabilityPoolUtxo,
         newSnapshotUtxo,
-        stabilityPoolDatum.snapshot,
+        stabilityPoolDatum.poolSnapshot,
         stabilityPoolDatum.epochToScaleToSum,
-        accountDatum.snapshot,
+        accountDatum.accountSnapshot,
       );
-
-      const govDatum: GovDatum = parseGovDatum(govUtxo.datum);
-      const iassetDatum: IAssetContent = parseIAssetDatum(iAssetUtxo.datum);
+      const govDatum: GovDatum = parseGovDatumOrThrow(
+        getInlineDatumOrThrow(govUtxo),
+      );
+      const iassetDatum: IAssetContent = parseIAssetDatumOrThrow(
+        getInlineDatumOrThrow(iAssetUtxo),
+      );
       const rewardLovelacesFee = calculateFeeFromPercentage(
         govDatum.protocolParams.collateralFeePercentage,
         reward,
       );
-
       const fund = updatedAccountSnapshot.depositVal;
       const newPoolDepositExcludingFee = spSub(
-        stabilityPoolDatum.snapshot.depositVal,
+        stabilityPoolDatum.poolSnapshot.depositVal,
         fund,
       );
       const withdrawnAmt = fund.value < 0n ? mkSPInteger(0n) : fund;
@@ -595,27 +570,22 @@ export class StabilityPoolContract {
               iassetDatum.stabilityPoolWithdrawalFeePercentage,
               withdrawnAmt.value,
             );
-
       const [newPoolDeposit, newPoolProduct] = updatePoolSnapshotWithdrawalFee(
         mkSPInteger(withdrawalFeeAmount),
         newPoolDepositExcludingFee,
-        stabilityPoolDatum.snapshot,
+        stabilityPoolDatum.poolSnapshot,
       );
       const newPoolSnapshot: StabilityPoolSnapshot = {
-        ...stabilityPoolDatum.snapshot,
+        ...stabilityPoolDatum.poolSnapshot,
         depositVal: newPoolDeposit,
         productVal: newPoolProduct,
       };
-
       const accountTokenRef = await scriptRef(
         params.scriptReferences.authTokenPolicies.accountTokenRef,
         lucid,
       );
-
       await CollectorContract.feeTx(rewardLovelacesFee, lucid, params, tx);
-
       tx.readFrom([govUtxo, iAssetUtxo, accountTokenRef, ...refInputs]);
-
       tx.mintAssets(
         {
           [params.stabilityPoolParams.accountToken[0].unCurrencySymbol +
@@ -624,7 +594,6 @@ export class StabilityPoolContract {
         },
         Data.to(new Constr(0, [])),
       );
-
       const assetOutputAmountForSP =
         stabilityPoolUtxo.assets[
           params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
@@ -632,18 +601,13 @@ export class StabilityPoolContract {
         ] -
         fromSPInteger(withdrawnAmt) -
         withdrawalFeeAmount;
-
       tx.pay.ToContract(
         stabilityPoolUtxo.address,
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            StabilityPool: {
-              content: {
-                ...stabilityPoolDatum,
-                snapshot: newPoolSnapshot,
-              },
-            },
+            ...stabilityPoolDatum,
+            poolSnapshot: newPoolSnapshot,
           }),
         },
         {
@@ -660,7 +624,6 @@ export class StabilityPoolContract {
             : {}),
         },
       );
-
       if (myAddress !== outputAddress) {
         tx.pay.ToAddressWithData(
           outputAddress,

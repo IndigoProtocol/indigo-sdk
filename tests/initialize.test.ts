@@ -1,11 +1,15 @@
 import { beforeEach, test } from 'vitest';
 import { LucidContext } from './test-helpers';
-import { Lucid } from '@lucid-evolution/lucid';
+import { EmulatorAccount, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { init } from './endpoints/initialize';
 
-beforeEach<LucidContext>(async (context: LucidContext) => {
+type MyContext = LucidContext<{
+  admin: EmulatorAccount;
+}>;
+
+beforeEach<MyContext>(async (context: MyContext) => {
   context.users = {
     admin: generateEmulatorAccount({
       lovelace: BigInt(100_000_000_000_000),
@@ -17,10 +21,10 @@ beforeEach<LucidContext>(async (context: LucidContext) => {
   context.lucid = await Lucid(context.emulator, 'Custom');
 });
 
-test<LucidContext>('Initialize Protocol - can initialize', async ({
+test<MyContext>('Initialize Protocol - can initialize', async ({
   lucid,
   users,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
 
   await init(lucid);
