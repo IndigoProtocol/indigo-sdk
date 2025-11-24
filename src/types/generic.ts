@@ -6,7 +6,6 @@ import {
   Network,
 } from '@lucid-evolution/lucid';
 import { match, P } from 'ts-pattern';
-import { Core as EvoCore } from '@evolution-sdk/evolution';
 
 export const AssetClassSchema = Data.Object({
   currencySymbol: Data.Bytes(),
@@ -16,24 +15,19 @@ export const AssetClassSchema = Data.Object({
 export type AssetClass = Data.Static<typeof AssetClassSchema>;
 
 export const OutputReferenceSchema = Data.Object({
-  txHash: Data.Object({ hash: Data.Bytes({ minLength: 32, maxLength: 32 }) }),
+  txHash: Data.Object({ hash: Data.Bytes() }),
   outputIndex: Data.Integer(),
 });
 export type OutputReference = Data.Static<typeof OutputReferenceSchema>;
 
-export const VerificationKeyHashSchema = Data.Bytes({
-  minLength: 28,
-  maxLength: 28,
-});
+export const VerificationKeyHashSchema = Data.Bytes();
 
 export const CredentialSchema = Data.Enum([
   Data.Object({
     PublicKeyCredential: Data.Tuple([VerificationKeyHashSchema]),
   }),
   Data.Object({
-    ScriptCredential: Data.Tuple([
-      Data.Bytes({ minLength: 28, maxLength: 28 }),
-    ]),
+    ScriptCredential: Data.Tuple([Data.Bytes()]),
   }),
 ]);
 export type CredentialD = Data.Static<typeof CredentialSchema>;
@@ -127,12 +121,4 @@ export interface CurrencySymbol {
 
 export interface TokenName {
   unTokenName: string;
-}
-
-export function cborToEvoData(d: string): EvoCore.Data.Data {
-  return EvoCore.Data.fromCBORHex(d);
-}
-
-export function evoDataToCbor(d: EvoCore.Data.Data): string {
-  return EvoCore.Data.toCBORHex(d);
 }

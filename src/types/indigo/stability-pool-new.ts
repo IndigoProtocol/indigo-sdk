@@ -1,11 +1,39 @@
 import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { match, P } from 'ts-pattern';
+import { EvoCommon } from '@3rd-eye-labs/cardano-offchain-common';
 
 export const SPIntegerSchema = EvoCore.TSchema.Struct({
   value: EvoCore.TSchema.Integer,
 });
 
 export type SPInteger = typeof SPIntegerSchema.Type;
+
+const AccountActionSchema = EvoCore.TSchema.Union(
+  EvoCore.TSchema.Literal('Create', { flatInUnion: true }),
+  EvoCore.TSchema.Struct(
+    {
+      Adjust: EvoCore.TSchema.Struct(
+        {
+          amount: EvoCore.TSchema.Integer,
+          outputAddress: EvoCommon.AddressSchema,
+        },
+        { flatFields: true },
+      ),
+    },
+    { flatInUnion: true },
+  ),
+  EvoCore.TSchema.Struct(
+    {
+      Close: EvoCore.TSchema.Struct(
+        { outputAddress: EvoCommon.AddressSchema },
+        { flatFields: true },
+      ),
+    },
+    { flatInUnion: true },
+  ),
+);
+
+export type AccountAction = typeof AccountActionSchema.Type;
 
 export const EpochToScaleToSumSchema = EvoCore.TSchema.Map(
   EvoCore.TSchema.Struct({
@@ -39,7 +67,7 @@ export const AccountContentSchema = EvoCore.TSchema.Struct({
   owner: EvoCore.TSchema.ByteArray,
   asset: EvoCore.TSchema.ByteArray,
   accountSnapshot: StabilityPoolSnapshotSchema,
-  request: EvoCore.TSchema.NullOr(EvoCore.Data.DataSchema),
+  request: EvoCore.TSchema.NullOr(AccountActionSchema),
 });
 
 export type AccountContent = typeof AccountContentSchema.Type;
@@ -57,6 +85,34 @@ export const StabilityPoolDatumSchema = EvoCore.TSchema.Union(
   AccountContentSchema,
   SnapshotEpochToScaleToSumContentSchema,
 );
+
+export const StabilityPoolRedeemerSchema = EvoCore.TSchema.Union(
+  EvoCore.TSchema.Struct(
+    { RequestAction: AccountActionSchema },
+    { flatInUnion: true },
+  ),
+  EvoCore.TSchema.Struct(
+    {
+      ProcessRequest: EvoCore.TSchema.Struct({
+        txHash: EvoCore.TSchema.Struct({ hash: EvoCore.TSchema.ByteArray }),
+        outputIndex: EvoCore.TSchema.Integer,
+      }),
+    },
+    { flatInUnion: true },
+  ),
+  EvoCore.TSchema.Literal('AnnulRequest', { flatInUnion: true }),
+  EvoCore.TSchema.Literal('LiquidateCDP'),
+  EvoCore.TSchema.Literal('RecordEpochToScaleToSum', { flatInUnion: true }),
+  EvoCore.TSchema.Literal('UpgradeVersion', { flatInUnion: true }),
+);
+
+export type StabilityPoolRedeemer = typeof StabilityPoolRedeemerSchema.Type;
+
+export function serialiseStabilityPoolRedeemer(
+  r: StabilityPoolRedeemer,
+): string {
+  return EvoCore.Data.withSchema(StabilityPoolRedeemerSchema).toCBORHex(r);
+}
 
 export function serialiseStabilityPoolDatum(
   d: typeof StabilityPoolDatumSchema.Type,

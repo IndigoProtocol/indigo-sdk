@@ -1,34 +1,5 @@
 import { Data } from '@lucid-evolution/lucid';
-import {
-  AddressSchema,
-  AssetClassSchema,
-  cborToEvoData,
-  evoDataToCbor,
-  OutputReferenceSchema,
-} from '../generic';
-import { Core as EvoCore } from '@evolution-sdk/evolution';
-
-export const AccountActionSchema = Data.Enum([
-  Data.Literal('Create'),
-  Data.Object({
-    Adjust: Data.Object({
-      amount: Data.Integer(),
-      outputAddress: AddressSchema,
-    }),
-  }),
-  Data.Object({ Close: Data.Object({ outputAddress: AddressSchema }) }),
-]);
-
-export type AccountAction = Data.Static<typeof AccountActionSchema>;
-export const AccountAction = AccountActionSchema as unknown as AccountAction;
-
-export function serialiseAccountAction(d: AccountAction): EvoCore.Data.Data {
-  return cborToEvoData(Data.to<AccountAction>(d, AccountAction));
-}
-
-export function parseAccountAction(d: EvoCore.Data.Data): AccountAction {
-  return Data.from<AccountAction>(evoDataToCbor(d), AccountAction);
-}
+import { AssetClassSchema, OutputReferenceSchema } from '../generic';
 
 export const ActionReturnDatumSchema = Data.Enum([
   Data.Object({
@@ -46,29 +17,6 @@ export const ActionReturnDatumSchema = Data.Enum([
 export type ActionReturnDatum = Data.Static<typeof ActionReturnDatumSchema>;
 export const ActionReturnDatum =
   ActionReturnDatumSchema as unknown as ActionReturnDatum;
-
-export const StabilityPoolRedeemerSchema = Data.Enum([
-  Data.Object({ RequestAction: Data.Object({ action: AccountActionSchema }) }),
-  Data.Object({
-    ProcessRequest: Data.Object({ requestRef: OutputReferenceSchema }),
-  }),
-  Data.Object({ AnnulRequest: Data.Object({}) }),
-  Data.Object({ LiquidateCDP: Data.Object({}) }),
-  Data.Object({ RecordEpochToScaleToSum: Data.Object({}) }),
-  Data.Object({ UpgradeVersion: Data.Object({}) }),
-]);
-
-export type StabilityPoolRedeemer = Data.Static<
-  typeof StabilityPoolRedeemerSchema
->;
-export const StabilityPoolRedeemer =
-  StabilityPoolRedeemerSchema as unknown as StabilityPoolRedeemer;
-
-export function serialiseStabilityPoolRedeemer(
-  params: StabilityPoolRedeemer,
-): string {
-  return Data.to<StabilityPoolRedeemer>(params, StabilityPoolRedeemer);
-}
 
 /** SP Parameters */
 const StabilityPoolParamsSchema = Data.Object({

@@ -9,14 +9,7 @@ import {
   credentialToAddress,
   fromHex,
 } from '@lucid-evolution/lucid';
-import {
-  serialiseStabilityPoolRedeemer,
-  StabilityPoolRedeemer,
-  ActionReturnDatum,
-  AccountAction,
-  serialiseAccountAction,
-  parseAccountAction,
-} from '../types/indigo/stability-pool';
+import { ActionReturnDatum } from '../types/indigo/stability-pool';
 import { SystemParams } from '../types/system-params';
 import {
   addrDetails,
@@ -33,8 +26,9 @@ import { calculateFeeFromPercentage } from '../helpers/indigo-helpers';
 import { GovDatum, parseGovDatumOrThrow } from '../types/indigo/gov';
 import { IAssetContent, parseIAssetDatumOrThrow } from '../types/indigo/cdp';
 import { CollectorContract } from './collector';
-import { addressFromBech32, addressToBech32 } from '../types/generic';
+import { EvoCommon } from '@3rd-eye-labs/cardano-offchain-common';
 import {
+  AccountAction,
   AccountContent,
   EpochToScaleToSum,
   fromSPInteger,
@@ -42,10 +36,12 @@ import {
   parseAccountDatum,
   parseStabilityPoolDatum,
   serialiseStabilityPoolDatum,
+  serialiseStabilityPoolRedeemer,
   spAdd,
   spDiv,
   spMul,
   spSub,
+  StabilityPoolRedeemer,
   StabilityPoolSnapshot,
 } from '../types/indigo/stability-pool-new';
 
@@ -71,7 +67,7 @@ export class StabilityPoolContract {
         epoch: 0n,
         scale: 0n,
       },
-      request: serialiseAccountAction('Create'),
+      request: 'Create',
     };
 
     return lucid
@@ -108,28 +104,16 @@ export class StabilityPoolContract {
       lucid,
     );
 
-    const request: AccountAction = {
-      Adjust: {
-        amount: amount,
-        outputAddress: addressFromBech32(myAddress),
-      },
-    };
     const oldAccountDatum: AccountContent = parseAccountDatum(
       getInlineDatumOrThrow(accountUtxo),
     );
 
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
-      request: serialiseAccountAction(request),
-    };
-
-    const redeemer: StabilityPoolRedeemer = {
-      RequestAction: {
-        action: {
-          Adjust: {
-            amount: amount,
-            outputAddress: addressFromBech32(myAddress),
-          },
+      request: {
+        Adjust: {
+          amount: amount,
+          outputAddress: EvoCommon.addressFromBech32(myAddress),
         },
       },
     };
@@ -153,7 +137,17 @@ export class StabilityPoolContract {
     return lucid
       .newTx()
       .readFrom([stabilityPoolScriptRef])
-      .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+      .collectFrom(
+        [accountUtxo],
+        serialiseStabilityPoolRedeemer({
+          RequestAction: {
+            Adjust: {
+              amount: amount,
+              outputAddress: EvoCommon.addressFromBech32(myAddress),
+            },
+          },
+        }),
+      )
       .pay.ToContract(
         credentialToAddress(lucid.config().network!, {
           hash: validatorToScriptHash(
@@ -185,7 +179,7 @@ export class StabilityPoolContract {
 
     const request: AccountAction = {
       Close: {
-        outputAddress: addressFromBech32(myAddress),
+        outputAddress: EvoCommon.addressFromBech32(myAddress),
       },
     };
     const oldAccountDatum: AccountContent = parseAccountDatum(
@@ -193,19 +187,16 @@ export class StabilityPoolContract {
     );
     const newAccountDatum: AccountContent = {
       ...oldAccountDatum,
-      request: serialiseAccountAction(request),
-    };
-
-    const redeemer: StabilityPoolRedeemer = {
-      RequestAction: {
-        action: request,
-      },
+      request: request,
     };
 
     return lucid
       .newTx()
       .readFrom([stabilityPoolScriptRef])
-      .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer(redeemer))
+      .collectFrom(
+        [accountUtxo],
+        serialiseStabilityPoolRedeemer({ RequestAction: request }),
+      )
       .pay.ToContract(
         credentialToAddress(lucid.config().network!, {
           hash: validatorToScriptHash(
@@ -241,10 +232,8 @@ export class StabilityPoolContract {
   ): Promise<TxBuilder> {
     const redeemer: StabilityPoolRedeemer = {
       ProcessRequest: {
-        requestRef: {
-          txHash: { hash: accountUtxo.txHash },
-          outputIndex: BigInt(accountUtxo.outputIndex),
-        },
+        txHash: { hash: fromHex(accountUtxo.txHash) },
+        outputIndex: BigInt(accountUtxo.outputIndex),
       },
     };
     const stabilityPoolScriptRef = await scriptRef(
@@ -269,9 +258,7 @@ export class StabilityPoolContract {
 
     if (!accountDatum.request) throw new Error('Account Request is null');
 
-    const parsedReq = parseAccountAction(accountDatum.request);
-
-    if (parsedReq === 'Create') {
+    if (accountDatum.request === 'Create') {
       const accountTokenScriptRef = await scriptRef(
         params.scriptReferences.authTokenPolicies.accountTokenRef,
         lucid,
@@ -376,10 +363,10 @@ export class StabilityPoolContract {
           fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
         },
       );
-    } else if ('Adjust' in parsedReq) {
-      const amount = parsedReq.Adjust.amount;
-      const outputAddress = addressToBech32(
-        parsedReq.Adjust.outputAddress,
+    } else if ('Adjust' in accountDatum.request) {
+      const amount = accountDatum.request.Adjust.amount;
+      const outputAddress = EvoCommon.addressToBech32(
+        accountDatum.request.Adjust.outputAddress,
         lucid.config().network!,
       );
       const myAddress = await lucid.wallet().address();
@@ -547,9 +534,9 @@ export class StabilityPoolContract {
       } else {
         // TODO: User is self-handling the process request, so we will need to handle the change datum
       }
-    } else if ('Close' in parsedReq) {
-      const outputAddress = addressToBech32(
-        parsedReq.Close.outputAddress,
+    } else if ('Close' in accountDatum.request) {
+      const outputAddress = EvoCommon.addressToBech32(
+        accountDatum.request.Close.outputAddress,
         lucid.config().network!,
       );
       const myAddress = await lucid.wallet().address();

@@ -40,8 +40,8 @@
   "author": "3rd Eye Labs",
   "license": "MIT",
   "dependencies": {
-    "@effect/platform": "^0.90.10",
-    "@evolution-sdk/evolution": "^0.2.2",
+    "@3rd-eye-labs/cardano-offchain-common": "github:3rd-Eye-Labs/cardano-offchain-common#v1.1.1",
+    "@evolution-sdk/evolution": "^0.2.5",
     "@harmoniclabs/crypto": "^0.3.0",
     "@lucid-evolution/lucid": "^0.4.29",
     "dotenv": "^16.5.0",
