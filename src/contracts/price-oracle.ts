@@ -3,6 +3,7 @@ import {
   fromText,
   LucidEvolution,
   OutRef,
+  slotToUnixTime,
   TxBuilder,
   validatorToAddress,
 } from '@lucid-evolution/lucid';
@@ -12,11 +13,14 @@ import {
   PriceOracleDatum,
   PriceOracleParams,
   serialisePriceOracleDatum,
+  serialisePriceOracleRedeemer,
 } from '../types/indigo/price-oracle';
 import { mkPriceOracleValidator } from '../scripts/price-oracle-validator';
 import { oneShotMintTx } from './one-shot';
 import { mkAssetsOf, mkLovelacesOf } from '../helpers/value-helpers';
 import { OnChainDecimal } from '../types/on-chain-decimal';
+import { matchSingle } from '../helpers/helpers';
+import { ONE_SECOND } from '../helpers/time-helpers';
 
 export async function startPriceOracleTx(
   lucid: LucidEvolution,
@@ -62,4 +66,47 @@ export async function startPriceOracleTx(
   );
 
   return [tx, { oracleNft: priceOracleNft }];
+}
+
+export async function feedPriceOracleTx(
+  lucid: LucidEvolution,
+  oracleOref: OutRef,
+  newPrice: OnChainDecimal,
+  oracleParams: PriceOracleParams,
+  currentSlot: number,
+): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  const priceOracleUtxo = matchSingle(
+    await lucid.utxosByOutRef([oracleOref]),
+    (_) => new Error('Expected a single price oracle UTXO'),
+  );
+
+  const oracleValidator = mkPriceOracleValidator(oracleParams);
+
+  return lucid
+    .newTx()
+    .validFrom(Number(currentTime - oracleParams.biasTime) + ONE_SECOND)
+    .validTo(Number(currentTime + oracleParams.biasTime) - ONE_SECOND)
+    .attach.SpendingValidator(oracleValidator)
+    .collectFrom(
+      [priceOracleUtxo],
+      serialisePriceOracleRedeemer({
+        currentTime: currentTime,
+        newPrice: newPrice,
+      }),
+    )
+    .pay.ToContract(
+      priceOracleUtxo.address,
+      {
+        kind: 'inline',
+        value: serialisePriceOracleDatum({
+          price: newPrice,
+          expiration: currentTime + oracleParams.expiration,
+        }),
+      },
+      priceOracleUtxo.assets,
+    )
+    .addSignerKey(oracleParams.owner);
 }

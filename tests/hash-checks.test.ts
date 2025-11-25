@@ -11,6 +11,7 @@ import {
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
 import { mkGovValidatorFromSP } from '../src/scripts/gov-validator';
+import { mkExecuteValidatorFromSP } from '../src/scripts/execute-validator';
 
 const systemParams = loadSystemParamsFromFile(
   './tests/data/system-params.json',
@@ -36,13 +37,13 @@ describe('Validator Hash checks', () => {
   });
   // TODO: Revisit this test, issues with cbor encoding on Lucid?
   // Applying parameters to the validator using `aiken build` does not result in the same hash as the one generate by Lucid.
-  // it('Execute validator hash', () => {
-  //   expect(
-  //     validatorToScriptHash(mkExecuteValidatorFromSP(systemParams.executeParams)),
-  //   ).toBe(
-  //     systemParams.validatorHashes.executeHash,
-  //   );
-  // });
+  it.todo('Execute validator hash', () => {
+    expect(
+      validatorToScriptHash(
+        mkExecuteValidatorFromSP(systemParams.executeParams),
+      ),
+    ).toBe(systemParams.validatorHashes.executeHash);
+  });
   it('Gov validator hash', () => {
     expect(
       validatorToScriptHash(mkGovValidatorFromSP(systemParams.govParams)),

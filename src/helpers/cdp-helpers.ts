@@ -10,6 +10,55 @@ import {
   OnChainDecimal,
 } from '../types/on-chain-decimal';
 import { calculateFeeFromPercentage } from './helpers';
+import { Network, slotToUnixTime, UTxO } from '@lucid-evolution/lucid';
+import { CDPContent } from '../types/indigo/cdp';
+import { calculateAccruedInterest } from './interest-oracle';
+import { match, P } from 'ts-pattern';
+import { InterestOracleDatum } from '../types/indigo/interest-oracle';
+import { lovelacesAmt } from './value-helpers';
+
+/**
+ * This is mostly for debugging purposes.
+ */
+export function cdpCollateralRatioPercentage(
+  currentSlot: number,
+  iassetPrice: OnChainDecimal,
+  cdpUtxo: UTxO,
+  cdpContent: CDPContent,
+  interestOracleDatum: InterestOracleDatum,
+  network: Network,
+): number {
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  return match(cdpContent.cdpFees)
+    .with({ ActiveCDPInterestTracking: P.select() }, (interest) => {
+      const interestAdaAmt = ocdMul(
+        {
+          getOnChainInt: calculateAccruedInterest(
+            currentTime,
+            interest.unitaryInterestSnapshot,
+            cdpContent.mintedAmt,
+            interest.lastSettled,
+            interestOracleDatum,
+          ),
+        },
+        iassetPrice,
+      ).getOnChainInt;
+
+      const collateral = lovelacesAmt(cdpUtxo.assets) - interestAdaAmt;
+
+      return (
+        Number(
+          ocdDiv(
+            { getOnChainInt: collateral * 100n },
+            ocdMul({ getOnChainInt: cdpContent.mintedAmt }, iassetPrice),
+          ).getOnChainInt,
+        ) / Number(OCD_DECIMAL_UNIT)
+      );
+    })
+    .with({ FrozenCDPAccumulatedFees: P.any }, () => 0)
+    .exhaustive();
+}
 
 /**
  * The amount of iassets to redeem to reach the RMR.
@@ -83,7 +132,7 @@ export function calculateMinCollateralCappedIAssetRedemptionAmt(
   }).getOnChainInt;
 
   const maxReimburstment = calculateFeeFromPercentage(
-    reimburstmentPercentage.getOnChainInt,
+    reimburstmentPercentage,
     uncappedMaxRedemptionLovelacesAmt,
   );
 

@@ -1,8 +1,8 @@
 import { InterestOracleDatum } from '../types/indigo/interest-oracle';
 import { oneYear } from '../helpers/time-helpers';
+import { OCD_DECIMAL_UNIT } from '../types/on-chain-decimal';
 
 const unitaryInterestPrecision = 1_000_000_000_000_000_000n;
-const decimalUnit = 1_000_000n;
 
 export function calculateUnitaryInterest(
   timePeriod: bigint,
@@ -11,7 +11,7 @@ export function calculateUnitaryInterest(
   return (
     (timePeriod * interestRate * unitaryInterestPrecision) /
     oneYear /
-    decimalUnit
+    OCD_DECIMAL_UNIT
   );
 }
 
@@ -42,7 +42,7 @@ export function calculateAccruedInterest(
         interestOracleDatum.interestRate.getOnChainInt *
         mintedAmount) /
       oneYear /
-      decimalUnit;
+      OCD_DECIMAL_UNIT;
 
     return interestFromPreviousRates + lastRateInterest;
   } else {
@@ -51,7 +51,7 @@ export function calculateAccruedInterest(
         interestOracleDatum.interestRate.getOnChainInt *
         mintedAmount) /
       oneYear /
-      decimalUnit
+      OCD_DECIMAL_UNIT
     );
   }
 }

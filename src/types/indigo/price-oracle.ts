@@ -1,4 +1,4 @@
-import { Data, Datum } from '@lucid-evolution/lucid';
+import { Data, Datum, Redeemer } from '@lucid-evolution/lucid';
 import { AssetClassSchema } from '../generic';
 import { OnChainDecimalSchema } from '../on-chain-decimal';
 
@@ -24,6 +24,18 @@ export const PriceOracleDatumSchema = Data.Object({
 });
 export type PriceOracleDatum = Data.Static<typeof PriceOracleDatumSchema>;
 const PriceOracleDatum = PriceOracleDatumSchema as unknown as PriceOracleDatum;
+
+const PriceOracleRedeemerSchema = Data.Object({
+  currentTime: Data.Integer(),
+  newPrice: OnChainDecimalSchema,
+});
+export type PriceOracleRedeemer = Data.Static<typeof PriceOracleRedeemerSchema>;
+const PriceOracleRedeemer =
+  PriceOracleRedeemerSchema as unknown as PriceOracleRedeemer;
+
+export function serialisePriceOracleRedeemer(r: PriceOracleRedeemer): Redeemer {
+  return Data.to<PriceOracleRedeemer>(r, PriceOracleRedeemer);
+}
 
 export function parsePriceOracleDatum(datum: Datum): PriceOracleDatum {
   return Data.from<PriceOracleDatum>(datum, PriceOracleDatum);

@@ -7,6 +7,7 @@ import { StakingContract } from '../src/contracts/staking';
 import { init } from './endpoints/initialize';
 import { addrDetails } from '../src/helpers/lucid-utils';
 import { findStakingPosition } from './queries/staking-queries';
+import { iusdInitialAssetCfg } from './mock/assets-mock';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -29,7 +30,7 @@ test<MyContext>('Staking - Create Position', async ({
   users,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid);
+  const [systemParams, _] = await init(lucid, [iusdInitialAssetCfg]);
 
   await runAndAwaitTx(
     lucid,
@@ -42,14 +43,14 @@ test<MyContext>('Staking - Adjust Position', async ({
   users,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid);
+  const [systemParams, _] = await init(lucid, [iusdInitialAssetCfg]);
 
   await runAndAwaitTx(
     lucid,
     StakingContract.openPosition(1_000_000n, systemParams, lucid),
   );
 
-  const [pkh, _] = await addrDetails(lucid);
+  const [pkh, __] = await addrDetails(lucid);
   const myStakingPosition = await findStakingPosition(
     lucid,
     systemParams.validatorHashes.stakingHash,
@@ -79,14 +80,14 @@ test<MyContext>('Staking - Close Position', async ({
   users,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid);
+  const [systemParams, _] = await init(lucid, [iusdInitialAssetCfg]);
 
   await runAndAwaitTx(
     lucid,
     StakingContract.openPosition(1_000_000n, systemParams, lucid),
   );
 
-  const [pkh, _] = await addrDetails(lucid);
+  const [pkh, __] = await addrDetails(lucid);
   const myStakingPosition = await findStakingPosition(
     lucid,
     systemParams.validatorHashes.stakingHash,

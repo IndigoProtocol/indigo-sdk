@@ -21,6 +21,7 @@ import { findPriceOracle } from './queries/price-oracle-queries';
 import { match, P } from 'ts-pattern';
 import { findInterestOracle } from './queries/interest-oracle-queries';
 import { findRandomCollector } from './queries/collector-queries';
+import { iusdInitialAssetCfg } from './mock/assets-mock';
 
 let originalDateNow: () => number;
 
@@ -57,7 +58,7 @@ test<MyContext>('Stability Pool - Create Account', async ({
   emulator,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid);
+  const [systemParams, [iusdInfo]] = await init(lucid, [iusdInitialAssetCfg]);
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 
@@ -65,7 +66,7 @@ test<MyContext>('Stability Pool - Create Account', async ({
     lucid,
     systemParams.validatorHashes.cdpHash,
     fromSystemParamsAsset(systemParams.cdpParams.iAssetAuthToken),
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
@@ -100,7 +101,12 @@ test<MyContext>('Stability Pool - Create Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.createAccount('iUSD', 10n, systemParams, lucid),
+    StabilityPoolContract.createAccount(
+      iusdInfo.iassetTokenNameAscii,
+      10n,
+      systemParams,
+      lucid,
+    ),
   );
 
   const stabilityPoolUtxo = await findStabilityPool(
@@ -113,14 +119,14 @@ test<MyContext>('Stability Pool - Create Account', async ({
         systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   const accountUtxo = await findStabilityPoolAccount(
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   const assetUtxo = await findIAsset(
@@ -133,7 +139,7 @@ test<MyContext>('Stability Pool - Create Account', async ({
         systemParams.cdpParams.iAssetAuthToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   const govUtxo = await findGov(lucid, systemParams.validatorHashes.govHash, {
@@ -146,7 +152,7 @@ test<MyContext>('Stability Pool - Create Account', async ({
   await runAndAwaitTx(
     lucid,
     StabilityPoolContract.processRequest(
-      'iUSD',
+      iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
       govUtxo.utxo,
@@ -168,7 +174,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
   emulator,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid);
+  const [systemParams, [iusdInfo]] = await init(lucid, [iusdInitialAssetCfg]);
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 
@@ -176,7 +182,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
     lucid,
     systemParams.validatorHashes.cdpHash,
     fromSystemParamsAsset(systemParams.cdpParams.iAssetAuthToken),
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
@@ -211,7 +217,12 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.createAccount('iUSD', 10n, systemParams, lucid),
+    StabilityPoolContract.createAccount(
+      iusdInfo.iassetTokenNameAscii,
+      10n,
+      systemParams,
+      lucid,
+    ),
   );
 
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
@@ -226,14 +237,14 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
         systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   let accountUtxo = await findStabilityPoolAccount(
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   const assetUtxo = await findIAsset(
@@ -246,7 +257,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
         systemParams.cdpParams.iAssetAuthToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   const govUtxo = await findGov(lucid, systemParams.validatorHashes.govHash, {
@@ -257,7 +268,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
   await runAndAwaitTx(
     lucid,
     StabilityPoolContract.processRequest(
-      'iUSD',
+      iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
       govUtxo.utxo,
@@ -284,20 +295,20 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
         systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   accountUtxo = await findStabilityPoolAccount(
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
     lucid,
     StabilityPoolContract.adjustAccount(
-      'iUSD',
+      iusdInfo.iassetTokenNameAscii,
       10n,
       accountUtxo,
       systemParams,
@@ -310,13 +321,13 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
     lucid,
     StabilityPoolContract.processRequest(
-      'iUSD',
+      iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
       govUtxo.utxo,
@@ -344,20 +355,20 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
         systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   accountUtxo = await findStabilityPoolAccount(
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
     lucid,
     StabilityPoolContract.adjustAccount(
-      'iUSD',
+      iusdInfo.iassetTokenNameAscii,
       -10n,
       accountUtxo,
       systemParams,
@@ -370,13 +381,13 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
     lucid,
     StabilityPoolContract.processRequest(
-      'iUSD',
+      iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
       govUtxo.utxo,
@@ -398,7 +409,7 @@ test<MyContext>('Stability Pool - Close Account', async ({
   emulator,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const systemParams = await init(lucid, emulator.now());
+  const [systemParams, [iusdInfo]] = await init(lucid, [iusdInitialAssetCfg]);
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 
@@ -406,7 +417,7 @@ test<MyContext>('Stability Pool - Close Account', async ({
     lucid,
     systemParams.validatorHashes.cdpHash,
     fromSystemParamsAsset(systemParams.cdpParams.iAssetAuthToken),
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
@@ -441,7 +452,12 @@ test<MyContext>('Stability Pool - Close Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.createAccount('iUSD', 10n, systemParams, lucid),
+    StabilityPoolContract.createAccount(
+      iusdInfo.iassetTokenNameAscii,
+      10n,
+      systemParams,
+      lucid,
+    ),
   );
 
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
@@ -456,14 +472,14 @@ test<MyContext>('Stability Pool - Close Account', async ({
         systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   let accountUtxo = await findStabilityPoolAccount(
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   const assetUtxo = await findIAsset(
@@ -476,7 +492,7 @@ test<MyContext>('Stability Pool - Close Account', async ({
         systemParams.cdpParams.iAssetAuthToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   const govUtxo = await findGov(lucid, systemParams.validatorHashes.govHash, {
@@ -487,7 +503,7 @@ test<MyContext>('Stability Pool - Close Account', async ({
   await runAndAwaitTx(
     lucid,
     StabilityPoolContract.processRequest(
-      'iUSD',
+      iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
       govUtxo.utxo,
@@ -514,14 +530,14 @@ test<MyContext>('Stability Pool - Close Account', async ({
         systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
       ),
     },
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   accountUtxo = await findStabilityPoolAccount(
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
@@ -534,13 +550,13 @@ test<MyContext>('Stability Pool - Close Account', async ({
     lucid,
     systemParams.validatorHashes.stabilityPoolHash,
     pkh.hash,
-    'iUSD',
+    iusdInfo.iassetTokenNameAscii,
   );
 
   await runAndAwaitTx(
     lucid,
     StabilityPoolContract.processRequest(
-      'iUSD',
+      iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
       govUtxo.utxo,

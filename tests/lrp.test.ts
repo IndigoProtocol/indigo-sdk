@@ -200,7 +200,7 @@ describe('LRP', () => {
       lovelacesAmt(adjustedUtxo1.assets) >=
         parseLrpDatum(getInlineDatumOrThrow(adjustedUtxo1)).lovelacesToSpend,
       'Lovelaces to spend has to be smaller than actual lovelaces in UTXO',
-    );
+    ).toBeTruthy();
 
     await runAndAwaitTx(
       lucid,
@@ -235,7 +235,7 @@ describe('LRP', () => {
       lovelacesAmt(adjustedUtxo2.assets) >=
         parseLrpDatum(getInlineDatumOrThrow(adjustedUtxo2)).lovelacesToSpend,
       'Lovelaces to spend has to be smaller than actual lovelaces in UTXO',
-    );
+    ).toBeTruthy();
   });
 
   it('claim', async () => {

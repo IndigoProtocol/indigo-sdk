@@ -5,21 +5,29 @@ import {
   generateEmulatorAccount,
   Lucid,
   OutRef,
+  UTxO,
 } from '@lucid-evolution/lucid';
 import { assert, beforeEach, describe, expect, test } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
 import { lovelacesAmt, mkLovelacesOf } from '../src/helpers/value-helpers';
-import { init } from './endpoints/initialize';
+import { AssetInfo, init } from './endpoints/initialize';
 import {
   addrDetails,
   burnCdp,
+  CDPContent,
   closeCdp,
   createScriptAddress,
   depositCdp,
   fromSystemParamsAsset,
+  getInlineDatumOrThrow,
   IAssetOutput,
+  InterestOracleDatum,
+  matchSingle,
   mintCdp,
   openCdp,
+  parseInterestOracleDatum,
+  parsePriceOracleDatum,
+  redeemCdp,
   SystemParams,
   withdrawCdp,
 } from '../src';
@@ -27,11 +35,16 @@ import { findCdp, findRandomCdpCreator } from './queries/cdp-queries';
 import { findIAsset } from './queries/iasset-queries';
 import { findPriceOracle } from './queries/price-oracle-queries';
 import { match, P } from 'ts-pattern';
-import { findInterestOracle } from './queries/interest-oracle-queries';
 import { findRandomCollector } from './queries/collector-queries';
 import { findGov } from './queries/governance-queries';
 import { findRandomTreasuryUtxo } from './queries/treasury-queries';
 import { getValueChangeAtAddressAfterAction } from './utils';
+import { cdpCollateralRatioPercentage } from '../src/helpers/cdp-helpers';
+import { OnChainDecimal } from '../src/types/on-chain-decimal';
+import { findInterestOracle } from './queries/interest-oracle-queries';
+import { feedPriceOracleTx } from '../src/contracts/price-oracle';
+import { iusdInitialAssetCfg } from './mock/assets-mock';
+import { assertValueInRange } from './utils/asserts';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -95,6 +108,58 @@ async function findAllNecessaryOrefs(
   };
 }
 
+async function findPrice(
+  context: MyContext,
+  sysParams: SystemParams,
+  asset: string,
+): Promise<OnChainDecimal> {
+  const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+
+  const priceOracleUtxo = matchSingle(
+    await context.lucid.utxosByOutRef([orefs.priceOracleOref]),
+    (_) => new Error('Expected a single price oracle UTXO'),
+  );
+  const priceOracleDatum = parsePriceOracleDatum(
+    getInlineDatumOrThrow(priceOracleUtxo),
+  );
+
+  return priceOracleDatum.price;
+}
+
+async function findInterestDatum(
+  context: MyContext,
+  sysParams: SystemParams,
+  asset: string,
+): Promise<InterestOracleDatum> {
+  const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+
+  const interestOracleUtxo = matchSingle(
+    await context.lucid.utxosByOutRef([orefs.interestOracleOref]),
+    (_) => new Error('Expected a single interest oracle UTXO'),
+  );
+  return parseInterestOracleDatum(getInlineDatumOrThrow(interestOracleUtxo));
+}
+
+async function findCdpCR(
+  context: MyContext,
+  sysParams: SystemParams,
+  tokenAssetInfo: AssetInfo,
+  cdp: { utxo: UTxO; datum: CDPContent },
+): Promise<number> {
+  return cdpCollateralRatioPercentage(
+    context.emulator.slot,
+    await findPrice(context, sysParams, tokenAssetInfo.iassetTokenNameAscii),
+    cdp.utxo,
+    cdp.datum,
+    await findInterestDatum(
+      context,
+      sysParams,
+      tokenAssetInfo.iassetTokenNameAscii,
+    ),
+    context.lucid.config().network!,
+  );
+}
+
 describe('CDP', () => {
   beforeEach<MyContext>(async (context: MyContext) => {
     context.users = {
@@ -111,7 +176,7 @@ describe('CDP', () => {
   test<MyContext>('Open CDP', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const asset = 'iUSD';
 
@@ -139,7 +204,7 @@ describe('CDP', () => {
 
     const [pkh, skh] = await addrDetails(context.lucid);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const asset = 'iUSD';
 
@@ -226,7 +291,7 @@ describe('CDP', () => {
 
     const [pkh, skh] = await addrDetails(context.lucid);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const asset = 'iUSD';
 
@@ -313,7 +378,7 @@ describe('CDP', () => {
 
     const [pkh, skh] = await addrDetails(context.lucid);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const asset = 'iUSD';
 
@@ -400,7 +465,7 @@ describe('CDP', () => {
 
     const [pkh, skh] = await addrDetails(context.lucid);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const asset = 'iUSD';
 
@@ -487,7 +552,7 @@ describe('CDP', () => {
 
     const [pkh, skh] = await addrDetails(context.lucid);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const asset = 'iUSD';
 
@@ -538,6 +603,160 @@ describe('CDP', () => {
           context.lucid,
           context.emulator.slot,
         ),
+      );
+    }
+  });
+
+  test<MyContext>('Redeem CDP', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const [pkh, skh] = await addrDetails(context.lucid);
+
+    const [sysParams, [iusdAssetInfo]] = await init(context.lucid, [
+      iusdInitialAssetCfg,
+    ]);
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          20_000_000n,
+          10_000_000n,
+          sysParams,
+          orefs.cdpCreatorOref,
+          orefs.iasset.utxo,
+          orefs.priceOracleOref,
+          orefs.interestOracleOref,
+          orefs.collectorOref,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    // Add iAssets to user's wallet
+    {
+      context.lucid.selectWallet.fromSeed(context.users.user.seedPhrase);
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          50_000_000n,
+          10_000_000n,
+          sysParams,
+          orefs.cdpCreatorOref,
+          orefs.iasset.utxo,
+          orefs.priceOracleOref,
+          orefs.interestOracleOref,
+          orefs.collectorOref,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+
+      context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+    }
+
+    {
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        pkh.hash,
+        skh,
+      );
+
+      assertValueInRange(
+        await findCdpCR(context, sysParams, iusdAssetInfo, cdp),
+        { min: 199, max: 200 },
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        feedPriceOracleTx(
+          context.lucid,
+          orefs.priceOracleOref,
+          {
+            getOnChainInt: 1_250_000n,
+          },
+          iusdAssetInfo.oracleParams,
+          context.emulator.slot,
+        ),
+      );
+
+      assertValueInRange(
+        await findCdpCR(context, sysParams, iusdAssetInfo, cdp),
+        { min: 159, max: 160 },
+      );
+    }
+
+    {
+      // Let user do the redemption (i.e. not the CDP's owner)
+      context.lucid.selectWallet.fromSeed(context.users.user.seedPhrase);
+
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        pkh.hash,
+        skh,
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        redeemCdp(
+          cdp.datum.mintedAmt,
+          cdp.utxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleOref,
+          orefs.interestOracleOref,
+          orefs.collectorOref,
+          orefs.treasuryOref,
+          sysParams,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+
+      context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+    }
+
+    {
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        pkh.hash,
+        skh,
+      );
+
+      assertValueInRange(
+        await findCdpCR(context, sysParams, iusdAssetInfo, cdp),
+        { min: 199, max: 201 },
       );
     }
   });

@@ -195,7 +195,7 @@ export async function openCdp(
     .addSignerKey(pkh.hash);
 
   const debtMintingFee = calculateFeeFromPercentage(
-    BigInt(iassetDatum.debtMintingFeePercentage.getOnChainInt),
+    iassetDatum.debtMintingFeePercentage,
     (mintedAmount * priceOracleDatum.price.getOnChainInt) / 1_000_000n,
   );
 
@@ -371,7 +371,7 @@ async function adjustCdp(
     .exhaustive();
 
   const interestCollectorAdaAmt = calculateFeeFromPercentage(
-    iassetDatum.interestCollectorPortionPercentage.getOnChainInt,
+    iassetDatum.interestCollectorPortionPercentage,
     interestAdaAmt,
   );
   const interestTreasuryAdaAmt = interestAdaAmt - interestCollectorAdaAmt;
@@ -391,7 +391,7 @@ async function adjustCdp(
   // when mint
   if (mintAmount > 0n) {
     collectorFee += calculateFeeFromPercentage(
-      iassetDatum.debtMintingFeePercentage.getOnChainInt,
+      iassetDatum.debtMintingFeePercentage,
       (mintAmount * priceOracleDatum.price.getOnChainInt) / 1_000_000n,
     );
   }
@@ -399,7 +399,7 @@ async function adjustCdp(
   // when withdraw
   if (collateralAmount < 0n) {
     collectorFee += calculateFeeFromPercentage(
-      govDatum.protocolParams.collateralFeePercentage.getOnChainInt,
+      govDatum.protocolParams.collateralFeePercentage,
       -collateralAmount,
     );
   }
@@ -669,7 +669,7 @@ export async function closeCdp(
     .exhaustive();
 
   const interestCollectorAdaAmt = calculateFeeFromPercentage(
-    iassetDatum.interestCollectorPortionPercentage.getOnChainInt,
+    iassetDatum.interestCollectorPortionPercentage,
     interestAdaAmt,
   );
   const interestTreasuryAdaAmt = interestAdaAmt - interestCollectorAdaAmt;
@@ -687,7 +687,7 @@ export async function closeCdp(
   const collectorFee =
     interestCollectorAdaAmt +
     calculateFeeFromPercentage(
-      govDatum.protocolParams.collateralFeePercentage.getOnChainInt,
+      govDatum.protocolParams.collateralFeePercentage,
       lovelacesAmt(cdpUtxo.assets) - interestAdaAmt,
     );
 
@@ -710,14 +710,13 @@ export async function redeemCdp(
   iassetOref: OutRef,
   priceOracleOref: OutRef,
   interestOracleOref: OutRef,
+  collectorOref: OutRef,
+  treasuryOref: OutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
 ): Promise<TxBuilder> {
   const network = lucid.config().network!;
-  // Find Pkh, Skh
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [pkh, _] = await addrDetails(lucid);
   const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
   const cdpRefScriptUtxo = matchSingle(
@@ -779,12 +778,18 @@ export async function redeemCdp(
         interestOracleDatum,
       );
 
-      return (
-        (interestPaymentIAssetAmt * priceOracleDatum.price.getOnChainInt) /
-        1_000_000n
-      );
+      return ocdMul(
+        { getOnChainInt: interestPaymentIAssetAmt },
+        priceOracleDatum.price,
+      ).getOnChainInt;
     })
     .exhaustive();
+
+  const interestCollectorAdaAmt = calculateFeeFromPercentage(
+    iassetDatum.interestCollectorPortionPercentage,
+    interestAdaAmt,
+  );
+  const interestTreasuryAdaAmt = interestAdaAmt - interestCollectorAdaAmt;
 
   const collateralAmtMinusInterest =
     lovelacesAmt(cdpUtxo.assets) - interestAdaAmt;
@@ -807,21 +812,25 @@ export async function redeemCdp(
     return [redemptionAmt < res.cappedIAssetRedemptionAmt, redemptionAmt];
   })();
 
+  if (redemptionIAssetAmt <= 0) {
+    throw new Error("There's no iAssets available for redemption.");
+  }
+
   const redemptionLovelacesAmt = ocdMul(priceOracleDatum.price, {
     getOnChainInt: redemptionIAssetAmt,
   }).getOnChainInt;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const partialRedemptionFee = isPartial
-    ? sysParams.cdpParams.partialRedemptionExtraFeeLovelace
+    ? BigInt(sysParams.cdpParams.partialRedemptionExtraFeeLovelace)
     : 0n;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const processingFee = calculateFeeFromPercentage(
-    iassetDatum.redemptionProcessingFeePercentage.getOnChainInt,
+    iassetDatum.redemptionProcessingFeePercentage,
     redemptionLovelacesAmt,
   );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const reimburstmentFee = calculateFeeFromPercentage(
-    iassetDatum.redemptionReimbursementPercentage.getOnChainInt,
+    iassetDatum.redemptionReimbursementPercentage,
     redemptionLovelacesAmt,
   );
 
@@ -834,7 +843,10 @@ export async function redeemCdp(
 
   const tx = lucid
     .newTx()
+    // Ref Script
     .readFrom([cdpRefScriptUtxo, iAssetTokenPolicyRefScriptUtxo])
+    // Ref inputs
+    .readFrom([iassetUtxo, priceOracleUtxo, interestOracleUtxo])
     .validFrom(txValidity.validFrom)
     .validTo(txValidity.validTo)
     .collectFrom(
@@ -847,10 +859,53 @@ export async function redeemCdp(
           currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
           tokenName: iassetDatum.assetName,
         },
-        -cdpDatum.mintedAmt,
+        -redemptionIAssetAmt,
       ),
       Data.void(),
+    )
+    .pay.ToContract(
+      cdpUtxo.address,
+      {
+        kind: 'inline',
+        value: serialiseCdpDatum({
+          ...cdpDatum,
+          mintedAmt: cdpDatum.mintedAmt - redemptionIAssetAmt,
+          cdpFees: {
+            ActiveCDPInterestTracking: {
+              lastSettled: currentTime,
+              unitaryInterestSnapshot:
+                interestOracleDatum.unitaryInterest +
+                calculateUnitaryInterestSinceOracleLastUpdated(
+                  currentTime,
+                  interestOracleDatum,
+                ),
+            },
+          },
+        }),
+      },
+      addAssets(
+        cdpUtxo.assets,
+        mkLovelacesOf(-redemptionLovelacesAmt),
+        mkLovelacesOf(reimburstmentFee),
+        mkLovelacesOf(-interestAdaAmt),
+      ),
     );
+
+  await CollectorContract.feeTx(
+    processingFee + partialRedemptionFee + interestCollectorAdaAmt,
+    lucid,
+    sysParams,
+    tx,
+    collectorOref,
+  );
+
+  await TreasuryContract.feeTx(
+    interestTreasuryAdaAmt,
+    lucid,
+    sysParams,
+    tx,
+    treasuryOref,
+  );
 
   return tx;
 }
