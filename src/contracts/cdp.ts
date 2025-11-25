@@ -38,6 +38,7 @@ import { oracleExpirationAwareValidity } from '../helpers/price-oracle-helpers';
 import { match, P } from 'ts-pattern';
 import { serialiseCDPCreatorRedeemer } from '../types/indigo/cdp-creator';
 import {
+  assetClassValueOf,
   lovelacesAmt,
   mkAssetsOf,
   mkLovelacesOf,
@@ -45,6 +46,12 @@ import {
 import { calculateMinCollateralCappedIAssetRedemptionAmt } from '../helpers/cdp-helpers';
 import { bigintMin } from '../utils';
 import { ocdMul } from '../types/on-chain-decimal';
+import {
+  parseStabilityPoolDatum,
+  serialiseStabilityPoolDatum,
+  serialiseStabilityPoolRedeemer,
+} from '../types/indigo/stability-pool-new';
+import { liquidationHelper } from '../helpers/stability-pool-helpers';
 
 export async function openCdp(
   collateralAmount: bigint,
@@ -1057,4 +1064,161 @@ export async function freezeCdp(
         cdpUtxo.assets,
       )
   );
+}
+
+export async function liquidateCdp(
+  cdpOref: OutRef,
+  stabilityPoolOref: OutRef,
+  collectorOref: OutRef,
+  treasuryOref: OutRef,
+  sysParams: SystemParams,
+  lucid: LucidEvolution,
+): Promise<TxBuilder> {
+  const cdpRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.cdpValidatorRef),
+    ]),
+    (_) => new Error('Expected a single cdp Ref Script UTXO'),
+  );
+  const stabilityPoolRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.stabilityPoolValidatorRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single stability pool Ref Script UTXO'),
+  );
+  const iAssetTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.iAssetTokenPolicyRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single iasset token policy Ref Script UTXO'),
+  );
+  const cdpAuthTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.authTokenPolicies.cdpAuthTokenRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single cdp auth token policy Ref Script UTXO'),
+  );
+
+  const cdpUtxo = matchSingle(
+    await lucid.utxosByOutRef([cdpOref]),
+    (_) => new Error('Expected a single cdp UTXO'),
+  );
+  const cdpDatum = parseCdpDatumOrThrow(getInlineDatumOrThrow(cdpUtxo));
+
+  const spUtxo = matchSingle(
+    await lucid.utxosByOutRef([stabilityPoolOref]),
+    (_) => new Error('Expected a single stability pool UTXO'),
+  );
+  const spDatum = parseStabilityPoolDatum(getInlineDatumOrThrow(cdpUtxo));
+
+  const [lovelacesForTreasury, lovelacesForCollector] = match(cdpDatum.cdpFees)
+    .returnType<[bigint, bigint]>()
+    .with({ FrozenCDPAccumulatedFees: P.select() }, (fees) => [
+      fees.lovelacesTreasury,
+      fees.lovelacesIndyStakers,
+    ])
+    .with({ ActiveCDPInterestTracking: P.any }, () => {
+      throw new Error('CDP fees wrong');
+    })
+    .exhaustive();
+
+  const cdpNftAc = fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken);
+  const iassetsAc = {
+    currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
+    tokenName: cdpDatum.iasset,
+  };
+
+  const spIassetAmt = assetClassValueOf(spUtxo.assets, iassetsAc);
+
+  const iassetBurnAmt = bigintMin(cdpDatum.mintedAmt, spIassetAmt);
+
+  const collateralAvailable = lovelacesAmt(cdpUtxo.assets);
+  const collateralAvailMinusFees =
+    collateralAvailable - lovelacesForCollector - lovelacesForTreasury;
+  const collateralAbsorbed =
+    (collateralAvailMinusFees * iassetBurnAmt) / cdpDatum.mintedAmt;
+
+  const isPartial = spIassetAmt < cdpDatum.mintedAmt;
+
+  const tx = lucid
+    .newTx()
+    .readFrom([
+      cdpRefScriptUtxo,
+      stabilityPoolRefScriptUtxo,
+      iAssetTokenPolicyRefScriptUtxo,
+      cdpAuthTokenPolicyRefScriptUtxo,
+    ])
+    .collectFrom([spUtxo], serialiseStabilityPoolRedeemer('LiquidateCDP'))
+    .collectFrom([cdpUtxo], serialiseCdpRedeemer('Liquidate'))
+    .mintAssets(mkAssetsOf(iassetsAc, -iassetBurnAmt), Data.void())
+    .pay.ToContract(
+      spUtxo.address,
+      {
+        kind: 'inline',
+        value: serialiseStabilityPoolDatum({
+          StabilityPool: liquidationHelper(
+            spDatum,
+            iassetBurnAmt,
+            collateralAbsorbed,
+          ).newSpContent,
+        }),
+      },
+      addAssets(
+        spUtxo.assets,
+        mkLovelacesOf(collateralAbsorbed),
+        mkAssetsOf(iassetsAc, -iassetBurnAmt),
+      ),
+    );
+
+  if (isPartial) {
+    tx.pay.ToContract(
+      cdpUtxo.address,
+      {
+        kind: 'inline',
+        value: serialiseCdpDatum({
+          ...cdpDatum,
+          mintedAmt: cdpDatum.mintedAmt - spIassetAmt,
+          cdpFees: {
+            FrozenCDPAccumulatedFees: {
+              lovelacesIndyStakers: 0n,
+              lovelacesTreasury: 0n,
+            },
+          },
+        }),
+      },
+      addAssets(
+        mkAssetsOf(cdpNftAc, assetClassValueOf(cdpUtxo.assets, cdpNftAc)),
+        mkLovelacesOf(collateralAvailable - collateralAbsorbed),
+      ),
+    );
+  } else {
+    tx.mintAssets(
+      mkAssetsOf(cdpNftAc, -assetClassValueOf(cdpUtxo.assets, cdpNftAc)),
+      Data.void(),
+    );
+  }
+
+  await CollectorContract.feeTx(
+    lovelacesForCollector,
+    lucid,
+    sysParams,
+    tx,
+    collectorOref,
+  );
+
+  await TreasuryContract.feeTx(
+    lovelacesForTreasury,
+    lucid,
+    sysParams,
+    tx,
+    treasuryOref,
+  );
+
+  return tx;
 }
