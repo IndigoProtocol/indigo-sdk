@@ -1,5 +1,6 @@
 import {
   Credential,
+  fromText,
   LucidEvolution,
   ScriptHash,
   UTxO,
@@ -45,6 +46,35 @@ export async function findCdp(
       A.compact,
     ),
     (res) => new Error('Expected a single CDP UTXO.: ' + JSON.stringify(res)),
+  );
+}
+
+export async function findFrozenCDPs(
+  lucid: LucidEvolution,
+  cdpScriptHash: ScriptHash,
+  cdpNft: AssetClass,
+  assetAscii: string,
+): Promise<{ utxo: UTxO; datum: CDPContent }[]> {
+  const cdpUtxos = await lucid.utxosAtWithUnit(
+    createScriptAddress(lucid.config().network!, cdpScriptHash),
+    assetClassToUnit(cdpNft),
+  );
+
+  return F.pipe(
+    cdpUtxos.map((utxo) =>
+      F.pipe(
+        O.fromNullable(utxo.datum),
+        O.flatMap(parseCdpDatum),
+        O.flatMap((datum) => {
+          if (datum.cdpOwner == null && datum.iasset === fromText(assetAscii)) {
+            return O.some({ utxo, datum: datum });
+          } else {
+            return O.none;
+          }
+        }),
+      ),
+    ),
+    A.compact,
   );
 }
 

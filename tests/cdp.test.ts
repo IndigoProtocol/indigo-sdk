@@ -18,6 +18,7 @@ import {
   closeCdp,
   createScriptAddress,
   depositCdp,
+  freezeCdp,
   fromSystemParamsAsset,
   getInlineDatumOrThrow,
   IAssetOutput,
@@ -31,7 +32,11 @@ import {
   SystemParams,
   withdrawCdp,
 } from '../src';
-import { findCdp, findRandomCdpCreator } from './queries/cdp-queries';
+import {
+  findCdp,
+  findFrozenCDPs,
+  findRandomCdpCreator,
+} from './queries/cdp-queries';
 import { findIAsset } from './queries/iasset-queries';
 import { findPriceOracle } from './queries/price-oracle-queries';
 import { match, P } from 'ts-pattern';
@@ -758,6 +763,123 @@ describe('CDP', () => {
         await findCdpCR(context, sysParams, iusdAssetInfo, cdp),
         { min: 199, max: 201 },
       );
+    }
+  });
+
+  test<MyContext>('Freeze CDP', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const [pkh, skh] = await addrDetails(context.lucid);
+
+    const [sysParams, [iusdAssetInfo]] = await init(context.lucid, [
+      iusdInitialAssetCfg,
+    ]);
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          20_000_000n,
+          10_000_000n,
+          sysParams,
+          orefs.cdpCreatorOref,
+          orefs.iasset.utxo,
+          orefs.priceOracleOref,
+          orefs.interestOracleOref,
+          orefs.collectorOref,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    context.emulator.awaitSlot(1000);
+
+    {
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        pkh.hash,
+        skh,
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        feedPriceOracleTx(
+          context.lucid,
+          orefs.priceOracleOref,
+          {
+            getOnChainInt: 1_800_000n,
+          },
+          iusdAssetInfo.oracleParams,
+          context.emulator.slot,
+        ),
+      );
+
+      assertValueInRange(
+        await findCdpCR(context, sysParams, iusdAssetInfo, cdp),
+        { min: 111, max: 112 },
+      );
+    }
+
+    {
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        pkh.hash,
+        skh,
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        freezeCdp(
+          cdp.utxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleOref,
+          orefs.interestOracleOref,
+          sysParams,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    {
+      const frozenCdp = matchSingle(
+        await findFrozenCDPs(
+          context.lucid,
+          sysParams.validatorHashes.cdpHash,
+          fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+          iusdAssetInfo.iassetTokenNameAscii,
+        ),
+        (_) => new Error('Expected only single frozen CDP'),
+      );
+
+      expect(
+        frozenCdp.datum.mintedAmt === 10_000_000n &&
+          frozenCdp.datum.cdpOwner == null,
+        'Expected frozen certain frozen CDP',
+      ).toBeTruthy();
     }
   });
 });
