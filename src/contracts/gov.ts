@@ -1001,9 +1001,11 @@ export async function executeProposal(
           {
             kind: 'inline',
             value: serialiseStabilityPoolDatum({
-              asset: fromHex(proposeContent.asset),
-              poolSnapshot: initSpSnapshot,
-              epochToScaleToSum: initEpochToScaleToSumMap(),
+              StabilityPool: {
+                asset: fromHex(proposeContent.asset),
+                poolSnapshot: initSpSnapshot,
+                epochToScaleToSum: initEpochToScaleToSumMap(),
+              },
             }),
           },
           spAuthVal,

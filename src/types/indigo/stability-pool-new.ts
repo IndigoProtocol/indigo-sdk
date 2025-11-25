@@ -73,17 +73,26 @@ export const AccountContentSchema = EvoCore.TSchema.Struct({
 export type AccountContent = typeof AccountContentSchema.Type;
 
 export const SnapshotEpochToScaleToSumContentSchema = EvoCore.TSchema.Struct({
-  asset: EvoCore.TSchema.ByteArray,
   snapshot: EpochToScaleToSumSchema,
+  asset: EvoCore.TSchema.ByteArray,
 });
 
 export type SnapshotEpochToScaleToSumContent =
   typeof SnapshotEpochToScaleToSumContentSchema.Type;
 
 export const StabilityPoolDatumSchema = EvoCore.TSchema.Union(
-  StabilityPoolContentSchema,
-  AccountContentSchema,
-  SnapshotEpochToScaleToSumContentSchema,
+  EvoCore.TSchema.Struct(
+    { StabilityPool: StabilityPoolContentSchema },
+    { flatInUnion: true },
+  ),
+  EvoCore.TSchema.Struct(
+    { Account: AccountContentSchema },
+    { flatInUnion: true },
+  ),
+  EvoCore.TSchema.Struct(
+    { SnapshotEpochToScaleToSum: SnapshotEpochToScaleToSumContentSchema },
+    { flatInUnion: true },
+  ),
 );
 
 export const StabilityPoolRedeemerSchema = EvoCore.TSchema.Union(
@@ -133,7 +142,7 @@ export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
   return match(
     EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
   )
-    .with({ poolSnapshot: P.any }, (res) => res)
+    .with({ StabilityPool: P.select() }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');
     });
@@ -143,7 +152,7 @@ export function parseAccountDatum(datum: string): AccountContent {
   return match(
     EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
   )
-    .with({ accountSnapshot: P.any }, (res) => res)
+    .with({ Account: P.select() }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');
     });
@@ -154,7 +163,7 @@ export function parseSnapshotEpochToScaleToSumDatum(
   return match(
     EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
   )
-    .with({ snapshot: P.any }, (res) => res)
+    .with({ SnapshotEpochToScaleToSum: P.select() }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');
     });

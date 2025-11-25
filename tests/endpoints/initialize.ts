@@ -350,7 +350,7 @@ async function initializeAsset(
     }),
     {
       kind: 'inline',
-      value: serialiseStabilityPoolDatum(stabilityPoolDatum),
+      value: serialiseStabilityPoolDatum({ StabilityPool: stabilityPoolDatum }),
     },
     {
       [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,

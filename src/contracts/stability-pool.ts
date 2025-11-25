@@ -80,7 +80,10 @@ export class StabilityPoolContract {
           ),
           type: 'Script',
         }),
-        { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
+        {
+          kind: 'inline',
+          value: serialiseStabilityPoolDatum({ Account: datum }),
+        },
         {
           lovelace: minLovelaces,
           [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
@@ -158,7 +161,9 @@ export class StabilityPoolContract {
         }),
         {
           kind: 'inline',
-          value: serialiseStabilityPoolDatum(newAccountDatum),
+          value: serialiseStabilityPoolDatum({
+            Account: newAccountDatum,
+          }),
         },
         value,
       )
@@ -207,7 +212,7 @@ export class StabilityPoolContract {
         }),
         {
           kind: 'inline',
-          value: serialiseStabilityPoolDatum(newAccountDatum),
+          value: serialiseStabilityPoolDatum({ Account: newAccountDatum }),
         },
         {
           lovelace: BigInt(
@@ -339,9 +344,11 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...stabilityPoolDatum,
-            poolSnapshot: newStabilityPoolSnapshot,
-            epochToScaleToSum: newEpochToScaleToSum,
+            StabilityPool: {
+              ...stabilityPoolDatum,
+              poolSnapshot: newStabilityPoolSnapshot,
+              epochToScaleToSum: newEpochToScaleToSum,
+            },
           }),
         },
         poolOutputValue,
@@ -352,9 +359,11 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...accountDatum,
-            accountSnapshot: newAccountSnapshot,
-            request: null,
+            Account: {
+              ...accountDatum,
+              accountSnapshot: newAccountSnapshot,
+              request: null,
+            },
           }),
         },
         {
@@ -469,9 +478,11 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...stabilityPoolDatum,
-            poolSnapshot: newPoolSnapshot,
-            epochToScaleToSum: newEpochToScaleToSum,
+            StabilityPool: {
+              ...stabilityPoolDatum,
+              poolSnapshot: newPoolSnapshot,
+              epochToScaleToSum: newEpochToScaleToSum,
+            },
           }),
         },
         {
@@ -498,9 +509,11 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...accountDatum,
-            accountSnapshot: newAccountSnapshot,
-            request: null,
+            Account: {
+              ...accountDatum,
+              accountSnapshot: newAccountSnapshot,
+              request: null,
+            },
           }),
         },
         {
@@ -620,8 +633,10 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...stabilityPoolDatum,
-            poolSnapshot: newPoolSnapshot,
+            StabilityPool: {
+              ...stabilityPoolDatum,
+              poolSnapshot: newPoolSnapshot,
+            },
           }),
         },
         {
