@@ -1115,7 +1115,7 @@ export async function liquidateCdp(
     await lucid.utxosByOutRef([stabilityPoolOref]),
     (_) => new Error('Expected a single stability pool UTXO'),
   );
-  const spDatum = parseStabilityPoolDatum(getInlineDatumOrThrow(cdpUtxo));
+  const spDatum = parseStabilityPoolDatum(getInlineDatumOrThrow(spUtxo));
 
   const [lovelacesForTreasury, lovelacesForCollector] = match(cdpDatum.cdpFees)
     .returnType<[bigint, bigint]>()

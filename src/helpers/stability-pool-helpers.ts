@@ -52,9 +52,9 @@ export function setSumInEpochToScaleToSum(
   sum: SPInteger,
 ): EpochToScaleToSum {
   const map = new Map<{ epoch: bigint; scale: bigint }, SPInteger>();
-  for (const [key, _] of e2s2s.entries()) {
+  for (const [key, value] of e2s2s.entries()) {
     if (!(key.epoch === epoch && key.scale === scale)) {
-      map.set(key, sum);
+      map.set(key, value);
     }
   }
 
@@ -236,7 +236,6 @@ export function liquidationHelper(
   );
   const productFactor = spSub(mkSPInteger(1n), lossPerUnitStaked);
 
-  const isEpochIncrease = spContent.poolSnapshot.productVal.value === 0n;
   const isScaleIncrease =
     spMul(spContent.poolSnapshot.productVal, productFactor).value <
     newScaleMultiplier;
@@ -256,6 +255,8 @@ export function liquidationHelper(
     },
     productFactor,
   );
+
+  const isEpochIncrease = newProductSnapshot.value <= 0n;
 
   const newSnapshot: StabilityPoolSnapshot = isEpochIncrease
     ? { ...initSpSnapshot, epoch: spContent.poolSnapshot.epoch + 1n }

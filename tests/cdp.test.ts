@@ -2,14 +2,20 @@ import {
   addAssets,
   Emulator,
   EmulatorAccount,
+  fromText,
   generateEmulatorAccount,
   Lucid,
-  OutRef,
+  paymentCredentialOf,
+  stakeCredentialOf,
   UTxO,
 } from '@lucid-evolution/lucid';
 import { assert, beforeEach, describe, expect, test } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
-import { lovelacesAmt, mkLovelacesOf } from '../src/helpers/value-helpers';
+import {
+  assetClassValueOf,
+  lovelacesAmt,
+  mkLovelacesOf,
+} from '../src/helpers/value-helpers';
 import { AssetInfo, init } from './endpoints/initialize';
 import {
   addrDetails,
@@ -23,12 +29,14 @@ import {
   getInlineDatumOrThrow,
   IAssetOutput,
   InterestOracleDatum,
+  liquidateCdp,
   matchSingle,
   mintCdp,
   openCdp,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
   redeemCdp,
+  StabilityPoolContract,
   SystemParams,
   withdrawCdp,
 } from '../src';
@@ -50,6 +58,10 @@ import { findInterestOracle } from './queries/interest-oracle-queries';
 import { feedPriceOracleTx } from '../src/contracts/price-oracle';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 import { assertValueInRange } from './utils/asserts';
+import {
+  findStabilityPool,
+  findStabilityPoolAccount,
+} from './queries/stability-pool-queries';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -61,13 +73,14 @@ async function findAllNecessaryOrefs(
   sysParams: SystemParams,
   asset: string,
 ): Promise<{
+  stabilityPoolUtxo: UTxO;
   iasset: IAssetOutput;
-  cdpCreatorOref: OutRef;
-  priceOracleOref: OutRef;
-  interestOracleOref: OutRef;
-  collectorOref: OutRef;
-  govOref: OutRef;
-  treasuryOref: OutRef;
+  cdpCreatorUtxo: UTxO;
+  priceOracleUtxo: UTxO;
+  interestOracleUtxo: UTxO;
+  collectorUtxo: UTxO;
+  govUtxo: UTxO;
+  treasuryUtxo: UTxO;
 }> {
   const iasset = await findIAsset(
     context.lucid,
@@ -76,14 +89,22 @@ async function findAllNecessaryOrefs(
     asset,
   );
 
+  const stabilityPool = await findStabilityPool(
+    context.lucid,
+    sysParams.validatorHashes.stabilityPoolHash,
+    fromSystemParamsAsset(sysParams.stabilityPoolParams.stabilityPoolToken),
+    asset,
+  );
+
   return {
+    stabilityPoolUtxo: stabilityPool,
     iasset,
-    cdpCreatorOref: await findRandomCdpCreator(
+    cdpCreatorUtxo: await findRandomCdpCreator(
       context.lucid,
       sysParams.validatorHashes.cdpCreatorHash,
       fromSystemParamsAsset(sysParams.cdpCreatorParams.cdpCreatorNft),
     ),
-    priceOracleOref: await findPriceOracle(
+    priceOracleUtxo: await findPriceOracle(
       context.lucid,
       match(iasset.datum.price)
         .with({ Oracle: { content: P.select() } }, (oracleNft) => oracleNft)
@@ -91,22 +112,22 @@ async function findAllNecessaryOrefs(
           throw new Error('Expected active oracle');
         }),
     ),
-    interestOracleOref: await findInterestOracle(
+    interestOracleUtxo: await findInterestOracle(
       context.lucid,
       iasset.datum.interestOracleNft,
     ),
-    collectorOref: await findRandomCollector(
+    collectorUtxo: await findRandomCollector(
       context.lucid,
       sysParams.validatorHashes.collectorHash,
     ),
-    govOref: (
+    govUtxo: (
       await findGov(
         context.lucid,
         sysParams.validatorHashes.govHash,
         fromSystemParamsAsset(sysParams.govParams.govNFT),
       )
     ).utxo,
-    treasuryOref: await findRandomTreasuryUtxo(
+    treasuryUtxo: await findRandomTreasuryUtxo(
       context.lucid,
       sysParams.validatorHashes.treasuryHash,
     ),
@@ -121,7 +142,7 @@ async function findPrice(
   const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
 
   const priceOracleUtxo = matchSingle(
-    await context.lucid.utxosByOutRef([orefs.priceOracleOref]),
+    await context.lucid.utxosByOutRef([orefs.priceOracleUtxo]),
     (_) => new Error('Expected a single price oracle UTXO'),
   );
   const priceOracleDatum = parsePriceOracleDatum(
@@ -139,7 +160,7 @@ async function findInterestDatum(
   const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
 
   const interestOracleUtxo = matchSingle(
-    await context.lucid.utxosByOutRef([orefs.interestOracleOref]),
+    await context.lucid.utxosByOutRef([orefs.interestOracleUtxo]),
     (_) => new Error('Expected a single interest oracle UTXO'),
   );
   return parseInterestOracleDatum(getInlineDatumOrThrow(interestOracleUtxo));
@@ -193,11 +214,11 @@ describe('CDP', () => {
         10_000_000n,
         500_000n,
         sysParams,
-        orefs.cdpCreatorOref,
+        orefs.cdpCreatorUtxo,
         orefs.iasset.utxo,
-        orefs.priceOracleOref,
-        orefs.interestOracleOref,
-        orefs.collectorOref,
+        orefs.priceOracleUtxo,
+        orefs.interestOracleUtxo,
+        orefs.collectorUtxo,
         context.lucid,
         context.emulator.slot,
       ),
@@ -225,11 +246,11 @@ describe('CDP', () => {
           initialCollateral,
           initialMint,
           sysParams,
-          orefs.cdpCreatorOref,
+          orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
           context.lucid,
           context.emulator.slot,
         ),
@@ -261,11 +282,11 @@ describe('CDP', () => {
               1_000_000n,
               cdp.utxo,
               orefs.iasset.utxo,
-              orefs.priceOracleOref,
-              orefs.interestOracleOref,
-              orefs.collectorOref,
-              orefs.govOref,
-              orefs.treasuryOref,
+              orefs.priceOracleUtxo,
+              orefs.interestOracleUtxo,
+              orefs.collectorUtxo,
+              orefs.govUtxo,
+              orefs.treasuryUtxo,
               sysParams,
               context.lucid,
               context.emulator.slot,
@@ -312,11 +333,11 @@ describe('CDP', () => {
           initialCollateral,
           initialMint,
           sysParams,
-          orefs.cdpCreatorOref,
+          orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
           context.lucid,
           context.emulator.slot,
         ),
@@ -348,11 +369,11 @@ describe('CDP', () => {
               4_000_000n,
               cdp.utxo,
               orefs.iasset.utxo,
-              orefs.priceOracleOref,
-              orefs.interestOracleOref,
-              orefs.collectorOref,
-              orefs.govOref,
-              orefs.treasuryOref,
+              orefs.priceOracleUtxo,
+              orefs.interestOracleUtxo,
+              orefs.collectorUtxo,
+              orefs.govUtxo,
+              orefs.treasuryUtxo,
               sysParams,
               context.lucid,
               context.emulator.slot,
@@ -399,11 +420,11 @@ describe('CDP', () => {
           initialCollateral,
           initialMint,
           sysParams,
-          orefs.cdpCreatorOref,
+          orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
           context.lucid,
           context.emulator.slot,
         ),
@@ -435,11 +456,11 @@ describe('CDP', () => {
               1_000n,
               cdp.utxo,
               orefs.iasset.utxo,
-              orefs.priceOracleOref,
-              orefs.interestOracleOref,
-              orefs.collectorOref,
-              orefs.govOref,
-              orefs.treasuryOref,
+              orefs.priceOracleUtxo,
+              orefs.interestOracleUtxo,
+              orefs.collectorUtxo,
+              orefs.govUtxo,
+              orefs.treasuryUtxo,
               sysParams,
               context.lucid,
               context.emulator.slot,
@@ -486,11 +507,11 @@ describe('CDP', () => {
           initialCollateral,
           initialMint,
           sysParams,
-          orefs.cdpCreatorOref,
+          orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
           context.lucid,
           context.emulator.slot,
         ),
@@ -522,11 +543,11 @@ describe('CDP', () => {
               1_000n,
               cdp.utxo,
               orefs.iasset.utxo,
-              orefs.priceOracleOref,
-              orefs.interestOracleOref,
-              orefs.collectorOref,
-              orefs.govOref,
-              orefs.treasuryOref,
+              orefs.priceOracleUtxo,
+              orefs.interestOracleUtxo,
+              orefs.collectorUtxo,
+              orefs.govUtxo,
+              orefs.treasuryUtxo,
               sysParams,
               context.lucid,
               context.emulator.slot,
@@ -570,11 +591,11 @@ describe('CDP', () => {
           10_000_000n,
           500_000n,
           sysParams,
-          orefs.cdpCreatorOref,
+          orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
           context.lucid,
           context.emulator.slot,
         ),
@@ -599,11 +620,11 @@ describe('CDP', () => {
         closeCdp(
           cdp.utxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
-          orefs.govOref,
-          orefs.treasuryOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          orefs.govUtxo,
+          orefs.treasuryUtxo,
           sysParams,
           context.lucid,
           context.emulator.slot,
@@ -634,11 +655,11 @@ describe('CDP', () => {
           20_000_000n,
           10_000_000n,
           sysParams,
-          orefs.cdpCreatorOref,
+          orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
           context.lucid,
           context.emulator.slot,
         ),
@@ -661,11 +682,11 @@ describe('CDP', () => {
           50_000_000n,
           10_000_000n,
           sysParams,
-          orefs.cdpCreatorOref,
+          orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
           context.lucid,
           context.emulator.slot,
         ),
@@ -698,7 +719,7 @@ describe('CDP', () => {
         context.lucid,
         feedPriceOracleTx(
           context.lucid,
-          orefs.priceOracleOref,
+          orefs.priceOracleUtxo,
           {
             getOnChainInt: 1_250_000n,
           },
@@ -737,10 +758,10 @@ describe('CDP', () => {
           cdp.datum.mintedAmt,
           cdp.utxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
-          orefs.treasuryOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          orefs.treasuryUtxo,
           sysParams,
           context.lucid,
           context.emulator.slot,
@@ -788,11 +809,11 @@ describe('CDP', () => {
           20_000_000n,
           10_000_000n,
           sysParams,
-          orefs.cdpCreatorOref,
+          orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
-          orefs.collectorOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
           context.lucid,
           context.emulator.slot,
         ),
@@ -820,7 +841,7 @@ describe('CDP', () => {
         context.lucid,
         feedPriceOracleTx(
           context.lucid,
-          orefs.priceOracleOref,
+          orefs.priceOracleUtxo,
           {
             getOnChainInt: 1_800_000n,
           },
@@ -855,8 +876,8 @@ describe('CDP', () => {
         freezeCdp(
           cdp.utxo,
           orefs.iasset.utxo,
-          orefs.priceOracleOref,
-          orefs.interestOracleOref,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
           sysParams,
           context.lucid,
           context.emulator.slot,
@@ -879,6 +900,434 @@ describe('CDP', () => {
         frozenCdp.datum.mintedAmt === 10_000_000n &&
           frozenCdp.datum.cdpOwner == null,
         'Expected frozen certain frozen CDP',
+      ).toBeTruthy();
+    }
+  });
+
+  test<MyContext>('Liquidate CDP', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const [sysParams, [iusdAssetInfo]] = await init(context.lucid, [
+      iusdInitialAssetCfg,
+    ]);
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      // This is the position that will get liquidated.
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          10_000_000n,
+          5_000_000n,
+          sysParams,
+          orefs.cdpCreatorUtxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    context.lucid.selectWallet.fromSeed(context.users.user.seedPhrase);
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          20_000_000n,
+          10_000_000n,
+          sysParams,
+          orefs.cdpCreatorUtxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        StabilityPoolContract.createAccount(
+          iusdAssetInfo.iassetTokenNameAscii,
+          10_000_000n,
+          sysParams,
+          context.lucid,
+        ),
+      );
+    }
+
+    // Process the create account request
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      const accountUtxo = await findStabilityPoolAccount(
+        context.lucid,
+        sysParams.validatorHashes.stabilityPoolHash,
+        paymentCredentialOf(context.users.user.address).hash,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        StabilityPoolContract.processRequest(
+          iusdAssetInfo.iassetTokenNameAscii,
+          orefs.stabilityPoolUtxo,
+          accountUtxo,
+          orefs.govUtxo,
+          orefs.iasset.utxo,
+          undefined,
+          sysParams,
+          context.lucid,
+          orefs.collectorUtxo,
+        ),
+      );
+    }
+
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    {
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        paymentCredentialOf(context.users.admin.address).hash,
+        stakeCredentialOf(context.users.admin.address),
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        feedPriceOracleTx(
+          context.lucid,
+          orefs.priceOracleUtxo,
+          {
+            getOnChainInt: 1_800_000n,
+          },
+          iusdAssetInfo.oracleParams,
+          context.emulator.slot,
+        ),
+      );
+
+      assertValueInRange(
+        await findCdpCR(context, sysParams, iusdAssetInfo, cdp),
+        { min: 111, max: 112 },
+      );
+    }
+
+    // We want user to do the freeze of admin's CDP
+    context.lucid.selectWallet.fromSeed(context.users.user.seedPhrase);
+
+    {
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        paymentCredentialOf(context.users.admin.address).hash,
+        stakeCredentialOf(context.users.admin.address),
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        freezeCdp(
+          cdp.utxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          sysParams,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    {
+      const frozenCdp = matchSingle(
+        await findFrozenCDPs(
+          context.lucid,
+          sysParams.validatorHashes.cdpHash,
+          fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+          iusdAssetInfo.iassetTokenNameAscii,
+        ),
+        (_) => new Error('Expected only single frozen CDP'),
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        liquidateCdp(
+          frozenCdp.utxo,
+          orefs.stabilityPoolUtxo,
+          orefs.collectorUtxo,
+          orefs.treasuryUtxo,
+          sysParams,
+          context.lucid,
+        ),
+      );
+    }
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      expect(
+        assetClassValueOf(orefs.stabilityPoolUtxo.assets, {
+          currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
+          tokenName: fromText(iusdAssetInfo.iassetTokenNameAscii),
+        }) === 5_000_000n,
+        'Expected different stability pool iassets amount',
+      ).toBeTruthy();
+    }
+  });
+
+  test<MyContext>('Partialy liquidate CDP', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const [sysParams, [iusdAssetInfo]] = await init(context.lucid, [
+      iusdInitialAssetCfg,
+    ]);
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      // This is the position that will get liquidated.
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          10_000_000n,
+          5_000_000n,
+          sysParams,
+          orefs.cdpCreatorUtxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    context.lucid.selectWallet.fromSeed(context.users.user.seedPhrase);
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          20_000_000n,
+          3_000_000n,
+          sysParams,
+          orefs.cdpCreatorUtxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        StabilityPoolContract.createAccount(
+          iusdAssetInfo.iassetTokenNameAscii,
+          3_000_000n,
+          sysParams,
+          context.lucid,
+        ),
+      );
+    }
+
+    // Process the create account request
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      const accountUtxo = await findStabilityPoolAccount(
+        context.lucid,
+        sysParams.validatorHashes.stabilityPoolHash,
+        paymentCredentialOf(context.users.user.address).hash,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        StabilityPoolContract.processRequest(
+          iusdAssetInfo.iassetTokenNameAscii,
+          orefs.stabilityPoolUtxo,
+          accountUtxo,
+          orefs.govUtxo,
+          orefs.iasset.utxo,
+          undefined,
+          sysParams,
+          context.lucid,
+          orefs.collectorUtxo,
+        ),
+      );
+    }
+
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    {
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        paymentCredentialOf(context.users.admin.address).hash,
+        stakeCredentialOf(context.users.admin.address),
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        feedPriceOracleTx(
+          context.lucid,
+          orefs.priceOracleUtxo,
+          {
+            getOnChainInt: 1_800_000n,
+          },
+          iusdAssetInfo.oracleParams,
+          context.emulator.slot,
+        ),
+      );
+
+      assertValueInRange(
+        await findCdpCR(context, sysParams, iusdAssetInfo, cdp),
+        { min: 111, max: 112 },
+      );
+    }
+
+    // We want user to do the freeze of admin's CDP
+    context.lucid.selectWallet.fromSeed(context.users.user.seedPhrase);
+
+    {
+      const cdp = await findCdp(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        paymentCredentialOf(context.users.admin.address).hash,
+        stakeCredentialOf(context.users.admin.address),
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        freezeCdp(
+          cdp.utxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          sysParams,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    {
+      const frozenCdp = matchSingle(
+        await findFrozenCDPs(
+          context.lucid,
+          sysParams.validatorHashes.cdpHash,
+          fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+          iusdAssetInfo.iassetTokenNameAscii,
+        ),
+        (_) => new Error('Expected only single frozen CDP'),
+      );
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        liquidateCdp(
+          frozenCdp.utxo,
+          orefs.stabilityPoolUtxo,
+          orefs.collectorUtxo,
+          orefs.treasuryUtxo,
+          sysParams,
+          context.lucid,
+        ),
+      );
+    }
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      expect(
+        assetClassValueOf(orefs.stabilityPoolUtxo.assets, {
+          currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
+          tokenName: fromText(iusdAssetInfo.iassetTokenNameAscii),
+        }) === 0n,
+        'Expected different stability pool iassets amount',
       ).toBeTruthy();
     }
   });

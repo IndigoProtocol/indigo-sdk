@@ -110,7 +110,7 @@ export const StabilityPoolRedeemerSchema = EvoCore.TSchema.Union(
     { flatInUnion: true },
   ),
   EvoCore.TSchema.Literal('AnnulRequest', { flatInUnion: true }),
-  EvoCore.TSchema.Literal('LiquidateCDP'),
+  EvoCore.TSchema.Literal('LiquidateCDP', { flatInUnion: true }),
   EvoCore.TSchema.Literal('RecordEpochToScaleToSum', { flatInUnion: true }),
   EvoCore.TSchema.Literal('UpgradeVersion', { flatInUnion: true }),
 );
