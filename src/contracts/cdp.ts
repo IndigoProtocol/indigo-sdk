@@ -1,10 +1,12 @@
 import {
   addAssets,
+  Assets,
   Data,
   LucidEvolution,
   OutRef,
   slotToUnixTime,
   TxBuilder,
+  UTxO,
 } from '@lucid-evolution/lucid';
 import {
   fromSystemParamsAsset,
@@ -20,6 +22,7 @@ import {
 } from '../helpers/lucid-utils';
 import { calculateFeeFromPercentage, matchSingle } from '../helpers/helpers';
 import {
+  CDPContent,
   parseCdpDatumOrThrow,
   parseIAssetDatumOrThrow,
   serialiseCdpDatum,
@@ -52,6 +55,7 @@ import {
   serialiseStabilityPoolRedeemer,
 } from '../types/indigo/stability-pool-new';
 import { liquidationHelper } from '../helpers/stability-pool-helpers';
+import { array as A, function as F } from 'fp-ts';
 
 export async function openCdp(
   collateralAmount: bigint,
@@ -1221,4 +1225,104 @@ export async function liquidateCdp(
   );
 
   return tx;
+}
+
+export async function mergeCdps(
+  cdpsToMergeUtxos: OutRef[],
+  sysParams: SystemParams,
+  lucid: LucidEvolution,
+): Promise<TxBuilder> {
+  const cdpRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.cdpValidatorRef),
+    ]),
+    (_) => new Error('Expected a single cdp Ref Script UTXO'),
+  );
+
+  const cdpUtxos = await lucid.utxosByOutRef(cdpsToMergeUtxos);
+  const cdpDatums = cdpUtxos.map((utxo) =>
+    parseCdpDatumOrThrow(getInlineDatumOrThrow(utxo)),
+  );
+
+  if (cdpUtxos.length !== cdpsToMergeUtxos.length) {
+    throw new Error('Expected certain number of CDPs');
+  }
+
+  const aggregatedVal = F.pipe(
+    cdpUtxos,
+    A.reduce<UTxO, Assets>({}, (acc, utxo) => addAssets(acc, utxo.assets)),
+  );
+
+  const aggregatedMintedAmt = F.pipe(
+    cdpDatums,
+    A.reduce<CDPContent, bigint>(0n, (acc, cdpDat) => acc + cdpDat.mintedAmt),
+  );
+
+  type AggregatedFees = {
+    aggregatedFeeIndyStakers: bigint;
+    aggregatedFeeTreasury: bigint;
+  };
+
+  const { aggregatedFeeTreasury, aggregatedFeeIndyStakers } = F.pipe(
+    cdpDatums,
+    A.reduce<CDPContent, AggregatedFees>(
+      { aggregatedFeeIndyStakers: 0n, aggregatedFeeTreasury: 0n },
+      (acc, cdpDat) =>
+        match(cdpDat.cdpFees)
+          .returnType<AggregatedFees>()
+          .with({ FrozenCDPAccumulatedFees: P.select() }, (fees) => ({
+            aggregatedFeeIndyStakers:
+              acc.aggregatedFeeIndyStakers + fees.lovelacesIndyStakers,
+            aggregatedFeeTreasury:
+              acc.aggregatedFeeTreasury + fees.lovelacesTreasury,
+          }))
+          .otherwise(() => acc),
+    ),
+  );
+
+  const [[mainMergeUtxo, mainCdpDatum], otherMergeUtxos] = match(
+    A.zip(cdpUtxos, cdpDatums),
+  )
+    .returnType<[[UTxO, CDPContent], UTxO[]]>()
+    .with([P._, ...P.array()], ([main, ...other]) => [
+      main,
+      other.map((a) => a[0]),
+    ])
+    .otherwise(() => {
+      throw new Error('Expects more CDPs for merging');
+    });
+
+  return lucid
+    .newTx()
+    .readFrom([cdpRefScriptUtxo])
+    .collectFrom([mainMergeUtxo], serialiseCdpRedeemer('MergeCdps'))
+    .collectFrom(
+      otherMergeUtxos,
+      serialiseCdpRedeemer({
+        MergeAuxiliary: {
+          mainMergeUtxo: {
+            outputIndex: BigInt(mainMergeUtxo.outputIndex),
+            txHash: { hash: mainMergeUtxo.txHash },
+          },
+        },
+      }),
+    )
+    .pay.ToContract(
+      mainMergeUtxo.address,
+      {
+        kind: 'inline',
+        value: serialiseCdpDatum({
+          cdpOwner: null,
+          iasset: mainCdpDatum.iasset,
+          mintedAmt: aggregatedMintedAmt,
+          cdpFees: {
+            FrozenCDPAccumulatedFees: {
+              lovelacesIndyStakers: aggregatedFeeIndyStakers,
+              lovelacesTreasury: aggregatedFeeTreasury,
+            },
+          },
+        }),
+      },
+      aggregatedVal,
+    );
 }

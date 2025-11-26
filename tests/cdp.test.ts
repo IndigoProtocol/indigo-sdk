@@ -10,7 +10,7 @@ import {
   UTxO,
 } from '@lucid-evolution/lucid';
 import { assert, beforeEach, describe, expect, test } from 'vitest';
-import { LucidContext, runAndAwaitTx } from './test-helpers';
+import { LucidContext, repeat, runAndAwaitTx } from './test-helpers';
 import {
   assetClassValueOf,
   lovelacesAmt,
@@ -31,6 +31,7 @@ import {
   InterestOracleDatum,
   liquidateCdp,
   matchSingle,
+  mergeCdps,
   mintCdp,
   openCdp,
   parseInterestOracleDatum,
@@ -41,6 +42,7 @@ import {
   withdrawCdp,
 } from '../src';
 import {
+  findAllActiveCdps,
   findCdp,
   findFrozenCDPs,
   findRandomCdpCreator,
@@ -192,7 +194,7 @@ describe('CDP', () => {
       admin: generateEmulatorAccount({
         lovelace: BigInt(100_000_000_000_000),
       }),
-      user: generateEmulatorAccount(addAssets(mkLovelacesOf(100_000_000n))),
+      user: generateEmulatorAccount(addAssets(mkLovelacesOf(150_000_000n))),
     };
 
     context.emulator = new Emulator([context.users.admin, context.users.user]);
@@ -1327,6 +1329,234 @@ describe('CDP', () => {
           currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
           tokenName: fromText(iusdAssetInfo.iassetTokenNameAscii),
         }) === 0n,
+        'Expected different stability pool iassets amount',
+      ).toBeTruthy();
+    }
+  });
+
+  test<MyContext>('Merge CDPs and liquidate merged', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const [sysParams, [iusdAssetInfo]] = await init(context.lucid, [
+      iusdInitialAssetCfg,
+    ]);
+
+    await repeat(3, async () => {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          12_000_000n,
+          6_000_000n,
+          sysParams,
+          orefs.cdpCreatorUtxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    });
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        feedPriceOracleTx(
+          context.lucid,
+          orefs.priceOracleUtxo,
+          {
+            getOnChainInt: 1_800_000n,
+          },
+          iusdAssetInfo.oracleParams,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    {
+      const activeCdps = await findAllActiveCdps(
+        context.lucid,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+        stakeCredentialOf(context.users.admin.address),
+      );
+
+      expect(activeCdps.length === 3, 'Expected 3 cdps').toBeTruthy();
+
+      for (const cdp of activeCdps) {
+        const orefs = await findAllNecessaryOrefs(
+          context,
+          sysParams,
+          iusdAssetInfo.iassetTokenNameAscii,
+        );
+
+        await runAndAwaitTx(
+          context.lucid,
+          freezeCdp(
+            cdp.utxo,
+            orefs.iasset.utxo,
+            orefs.priceOracleUtxo,
+            orefs.interestOracleUtxo,
+            sysParams,
+            context.lucid,
+            context.emulator.slot,
+          ),
+        );
+      }
+    }
+
+    {
+      const frozenCdps = await findFrozenCDPs(
+        context.lucid,
+        sysParams.validatorHashes.cdpHash,
+        fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      expect(frozenCdps.length === 3, 'Expected 3 frozen cdps').toBeTruthy();
+
+      await runAndAwaitTx(
+        context.lucid,
+        mergeCdps(
+          frozenCdps.map((cdp) => cdp.utxo),
+          sysParams,
+          context.lucid,
+        ),
+      );
+    }
+
+    ///////////////////////////
+    // Liquidation
+    ///////////////////////////
+
+    context.lucid.selectWallet.fromSeed(context.users.user.seedPhrase);
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          100_000_000n,
+          20_000_000n,
+          sysParams,
+          orefs.cdpCreatorUtxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        StabilityPoolContract.createAccount(
+          iusdAssetInfo.iassetTokenNameAscii,
+          20_000_000n,
+          sysParams,
+          context.lucid,
+        ),
+      );
+    }
+
+    // Process the create account request
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      const accountUtxo = await findStabilityPoolAccount(
+        context.lucid,
+        sysParams.validatorHashes.stabilityPoolHash,
+        paymentCredentialOf(context.users.user.address).hash,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        StabilityPoolContract.processRequest(
+          iusdAssetInfo.iassetTokenNameAscii,
+          orefs.stabilityPoolUtxo,
+          accountUtxo,
+          orefs.govUtxo,
+          orefs.iasset.utxo,
+          undefined,
+          sysParams,
+          context.lucid,
+          orefs.collectorUtxo,
+        ),
+      );
+    }
+
+    {
+      const frozenCdp = matchSingle(
+        await findFrozenCDPs(
+          context.lucid,
+          sysParams.validatorHashes.cdpHash,
+          fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+          iusdAssetInfo.iassetTokenNameAscii,
+        ),
+        (_) => new Error('Expected only single frozen CDP'),
+      );
+
+      expect(
+        frozenCdp.datum.mintedAmt === 18_000_000n &&
+          frozenCdp.datum.cdpOwner == null,
+        'Expected frozen certain frozen CDP',
+      ).toBeTruthy();
+
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        liquidateCdp(
+          frozenCdp.utxo,
+          orefs.stabilityPoolUtxo,
+          orefs.collectorUtxo,
+          orefs.treasuryUtxo,
+          sysParams,
+          context.lucid,
+        ),
+      );
+    }
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context,
+        sysParams,
+        iusdAssetInfo.iassetTokenNameAscii,
+      );
+
+      expect(
+        assetClassValueOf(orefs.stabilityPoolUtxo.assets, {
+          currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
+          tokenName: fromText(iusdAssetInfo.iassetTokenNameAscii),
+        }) === 2_000_000n,
         'Expected different stability pool iassets amount',
       ).toBeTruthy();
     }

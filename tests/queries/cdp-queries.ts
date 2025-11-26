@@ -9,12 +9,47 @@ import {
   AssetClass,
   CDPContent,
   createScriptAddress,
+  fromSystemParamsAsset,
   getRandomElement,
   matchSingle,
   parseCdpDatum,
+  SystemParams,
 } from '../../src';
 import { assetClassToUnit } from '../../src/helpers/value-helpers';
 import { option as O, array as A, function as F } from 'fp-ts';
+
+export async function findAllActiveCdps(
+  lucid: LucidEvolution,
+  sysParams: SystemParams,
+  assetAscii: string,
+  stakeCred?: Credential,
+): Promise<{ utxo: UTxO; datum: CDPContent }[]> {
+  const cdpUtxos = await lucid.utxosAtWithUnit(
+    createScriptAddress(
+      lucid.config().network!,
+      sysParams.validatorHashes.cdpHash,
+      stakeCred,
+    ),
+    assetClassToUnit(fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken)),
+  );
+
+  return F.pipe(
+    cdpUtxos.map((utxo) =>
+      F.pipe(
+        O.fromNullable(utxo.datum),
+        O.flatMap(parseCdpDatum),
+        O.flatMap((datum) => {
+          if (datum.iasset === fromText(assetAscii) && datum.cdpOwner) {
+            return O.some({ utxo, datum: datum });
+          } else {
+            return O.none;
+          }
+        }),
+      ),
+    ),
+    A.compact,
+  );
+}
 
 export async function findCdp(
   lucid: LucidEvolution,
