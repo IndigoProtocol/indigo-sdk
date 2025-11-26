@@ -51,7 +51,7 @@ export function serialiseLrpDatum(datum: LRPDatum): Datum {
 }
 
 export function serialiseLrpRedeemer(redeemer: LRPRedeemer): Redeemer {
-  return Data.to<LRPRedeemer>(redeemer, LRPRedeemer);
+  return Data.to<LRPRedeemer>(redeemer, LRPRedeemer, { canonical: true });
 }
 
 export function castLrpParams(params: LRPParams): Data {
