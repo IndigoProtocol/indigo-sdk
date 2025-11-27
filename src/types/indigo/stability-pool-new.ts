@@ -1,6 +1,7 @@
 import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { match, P } from 'ts-pattern';
 import { EvoCommon } from '@3rd-eye-labs/cardano-offchain-common';
+import { DEFAULT_SCHEMA_OPTIONS } from '../evolution-schema';
 
 export const SPIntegerSchema = EvoCore.TSchema.Struct({
   value: EvoCore.TSchema.Integer,
@@ -120,27 +121,31 @@ export type StabilityPoolRedeemer = typeof StabilityPoolRedeemerSchema.Type;
 export function serialiseStabilityPoolRedeemer(
   r: StabilityPoolRedeemer,
 ): string {
-  return EvoCore.Data.withSchema(StabilityPoolRedeemerSchema).toCBORHex(r);
+  return EvoCore.Data.withSchema(
+    StabilityPoolRedeemerSchema,
+    DEFAULT_SCHEMA_OPTIONS,
+  ).toCBORHex(r);
 }
 
 export function serialiseStabilityPoolDatum(
   d: typeof StabilityPoolDatumSchema.Type,
+  /**
+   * This is necessary to change only in case of execute propose asset.
+   */
+  useIndefiniteMaps: boolean = false,
 ): string {
   return EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
-    mode: 'custom',
-    useIndefiniteArrays: true,
-    // This is important to match aiken's Map encoding.
-    useIndefiniteMaps: false,
-    useDefiniteForEmpty: true,
-    sortMapKeys: false,
-    useMinimalEncoding: true,
-    mapsAsObjects: false,
+    ...DEFAULT_SCHEMA_OPTIONS,
+    useIndefiniteMaps: useIndefiniteMaps,
   }).toCBORHex(d);
 }
 
 export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
   return match(
-    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+    EvoCore.Data.withSchema(
+      StabilityPoolDatumSchema,
+      DEFAULT_SCHEMA_OPTIONS,
+    ).fromCBORHex(datum),
   )
     .with({ StabilityPool: P.select() }, (res) => res)
     .otherwise(() => {
@@ -150,7 +155,10 @@ export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
 
 export function parseAccountDatum(datum: string): AccountContent {
   return match(
-    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+    EvoCore.Data.withSchema(
+      StabilityPoolDatumSchema,
+      DEFAULT_SCHEMA_OPTIONS,
+    ).fromCBORHex(datum),
   )
     .with({ Account: P.select() }, (res) => res)
     .otherwise(() => {
@@ -161,7 +169,10 @@ export function parseSnapshotEpochToScaleToSumDatum(
   datum: string,
 ): SnapshotEpochToScaleToSumContent {
   return match(
-    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+    EvoCore.Data.withSchema(
+      StabilityPoolDatumSchema,
+      DEFAULT_SCHEMA_OPTIONS,
+    ).fromCBORHex(datum),
   )
     .with({ SnapshotEpochToScaleToSum: P.select() }, (res) => res)
     .otherwise(() => {
