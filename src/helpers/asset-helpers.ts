@@ -1,7 +1,7 @@
 import { fromText, LucidEvolution, OutRef, UTxO } from '@lucid-evolution/lucid';
-import { CDPContract } from '../contracts/cdp';
 import { SystemParams } from '../types/system-params';
 import { IAssetContent, parseIAssetDatumOrThrow } from '../types/indigo/cdp';
+import { createScriptAddress } from './lucid-utils';
 
 export type IAssetOutput = { utxo: UTxO; datum: IAssetContent };
 
@@ -35,7 +35,10 @@ export class IAssetHelpers {
   ): Promise<IAssetOutput> {
     return lucid
       .utxosAtWithUnit(
-        CDPContract.address(params.cdpParams, lucid),
+        createScriptAddress(
+          lucid.config().network!,
+          params.validatorHashes.cdpHash,
+        ),
         params.cdpParams.iAssetAuthToken[0].unCurrencySymbol +
           fromText(params.cdpParams.iAssetAuthToken[1].unTokenName),
       )

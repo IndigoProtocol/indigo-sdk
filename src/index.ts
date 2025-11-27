@@ -1,13 +1,3 @@
-declare global {
-  interface BigInt {
-    toJSON(): string;
-  }
-}
-
-BigInt.prototype.toJSON = function () {
-  return this.toString();
-};
-
 export * from './contracts/cdp';
 export * from './contracts/collector';
 export * from './contracts/gov';

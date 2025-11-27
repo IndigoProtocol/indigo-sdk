@@ -1,4 +1,4 @@
-import { Data, Datum } from '@lucid-evolution/lucid';
+import { Data, Datum, Redeemer } from '@lucid-evolution/lucid';
 import { AssetClassSchema } from '../generic';
 
 const CDPCreatorParamsSchema = Data.Object({
@@ -37,8 +37,10 @@ export type CDPCreatorRedeemer = Data.Static<typeof CDPCreatorRedeemerSchema>;
 export const CDPCreatorRedeemer =
   CDPCreatorRedeemerSchema as unknown as CDPCreatorRedeemer;
 
-export function castCDPCreatorRedeemer(params: CDPCreatorRedeemer): Data {
-  return Data.castTo(params, CDPCreatorRedeemer);
+export function serialiseCDPCreatorRedeemer(
+  params: CDPCreatorRedeemer,
+): Redeemer {
+  return Data.to<CDPCreatorRedeemer>(params, CDPCreatorRedeemer);
 }
 
 export function serialiseCDPCreatorDatum(): Datum {

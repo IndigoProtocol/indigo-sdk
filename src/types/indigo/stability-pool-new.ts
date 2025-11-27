@@ -1,6 +1,7 @@
 import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { match, P } from 'ts-pattern';
 import { EvoCommon } from '@3rd-eye-labs/cardano-offchain-common';
+import { DEFAULT_SCHEMA_OPTIONS } from '../evolution-schema';
 
 export const SPIntegerSchema = EvoCore.TSchema.Struct({
   value: EvoCore.TSchema.Integer,
@@ -73,17 +74,26 @@ export const AccountContentSchema = EvoCore.TSchema.Struct({
 export type AccountContent = typeof AccountContentSchema.Type;
 
 export const SnapshotEpochToScaleToSumContentSchema = EvoCore.TSchema.Struct({
-  asset: EvoCore.TSchema.ByteArray,
   snapshot: EpochToScaleToSumSchema,
+  asset: EvoCore.TSchema.ByteArray,
 });
 
 export type SnapshotEpochToScaleToSumContent =
   typeof SnapshotEpochToScaleToSumContentSchema.Type;
 
 export const StabilityPoolDatumSchema = EvoCore.TSchema.Union(
-  StabilityPoolContentSchema,
-  AccountContentSchema,
-  SnapshotEpochToScaleToSumContentSchema,
+  EvoCore.TSchema.Struct(
+    { StabilityPool: StabilityPoolContentSchema },
+    { flatInUnion: true },
+  ),
+  EvoCore.TSchema.Struct(
+    { Account: AccountContentSchema },
+    { flatInUnion: true },
+  ),
+  EvoCore.TSchema.Struct(
+    { SnapshotEpochToScaleToSum: SnapshotEpochToScaleToSumContentSchema },
+    { flatInUnion: true },
+  ),
 );
 
 export const StabilityPoolRedeemerSchema = EvoCore.TSchema.Union(
@@ -101,7 +111,7 @@ export const StabilityPoolRedeemerSchema = EvoCore.TSchema.Union(
     { flatInUnion: true },
   ),
   EvoCore.TSchema.Literal('AnnulRequest', { flatInUnion: true }),
-  EvoCore.TSchema.Literal('LiquidateCDP'),
+  EvoCore.TSchema.Literal('LiquidateCDP', { flatInUnion: true }),
   EvoCore.TSchema.Literal('RecordEpochToScaleToSum', { flatInUnion: true }),
   EvoCore.TSchema.Literal('UpgradeVersion', { flatInUnion: true }),
 );
@@ -111,29 +121,33 @@ export type StabilityPoolRedeemer = typeof StabilityPoolRedeemerSchema.Type;
 export function serialiseStabilityPoolRedeemer(
   r: StabilityPoolRedeemer,
 ): string {
-  return EvoCore.Data.withSchema(StabilityPoolRedeemerSchema).toCBORHex(r);
+  return EvoCore.Data.withSchema(
+    StabilityPoolRedeemerSchema,
+    DEFAULT_SCHEMA_OPTIONS,
+  ).toCBORHex(r);
 }
 
 export function serialiseStabilityPoolDatum(
   d: typeof StabilityPoolDatumSchema.Type,
+  /**
+   * This is necessary to change only in case of execute propose asset.
+   */
+  useIndefiniteMaps: boolean = false,
 ): string {
   return EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
-    mode: 'custom',
-    useIndefiniteArrays: true,
-    // This is important to match aiken's Map encoding.
-    useIndefiniteMaps: false,
-    useDefiniteForEmpty: true,
-    sortMapKeys: false,
-    useMinimalEncoding: true,
-    mapsAsObjects: false,
+    ...DEFAULT_SCHEMA_OPTIONS,
+    useIndefiniteMaps: useIndefiniteMaps,
   }).toCBORHex(d);
 }
 
 export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
   return match(
-    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+    EvoCore.Data.withSchema(
+      StabilityPoolDatumSchema,
+      DEFAULT_SCHEMA_OPTIONS,
+    ).fromCBORHex(datum),
   )
-    .with({ poolSnapshot: P.any }, (res) => res)
+    .with({ StabilityPool: P.select() }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');
     });
@@ -141,9 +155,12 @@ export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
 
 export function parseAccountDatum(datum: string): AccountContent {
   return match(
-    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+    EvoCore.Data.withSchema(
+      StabilityPoolDatumSchema,
+      DEFAULT_SCHEMA_OPTIONS,
+    ).fromCBORHex(datum),
   )
-    .with({ accountSnapshot: P.any }, (res) => res)
+    .with({ Account: P.select() }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');
     });
@@ -152,9 +169,12 @@ export function parseSnapshotEpochToScaleToSumDatum(
   datum: string,
 ): SnapshotEpochToScaleToSumContent {
   return match(
-    EvoCore.Data.withSchema(StabilityPoolDatumSchema).fromCBORHex(datum),
+    EvoCore.Data.withSchema(
+      StabilityPoolDatumSchema,
+      DEFAULT_SCHEMA_OPTIONS,
+    ).fromCBORHex(datum),
   )
-    .with({ snapshot: P.any }, (res) => res)
+    .with({ SnapshotEpochToScaleToSum: P.select() }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a Stability Pool datum.');
     });

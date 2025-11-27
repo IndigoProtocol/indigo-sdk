@@ -200,7 +200,7 @@ describe('LRP', () => {
       lovelacesAmt(adjustedUtxo1.assets) >=
         parseLrpDatum(getInlineDatumOrThrow(adjustedUtxo1)).lovelacesToSpend,
       'Lovelaces to spend has to be smaller than actual lovelaces in UTXO',
-    );
+    ).toBeTruthy();
 
     await runAndAwaitTx(
       lucid,
@@ -235,7 +235,7 @@ describe('LRP', () => {
       lovelacesAmt(adjustedUtxo2.assets) >=
         parseLrpDatum(getInlineDatumOrThrow(adjustedUtxo2)).lovelacesToSpend,
       'Lovelaces to spend has to be smaller than actual lovelaces in UTXO',
-    );
+    ).toBeTruthy();
   });
 
   it('claim', async () => {
@@ -324,12 +324,7 @@ describe('LRP', () => {
       redeemLrp(
         [[lrpUtxo, redemptionIAssetAmt]],
         lrpRefScriptOutRef,
-        await findPriceOracle(
-          lucid,
-          network,
-          testCtx.oracleValHash,
-          testCtx.oracleNft,
-        ),
+        await findPriceOracle(lucid, testCtx.oracleNft),
         (
           await findIAsset(
             lucid,
@@ -452,12 +447,7 @@ describe('LRP', () => {
       redeemLrp(
         [[lrpUtxo, redemptionIAssetAmt]],
         lrpRefScriptOutRef,
-        await findPriceOracle(
-          lucid,
-          network,
-          testCtx.oracleValHash,
-          testCtx.oracleNft,
-        ),
+        await findPriceOracle(lucid, testCtx.oracleNft),
         (
           await findIAsset(
             lucid,
@@ -586,12 +576,7 @@ describe('LRP', () => {
       redeemLrp(
         [[lrpUtxo, redemptionIAssetAmt]],
         lrpRefScriptOutRef,
-        await findPriceOracle(
-          lucid,
-          network,
-          testCtx.oracleValHash,
-          testCtx.oracleNft,
-        ),
+        await findPriceOracle(lucid, testCtx.oracleNft),
         (
           await findIAsset(
             lucid,
@@ -719,12 +704,7 @@ describe('LRP', () => {
           [lrpUtxo2, 4_000_000n],
         ],
         lrpRefScriptOutRef,
-        await findPriceOracle(
-          lucid,
-          network,
-          testCtx.oracleValHash,
-          testCtx.oracleNft,
-        ),
+        await findPriceOracle(lucid, testCtx.oracleNft),
         (
           await findIAsset(
             lucid,

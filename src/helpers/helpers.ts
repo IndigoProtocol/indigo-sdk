@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import { SystemParams } from '../types/system-params';
 import { match, P } from 'ts-pattern';
+import { OnChainDecimal } from '../types/on-chain-decimal';
 
 /**
  * Accept only a single item in the array and return it.
@@ -15,11 +16,11 @@ export function matchSingle<T>(xs: T[], mkErr: (xs: T[]) => Error): T {
 }
 
 export function calculateFeeFromPercentage(
-  percent: bigint,
+  percent: OnChainDecimal,
   amount: bigint,
 ): bigint {
   if (amount <= 0n) return 0n;
-  const a = (amount * percent) / 1_000_000n;
+  const a = (amount * percent.getOnChainInt) / 1_000_000n;
   const b = BigInt(100_000_000);
   return (a * 1_000_000n) / b;
 }

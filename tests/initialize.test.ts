@@ -4,6 +4,7 @@ import { EmulatorAccount, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { init } from './endpoints/initialize';
+import { iusdInitialAssetCfg } from './mock/assets-mock';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -27,5 +28,5 @@ test<MyContext>('Initialize Protocol - can initialize', async ({
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
 
-  await init(lucid);
+  await init(lucid, [iusdInitialAssetCfg]);
 });

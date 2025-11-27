@@ -1,4 +1,5 @@
 import {
+  addAssets,
   Address,
   applyParamsToScript,
   Constr,
@@ -14,44 +15,44 @@ import {
 } from '@lucid-evolution/lucid';
 import { _treasuryValidator } from '../scripts/treasury-validator';
 import {
+  fromSystemParamsScriptRef,
   ScriptReferences,
   SystemParams,
   TreasuryParams,
 } from '../types/system-params';
 import { scriptRef } from '../helpers/lucid-utils';
-import { getRandomElement } from '../helpers/helpers';
+import { matchSingle } from '../helpers/helpers';
+import { mkLovelacesOf } from '../helpers/value-helpers';
 
 export class TreasuryContract {
   static async feeTx(
     fee: bigint,
     lucid: LucidEvolution,
-    params: SystemParams,
+    sysParams: SystemParams,
     tx: TxBuilder,
-    treasuryRef?: OutRef,
+    treasuryOref: OutRef,
   ): Promise<void> {
-    const treasuryUtxo: UTxO = treasuryRef
-      ? getRandomElement(await lucid.utxosByOutRef([treasuryRef]))!
-      : getRandomElement(
-          await lucid.utxosAt(
-            TreasuryContract.address(params.treasuryParams, lucid),
-          ),
-        )!;
-
-    const treasuryScriptRefUtxo = await TreasuryContract.scriptRef(
-      params.scriptReferences,
-      lucid,
+    const treasuryUtxo = matchSingle(
+      await lucid.utxosByOutRef([treasuryOref]),
+      (_) => new Error('Expected a single treasury UTXO'),
     );
 
-    tx.collectFrom([treasuryUtxo], Data.to(new Constr(4, [])))
+    const treasuryRefScriptUtxo = matchSingle(
+      await lucid.utxosByOutRef([
+        fromSystemParamsScriptRef(
+          sysParams.scriptReferences.treasuryValidatorRef,
+        ),
+      ]),
+      (_) => new Error('Expected a single treasury Ref Script UTXO'),
+    );
+
+    tx.readFrom([treasuryRefScriptUtxo])
+      .collectFrom([treasuryUtxo], Data.to(new Constr(4, [])))
       .pay.ToContract(
         treasuryUtxo.address,
-        { kind: 'inline', value: treasuryUtxo.datum || '' },
-        {
-          ...treasuryUtxo.assets,
-          lovelace: treasuryUtxo.assets['lovelace'] + fee,
-        },
-      )
-      .readFrom([treasuryScriptRefUtxo]);
+        { kind: 'inline', value: Data.void() },
+        addAssets(treasuryUtxo.assets, mkLovelacesOf(fee)),
+      );
   }
 
   // treasury Validator

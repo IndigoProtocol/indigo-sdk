@@ -4,6 +4,7 @@ import { OracleAssetNftSchema } from './price-oracle';
 import { AssetClassSchema } from '../generic';
 import { OnChainDecimalSchema } from '../on-chain-decimal';
 import { IAssetPriceInfoSchema } from './cdp';
+import { DEFAULT_SCHEMA_OPTIONS } from '../evolution-schema';
 
 export const ProtocolParamsSchema = Data.Object({
   proposalDeposit: Data.Integer(),
@@ -99,19 +100,16 @@ export type UpgradePaths = typeof UpgradePathsSchema.Type;
 
 export function serialiseUpgradePaths(d: UpgradePaths): Data {
   return Data.from(
-    EvoCore.Data.withSchema(UpgradePathsSchema, {
-      mode: 'custom',
-      useIndefiniteArrays: true,
-      // This is important to match aiken's Map encoding.
-      useIndefiniteMaps: false,
-      useDefiniteForEmpty: true,
-      sortMapKeys: false,
-      useMinimalEncoding: true,
-      mapsAsObjects: false,
-    }).toCBORHex(d),
+    EvoCore.Data.withSchema(
+      UpgradePathsSchema,
+      DEFAULT_SCHEMA_OPTIONS,
+    ).toCBORHex(d),
   );
 }
 
 export function parseUpgradePaths(d: Data): UpgradePaths {
-  return EvoCore.Data.withSchema(UpgradePathsSchema).fromCBORHex(Data.to(d));
+  return EvoCore.Data.withSchema(
+    UpgradePathsSchema,
+    DEFAULT_SCHEMA_OPTIONS,
+  ).fromCBORHex(Data.to(d));
 }

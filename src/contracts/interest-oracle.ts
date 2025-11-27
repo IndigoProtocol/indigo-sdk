@@ -101,8 +101,7 @@ export class InterestOracleContract {
     if (!assetClass && !utxo)
       throw new Error('Either interest oracle nft or utxo must be provided');
     if (assetClass && !utxo) {
-      const [ioUtxo, _datum] = await findInterestOracle(lucid, assetClass);
-      utxo = ioUtxo;
+      utxo = await findInterestOracle(lucid, assetClass);
     }
 
     const now = BigInt(Date.now());

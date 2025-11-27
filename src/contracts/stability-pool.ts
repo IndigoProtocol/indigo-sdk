@@ -8,6 +8,7 @@ import {
   UTxO,
   credentialToAddress,
   fromHex,
+  OutRef,
 } from '@lucid-evolution/lucid';
 import { ActionReturnDatum } from '../types/indigo/stability-pool';
 import { SystemParams } from '../types/system-params';
@@ -79,7 +80,10 @@ export class StabilityPoolContract {
           ),
           type: 'Script',
         }),
-        { kind: 'inline', value: serialiseStabilityPoolDatum(datum) },
+        {
+          kind: 'inline',
+          value: serialiseStabilityPoolDatum({ Account: datum }),
+        },
         {
           lovelace: minLovelaces,
           [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
@@ -157,7 +161,9 @@ export class StabilityPoolContract {
         }),
         {
           kind: 'inline',
-          value: serialiseStabilityPoolDatum(newAccountDatum),
+          value: serialiseStabilityPoolDatum({
+            Account: newAccountDatum,
+          }),
         },
         value,
       )
@@ -206,7 +212,7 @@ export class StabilityPoolContract {
         }),
         {
           kind: 'inline',
-          value: serialiseStabilityPoolDatum(newAccountDatum),
+          value: serialiseStabilityPoolDatum({ Account: newAccountDatum }),
         },
         {
           lovelace: BigInt(
@@ -229,6 +235,7 @@ export class StabilityPoolContract {
     newSnapshotUtxo: UTxO | undefined,
     params: SystemParams,
     lucid: LucidEvolution,
+    collectorOref: OutRef,
   ): Promise<TxBuilder> {
     const redeemer: StabilityPoolRedeemer = {
       ProcessRequest: {
@@ -337,9 +344,11 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...stabilityPoolDatum,
-            poolSnapshot: newStabilityPoolSnapshot,
-            epochToScaleToSum: newEpochToScaleToSum,
+            StabilityPool: {
+              ...stabilityPoolDatum,
+              poolSnapshot: newStabilityPoolSnapshot,
+              epochToScaleToSum: newEpochToScaleToSum,
+            },
           }),
         },
         poolOutputValue,
@@ -350,9 +359,11 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...accountDatum,
-            accountSnapshot: newAccountSnapshot,
-            request: null,
+            Account: {
+              ...accountDatum,
+              accountSnapshot: newAccountSnapshot,
+              request: null,
+            },
           }),
         },
         {
@@ -454,16 +465,24 @@ export class StabilityPoolContract {
         stabilityPoolDatum.poolSnapshot.scale,
         newPoolSum,
       );
-      await CollectorContract.feeTx(rewardLovelacesFee, lucid, params, tx);
+      await CollectorContract.feeTx(
+        rewardLovelacesFee,
+        lucid,
+        params,
+        tx,
+        collectorOref,
+      );
       tx.readFrom([govUtxo, iAssetUtxo, ...refInputs]);
       tx.pay.ToContract(
         stabilityPoolUtxo.address,
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...stabilityPoolDatum,
-            poolSnapshot: newPoolSnapshot,
-            epochToScaleToSum: newEpochToScaleToSum,
+            StabilityPool: {
+              ...stabilityPoolDatum,
+              poolSnapshot: newPoolSnapshot,
+              epochToScaleToSum: newEpochToScaleToSum,
+            },
           }),
         },
         {
@@ -490,9 +509,11 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...accountDatum,
-            accountSnapshot: newAccountSnapshot,
-            request: null,
+            Account: {
+              ...accountDatum,
+              accountSnapshot: newAccountSnapshot,
+              request: null,
+            },
           }),
         },
         {
@@ -584,7 +605,13 @@ export class StabilityPoolContract {
         params.scriptReferences.authTokenPolicies.accountTokenRef,
         lucid,
       );
-      await CollectorContract.feeTx(rewardLovelacesFee, lucid, params, tx);
+      await CollectorContract.feeTx(
+        rewardLovelacesFee,
+        lucid,
+        params,
+        tx,
+        collectorOref,
+      );
       tx.readFrom([govUtxo, iAssetUtxo, accountTokenRef, ...refInputs]);
       tx.mintAssets(
         {
@@ -606,8 +633,10 @@ export class StabilityPoolContract {
         {
           kind: 'inline',
           value: serialiseStabilityPoolDatum({
-            ...stabilityPoolDatum,
-            poolSnapshot: newPoolSnapshot,
+            StabilityPool: {
+              ...stabilityPoolDatum,
+              poolSnapshot: newPoolSnapshot,
+            },
           }),
         },
         {
