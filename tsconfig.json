@@ -1,9 +1,5 @@
 {
   "compilerOptions": {
-    "paths": {
-      // Replacement for baseUrl option, needed for automatic renames when moving files
-      "*": ["./src/*"]
-    },
     "outDir": "./dist",
     "sourceMap": true,
     "module": "nodenext",

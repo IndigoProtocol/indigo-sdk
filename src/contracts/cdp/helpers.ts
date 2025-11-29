@@ -15,7 +15,7 @@ import { calculateAccruedInterest } from '../interest-oracle/helpers';
 import { match, P } from 'ts-pattern';
 import { InterestOracleDatum } from '../interest-oracle/types';
 import { lovelacesAmt } from '../../utils/value-helpers';
-import { calculateFeeFromPercentage } from 'utils/indigo-helpers';
+import { calculateFeeFromPercentage } from '../../utils/indigo-helpers';
 
 /**
  * This is mostly for debugging purposes.

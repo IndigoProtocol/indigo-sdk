@@ -28,7 +28,6 @@ import {
   serialiseCdpDatum,
   serialiseCdpRedeemer,
 } from './types';
-import { _cdpValidator } from './scripts';
 import { parsePriceOracleDatum } from '../price-oracle/types';
 import { parseInterestOracleDatum } from '../interest-oracle/types';
 import { parseGovDatumOrThrow } from '../gov/types';
@@ -56,7 +55,7 @@ import {
 } from '../stability-pool/types-new';
 import { liquidationHelper } from '../stability-pool/helpers';
 import { array as A, function as F } from 'fp-ts';
-import { calculateFeeFromPercentage } from 'utils/indigo-helpers';
+import { calculateFeeFromPercentage } from '../../utils/indigo-helpers';
 
 export async function openCdp(
   collateralAmount: bigint,
