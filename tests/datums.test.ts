@@ -19,7 +19,7 @@ import {
   serialiseStakingDatum,
   StakingManager,
   StakingPosition,
-} from '../src/types/indigo/staking-new';
+} from '../src/contracts/staking/types-new';
 import {
   AccountContent,
   parseAccountDatum,
@@ -28,7 +28,7 @@ import {
   serialiseStabilityPoolDatum,
   SnapshotEpochToScaleToSumContent,
   StabilityPoolContent,
-} from '../src/types/indigo/stability-pool-new';
+} from '../src/contracts/stability-pool/types-new';
 import { option as O } from 'fp-ts';
 
 describe('Datum checks', () => {

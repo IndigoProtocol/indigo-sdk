@@ -15,7 +15,7 @@ import {
   assetClassValueOf,
   mkAssetsOf,
   mkLovelacesOf,
-} from '../src/helpers/value-helpers';
+} from '../src/utils/value-helpers';
 import { init } from './endpoints/initialize';
 import { findGov } from './queries/governance-queries';
 import {
@@ -41,7 +41,7 @@ import {
   runAndAwaitTx,
   runAndAwaitTxBuilder,
 } from './test-helpers';
-import { startPriceOracleTx } from '../src/contracts/price-oracle';
+import { startPriceOracleTx } from '../src/contracts/price-oracle/transactions';
 import { findAllIAssets, findIAsset } from './queries/iasset-queries';
 import {
   findAllPollShards,
@@ -61,7 +61,7 @@ import {
   getNewUtxosAtAddressAfterAction,
   getValueChangeAtAddressAfterAction,
 } from './utils';
-import { serialiseUpgradePaths } from '../src/types/indigo/gov-new';
+import { serialiseUpgradePaths } from '../src/contracts/gov/types-new';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 
 type MyContext = LucidContext<{
