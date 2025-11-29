@@ -11,23 +11,23 @@ import {
   UTxO,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
-import { LRPParams, parseLrpDatum } from '../src/types/indigo/lrp';
-import { mkLrpValidator } from '../src/scripts/lrp-validator';
-import { runCreateScriptRefTx } from '../src/helpers/helper-txs';
-import { runOneShotMintTx } from '../src/contracts/one-shot';
+import { LRPParams, parseLrpDatum } from '../src/contracts/lrp/types';
+import { mkLrpValidator } from '../src/contracts/lrp/scripts';
+import { runCreateScriptRefTx } from '../src/utils/helper-txs';
+import { runOneShotMintTx } from '../src/contracts/one-shot/transactions';
 import {
   adjustLrp,
   cancelLrp,
   claimLrp,
   openLrp,
   redeemLrp,
-} from '../src/contracts/lrp';
+} from '../src/contracts/lrp/transactions';
 import { findLrp } from './queries/lrp-queries';
-import { addrDetails, getInlineDatumOrThrow } from '../src/helpers/lucid-utils';
+import { addrDetails, getInlineDatumOrThrow } from '../src/utils/lucid-utils';
 import { runAndAwaitTx, runAndAwaitTxBuilder } from './test-helpers';
-import { matchSingle } from '../src/helpers/helpers';
+import { matchSingle } from '../src/utils/utils';
 import { runCreateIAsset } from './indigo-test-helpers';
-import { mkPriceOracleValidator } from '../src/scripts/price-oracle-validator';
+import { mkPriceOracleValidator } from '../src/contracts/price-oracle/scripts';
 import { AssetClass, OracleAssetNft, PriceOracleParams } from '../src';
 import { alwaysFailValidator } from '../src/scripts/always-fail-validator';
 import {
@@ -37,9 +37,9 @@ import {
 } from '../src/types/on-chain-decimal';
 import { findPriceOracle } from './queries/price-oracle-queries';
 import { findIAsset } from './queries/iasset-queries';
-import { assetClassValueOf, lovelacesAmt } from '../src/helpers/value-helpers';
+import { assetClassValueOf, lovelacesAmt } from '../src/utils/value-helpers';
 import { strictEqual } from 'assert';
-import { startPriceOracleTx } from '../src/contracts/price-oracle';
+import { startPriceOracleTx } from '../src/contracts/price-oracle/transactions';
 
 type LRPTestContext = {
   iassetAc: AssetClass;

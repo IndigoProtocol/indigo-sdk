@@ -7,7 +7,7 @@ import {
 import { EmulatorAccount, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
-import { addrDetails } from '../src/helpers/lucid-utils';
+import { addrDetails } from '../src/utils/lucid-utils';
 import { InterestOracleContract, InterestOracleParams } from '../src';
 import { findInterestOracle } from './queries/interest-oracle-queries';
 

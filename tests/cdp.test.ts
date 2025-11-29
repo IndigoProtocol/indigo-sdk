@@ -15,7 +15,7 @@ import {
   assetClassValueOf,
   lovelacesAmt,
   mkLovelacesOf,
-} from '../src/helpers/value-helpers';
+} from '../src/utils/value-helpers';
 import { AssetInfo, init } from './endpoints/initialize';
 import {
   addrDetails,
@@ -54,10 +54,10 @@ import { findRandomCollector } from './queries/collector-queries';
 import { findGov } from './queries/governance-queries';
 import { findRandomTreasuryUtxo } from './queries/treasury-queries';
 import { getValueChangeAtAddressAfterAction } from './utils';
-import { cdpCollateralRatioPercentage } from '../src/helpers/cdp-helpers';
+import { cdpCollateralRatioPercentage } from '../src/contracts/cdp/helpers';
 import { OnChainDecimal } from '../src/types/on-chain-decimal';
 import { findInterestOracle } from './queries/interest-oracle-queries';
-import { feedPriceOracleTx } from '../src/contracts/price-oracle';
+import { feedPriceOracleTx } from '../src/contracts/price-oracle/transactions';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 import { assertValueInRange } from './utils/asserts';
 import {

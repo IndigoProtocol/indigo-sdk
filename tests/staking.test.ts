@@ -3,9 +3,9 @@ import { LucidContext, runAndAwaitTx } from './test-helpers';
 import { EmulatorAccount, fromText, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
-import { StakingContract } from '../src/contracts/staking';
+import { StakingContract } from '../src/contracts/staking/transactions';
 import { init } from './endpoints/initialize';
-import { addrDetails } from '../src/helpers/lucid-utils';
+import { addrDetails } from '../src/utils/lucid-utils';
 import { findStakingPosition } from './queries/staking-queries';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 

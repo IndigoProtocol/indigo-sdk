@@ -5,7 +5,7 @@ import {
   UTxO,
 } from '@lucid-evolution/lucid';
 import { array as A } from 'fp-ts';
-import { negateAssets } from '../../src/helpers/value-helpers';
+import { negateAssets } from '../../src/utils/value-helpers';
 
 export async function getValueChangeAtAddressAfterAction<T>(
   lucid: LucidEvolution,

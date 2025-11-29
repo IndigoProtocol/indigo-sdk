@@ -5,8 +5,8 @@ import {
   ScriptHash,
   UTxO,
 } from '@lucid-evolution/lucid';
-import { createScriptAddress } from '../../src/helpers/lucid-utils';
-import { parseLrpDatum } from '../../src/types/indigo/lrp';
+import { createScriptAddress } from '../../src/utils/lucid-utils';
+import { parseLrpDatum } from '../../src/contracts/lrp/types';
 
 /**
  * Beware, this shouldn't be used in production since it queries all the UTXOs

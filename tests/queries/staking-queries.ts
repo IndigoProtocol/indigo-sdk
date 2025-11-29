@@ -4,15 +4,15 @@ import {
   toHex,
   UTxO,
 } from '@lucid-evolution/lucid';
-import { createScriptAddress } from '../../src/helpers/lucid-utils';
+import { createScriptAddress } from '../../src/utils/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
-import { assetClassToUnit } from '../../src/helpers/value-helpers';
+import { assetClassToUnit } from '../../src/utils/value-helpers';
 import { matchSingle } from '../../src';
 import { option as O, array as A, function as F } from 'fp-ts';
 import {
   parseStakingPosition,
   StakingPosition,
-} from '../../src/types/indigo/staking-new';
+} from '../../src/contracts/staking/types-new';
 
 export async function findStakingPosition(
   lucid: LucidEvolution,

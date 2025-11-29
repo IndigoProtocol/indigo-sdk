@@ -1,6 +1,6 @@
 import { LucidEvolution, UTxO } from '@lucid-evolution/lucid';
 import { OracleAssetNft } from '../../src';
-import { assetClassToUnit } from '../../src/helpers/value-helpers';
+import { assetClassToUnit } from '../../src/utils/value-helpers';
 
 export async function findPriceOracle(
   lucid: LucidEvolution,

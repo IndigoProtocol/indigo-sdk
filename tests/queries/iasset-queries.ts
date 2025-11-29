@@ -1,7 +1,7 @@
 import { fromText, LucidEvolution, ScriptHash } from '@lucid-evolution/lucid';
-import { createScriptAddress } from '../../src/helpers/lucid-utils';
+import { createScriptAddress } from '../../src/utils/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
-import { assetClassToUnit } from '../../src/helpers/value-helpers';
+import { assetClassToUnit } from '../../src/utils/value-helpers';
 import { IAssetOutput, matchSingle, parseIAssetDatum } from '../../src';
 import { option as O, array as A, function as F } from 'fp-ts';
 

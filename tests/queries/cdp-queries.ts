@@ -15,7 +15,7 @@ import {
   parseCdpDatum,
   SystemParams,
 } from '../../src';
-import { assetClassToUnit } from '../../src/helpers/value-helpers';
+import { assetClassToUnit } from '../../src/utils/value-helpers';
 import { option as O, array as A, function as F } from 'fp-ts';
 
 export async function findAllActiveCdps(

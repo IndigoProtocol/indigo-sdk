@@ -5,14 +5,14 @@ import {
   toHex,
   UTxO,
 } from '@lucid-evolution/lucid';
-import { createScriptAddress } from '../../src/helpers/lucid-utils';
+import { createScriptAddress } from '../../src/utils/lucid-utils';
 import { AssetClass } from '../../src/types/generic';
-import { assetClassToUnit } from '../../src/helpers/value-helpers';
+import { assetClassToUnit } from '../../src/utils/value-helpers';
 import { matchSingle } from '../../src';
 import {
   parseAccountDatum,
   parseStabilityPoolDatum,
-} from '../../src/types/indigo/stability-pool-new';
+} from '../../src/contracts/stability-pool/types-new';
 
 export async function findStabilityPool(
   lucid: LucidEvolution,

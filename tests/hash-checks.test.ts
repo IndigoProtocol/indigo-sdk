@@ -7,11 +7,11 @@ import {
   mkInterestOracleValidator,
   mkLrpValidatorFromSP,
   mkCdpValidatorFromSP,
+  mkExecuteValidatorFromSP,
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
-import { mkStabilityPoolValidatorFromSP } from '../src/scripts/stability-pool-validator';
-import { mkGovValidatorFromSP } from '../src/scripts/gov-validator';
-import { mkExecuteValidatorFromSP } from '../src/scripts/execute-validator';
+import { mkStabilityPoolValidatorFromSP } from '../src/contracts/stability-pool/scripts';
+import { mkGovValidatorFromSP } from '../src/contracts/gov/scripts';
 
 const systemParams = loadSystemParamsFromFile(
   './tests/data/system-params.json',

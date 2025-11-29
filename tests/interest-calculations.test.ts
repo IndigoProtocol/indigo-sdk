@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ONE_DAY } from '../src/helpers/time-helpers';
+import { ONE_DAY } from '../src/utils/time-helpers';
 import {
   calculateAccruedInterest,
   calculateUnitaryInterestSinceOracleLastUpdated,
-} from '../src/helpers/interest-oracle';
+} from '../src/contracts/interest-oracle/helpers';
 
 describe('Interest Calculations', () => {
   describe('Calculate Unitary Interest', () => {

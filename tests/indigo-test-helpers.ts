@@ -6,7 +6,7 @@ import {
   ScriptHash,
   toUnit,
 } from '@lucid-evolution/lucid';
-import { createScriptAddress } from '../src/helpers/lucid-utils';
+import { createScriptAddress } from '../src/utils/lucid-utils';
 import {
   AssetClass,
   IAssetContent,
