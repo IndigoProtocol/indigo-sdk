@@ -26,7 +26,6 @@ import {
 import { calculateFeeFromPercentage } from '../../utils/indigo-helpers';
 import { GovDatum, parseGovDatumOrThrow } from '../gov/types';
 import { IAssetContent, parseIAssetDatumOrThrow } from '../cdp/types';
-import { CollectorContract } from '../collector/transactions';
 import { EvoCommon } from '@3rd-eye-labs/cardano-offchain-common';
 import {
   AccountAction,
@@ -45,6 +44,7 @@ import {
   StabilityPoolRedeemer,
   StabilityPoolSnapshot,
 } from './types-new';
+import { collectorFeeTx } from '../collector/transactions';
 
 export class StabilityPoolContract {
   static async createAccount(
@@ -465,7 +465,7 @@ export class StabilityPoolContract {
         stabilityPoolDatum.poolSnapshot.scale,
         newPoolSum,
       );
-      await CollectorContract.feeTx(
+      await collectorFeeTx(
         rewardLovelacesFee,
         lucid,
         params,
@@ -605,7 +605,7 @@ export class StabilityPoolContract {
         params.scriptReferences.authTokenPolicies.accountTokenRef,
         lucid,
       );
-      await CollectorContract.feeTx(
+      await collectorFeeTx(
         rewardLovelacesFee,
         lucid,
         params,

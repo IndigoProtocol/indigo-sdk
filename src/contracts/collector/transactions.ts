@@ -6,44 +6,39 @@ import {
   TxBuilder,
   UTxO,
 } from '@lucid-evolution/lucid';
-import { ScriptReferences, SystemParams } from '../../types/system-params';
-import { scriptRef } from '../../utils/lucid-utils';
+import {
+  fromSystemParamsScriptRef,
+  SystemParams,
+} from '../../types/system-params';
 import { matchSingle } from '../../utils/utils';
 
-export class CollectorContract {
-  static async feeTx(
-    fee: bigint,
-    lucid: LucidEvolution,
-    params: SystemParams,
-    tx: TxBuilder,
-    collectorOref: OutRef,
-  ): Promise<void> {
-    const collectorUtxo: UTxO = matchSingle(
-      await lucid.utxosByOutRef([collectorOref]),
-      (_) => new Error('Expected a single collector UTXO'),
-    );
+export async function collectorFeeTx(
+  fee: bigint,
+  lucid: LucidEvolution,
+  params: SystemParams,
+  tx: TxBuilder,
+  collectorOref: OutRef,
+): Promise<void> {
+  const collectorUtxo: UTxO = matchSingle(
+    await lucid.utxosByOutRef([collectorOref]),
+    (_) => new Error('Expected a single collector UTXO'),
+  );
 
-    const collectorScriptRefUtxo = await CollectorContract.scriptRef(
-      params.scriptReferences,
-      lucid,
-    );
+  const collectorRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(params.scriptReferences.collectorValidatorRef),
+    ]),
+    (_) => new Error('Expected a single collector Ref Script UTXO'),
+  );
 
-    tx.collectFrom([collectorUtxo], Data.to(new Constr(0, [])))
-      .pay.ToContract(
-        collectorUtxo.address,
-        { kind: 'inline', value: Data.to(new Constr(0, [])) },
-        {
-          ...collectorUtxo.assets,
-          lovelace: collectorUtxo.assets.lovelace + fee,
-        },
-      )
-      .readFrom([collectorScriptRefUtxo]);
-  }
-
-  static async scriptRef(
-    params: ScriptReferences,
-    lucid: LucidEvolution,
-  ): Promise<UTxO> {
-    return scriptRef(params.collectorValidatorRef, lucid);
-  }
+  tx.collectFrom([collectorUtxo], Data.to(new Constr(0, [])))
+    .pay.ToContract(
+      collectorUtxo.address,
+      { kind: 'inline', value: Data.to(new Constr(0, [])) },
+      {
+        ...collectorUtxo.assets,
+        lovelace: collectorUtxo.assets.lovelace + fee,
+      },
+    )
+    .readFrom([collectorRefScriptUtxo]);
 }
