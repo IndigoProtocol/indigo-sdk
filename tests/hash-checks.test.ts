@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   loadSystemParamsFromFile,
-  StakingContract,
-  CollectorContract,
   mkCDPCreatorValidatorFromSP,
   mkInterestOracleValidator,
   mkLrpValidatorFromSP,
   mkCdpValidatorFromSP,
   mkExecuteValidatorFromSP,
+  mkCollectorValidatorFromSP,
 } from '../src';
 import { validatorToScriptHash } from '@lucid-evolution/lucid';
 import { mkStabilityPoolValidatorFromSP } from '../src/contracts/stability-pool/scripts';
 import { mkGovValidatorFromSP } from '../src/contracts/gov/scripts';
+import { mkStakingValidatorFromSP } from '../src/contracts/staking/scripts';
 
 const systemParams = loadSystemParamsFromFile(
   './tests/data/system-params.json',
@@ -31,9 +31,11 @@ describe('Validator Hash checks', () => {
     ).toBe(systemParams.validatorHashes.cdpHash);
   });
   it('Collector validator hash', () => {
-    expect(CollectorContract.validatorHash(systemParams.collectorParams)).toBe(
-      systemParams.validatorHashes.collectorHash,
-    );
+    expect(
+      validatorToScriptHash(
+        mkCollectorValidatorFromSP(systemParams.collectorParams),
+      ),
+    ).toBe(systemParams.validatorHashes.collectorHash);
   });
   // TODO: Revisit this test, issues with cbor encoding on Lucid?
   // Applying parameters to the validator using `aiken build` does not result in the same hash as the one generate by Lucid.
@@ -50,9 +52,11 @@ describe('Validator Hash checks', () => {
     ).toBe(systemParams.validatorHashes.govHash);
   });
   it('Staking validator hash', () => {
-    expect(StakingContract.validatorHash(systemParams.stakingParams)).toBe(
-      systemParams.validatorHashes.stakingHash,
-    );
+    expect(
+      validatorToScriptHash(
+        mkStakingValidatorFromSP(systemParams.stakingParams),
+      ),
+    ).toBe(systemParams.validatorHashes.stakingHash);
   });
   it('Stability Pool validator hash', () => {
     expect(

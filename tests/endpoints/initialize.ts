@@ -15,8 +15,7 @@ import {
   AssetClass,
   CDPCreatorParamsSP,
   CdpParamsSP,
-  CollectorContract,
-  CollectorParams,
+  CollectorParamsSP,
   createScriptAddress,
   ExecuteParamsSP,
   GovDatum,
@@ -27,10 +26,12 @@ import {
   LrpParamsSP,
   mkCDPCreatorValidatorFromSP,
   mkCdpValidatorFromSP,
+  mkCollectorValidatorFromSP,
   mkExecuteValidatorFromSP,
   mkLrpValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
+  mkTreasuryValidatorFromSP,
   PollManagerParamsSP,
   PollShardParamsSP,
   PriceOracleParams,
@@ -38,15 +39,13 @@ import {
   serialiseGovDatum,
   serialiseIAssetDatum,
   StabilityPoolParamsSP,
-  StakingParams,
+  StakingParamsSP,
   SystemParams,
   toSystemParamsAsset,
-  TreasuryContract,
-  TreasuryParams,
+  TreasuryParamsSP,
   VersionRecordParams,
 } from '../../src';
 import { mkAuthTokenPolicy } from '../../src/scripts/auth-token-policy';
-import { StakingContract } from '../../src/contracts/staking/transactions';
 import { mkIAssetTokenPolicy } from '../../src/scripts/iasset-policy';
 import {
   mkVersionRecordTokenPolicy,
@@ -66,6 +65,7 @@ import {
   StabilityPoolContent,
 } from '../../src/contracts/stability-pool/types-new';
 import { InitialAsset } from '../mock/assets-mock';
+import { mkStakingValidatorFromSP } from '../../src/contracts/staking/scripts';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -142,15 +142,21 @@ async function initScriptRef(
 
 async function initCollector(
   lucid: LucidEvolution,
-  collectorParams: CollectorParams,
+  collectorParams: CollectorParamsSP,
 ): Promise<void> {
   const tx = lucid.newTx();
 
   for (let i = 0; i < Number(numCollectors); i++) {
-    tx.pay.ToContract(CollectorContract.address(collectorParams, lucid), {
-      kind: 'inline',
-      value: Data.to(new Constr(0, [])),
-    });
+    tx.pay.ToContract(
+      createScriptAddress(
+        lucid.config().network!,
+        validatorToScriptHash(mkCollectorValidatorFromSP(collectorParams)),
+      ),
+      {
+        kind: 'inline',
+        value: Data.to(new Constr(0, [])),
+      },
+    );
   }
 
   const txHash = await tx
@@ -193,14 +199,14 @@ async function initCDPCreator(
 
 async function initTreasury(
   lucid: LucidEvolution,
-  treasuryParams: TreasuryParams,
+  treasuryParams: TreasuryParamsSP,
   daoAsset: AssetClass,
   indyAsset: AssetClass,
   treasuryIndyAmount: bigint,
 ): Promise<void> {
   const tx = lucid.newTx().pay.ToContract(
     credentialToAddress(lucid.config().network!, {
-      hash: TreasuryContract.validatorHash(treasuryParams),
+      hash: validatorToScriptHash(mkTreasuryValidatorFromSP(treasuryParams)),
       type: 'Script',
     }),
     { kind: 'inline', value: Data.to(new Constr(0, [])) },
@@ -220,12 +226,15 @@ async function initTreasury(
 
 async function initStakingManager(
   lucid: LucidEvolution,
-  stakingParams: StakingParams,
+  stakingParams: StakingParamsSP,
 ): Promise<void> {
   const txHash = await lucid
     .newTx()
     .pay.ToContract(
-      StakingContract.address(stakingParams, lucid),
+      createScriptAddress(
+        lucid.config().network!,
+        validatorToScriptHash(mkStakingValidatorFromSP(stakingParams)),
+      ),
       {
         kind: 'inline',
         value: serialiseStakingDatum({
@@ -566,15 +575,15 @@ export async function init(
     tokenName: fromText(stakingTokenName),
   };
 
-  const collectorParams: CollectorParams = {
+  const collectorParams: CollectorParamsSP = {
     stakingManagerNFT: toSystemParamsAsset(stakingManagerAsset),
     stakingToken: toSystemParamsAsset(stakingToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
   };
-  const collectorValidator = CollectorContract.validator(collectorParams);
-  const collectorValHash = CollectorContract.validatorHash(collectorParams);
+  const collectorValidator = mkCollectorValidatorFromSP(collectorParams);
+  const collectorValHash = validatorToScriptHash(collectorValidator);
 
-  const stakingParams: StakingParams = {
+  const stakingParams: StakingParamsSP = {
     stakingManagerNFT: toSystemParamsAsset(stakingManagerAsset),
     stakingToken: toSystemParamsAsset(stakingToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
@@ -582,7 +591,9 @@ export async function init(
     indyToken: toSystemParamsAsset(indyAsset),
     collectorValHash: collectorValHash,
   };
-  const stakingValHash = StakingContract.validatorHash(stakingParams);
+  const stakingValHash = validatorToScriptHash(
+    mkStakingValidatorFromSP(stakingParams),
+  );
 
   await initStakingManager(lucid, stakingParams);
 
@@ -627,14 +638,14 @@ export async function init(
     mkStabilityPoolValidatorFromSP(stabilityPoolParams);
   const stabilityPoolValHash = validatorToScriptHash(stabilityPoolValidator);
 
-  const treasuryParams: TreasuryParams = {
+  const treasuryParams: TreasuryParamsSP = {
     upgradeToken: toSystemParamsAsset(upgradeToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
     treasuryUtxosStakeCredential: undefined,
   };
 
-  const treasuryValidator = TreasuryContract.validator(treasuryParams);
-  const treasuryValHash = TreasuryContract.validatorHash(treasuryParams);
+  const treasuryValidator = mkTreasuryValidatorFromSP(treasuryParams);
+  const treasuryValHash = validatorToScriptHash(treasuryValidator);
 
   await initTreasury(
     lucid,
@@ -828,7 +839,7 @@ export async function init(
         stakingValidatorRef: {
           input: await initScriptRef(
             lucid,
-            StakingContract.validator(stakingParams),
+            mkStakingValidatorFromSP(stakingParams),
           ),
         },
         stabilityPoolValidatorRef: {

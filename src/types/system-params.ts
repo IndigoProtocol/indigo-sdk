@@ -9,9 +9,9 @@ export type AssetClassSP = [CurrencySymbol, TokenName];
 export interface SystemParams {
   versionRecordParams: VersionRecordParams;
   validatorHashes: ValidatorHashes;
-  treasuryParams: TreasuryParams;
+  treasuryParams: TreasuryParamsSP;
   startTime: StartTime;
-  stakingParams: StakingParams;
+  stakingParams: StakingParamsSP;
   stabilityPoolParams: StabilityPoolParamsSP;
   scriptReferences: ScriptReferences;
   pollShardParams: PollShardParamsSP;
@@ -21,7 +21,7 @@ export interface SystemParams {
   govParams: GovParamsSP;
   executeParams: ExecuteParamsSP;
   distributionParams: DistributionParams;
-  collectorParams: CollectorParams;
+  collectorParams: CollectorParamsSP;
   cdpParams: CdpParamsSP;
   cdpCreatorParams: CDPCreatorParamsSP;
 }
@@ -57,7 +57,7 @@ export interface PubKeyHash {
 export interface VersionRecordParams {
   upgradeToken: AssetClassSP;
 }
-export interface TreasuryParams {
+export interface TreasuryParamsSP {
   upgradeToken: AssetClassSP;
   versionRecordToken: AssetClassSP;
   treasuryUtxosStakeCredential?: ScriptCredential;
@@ -66,7 +66,7 @@ export interface StartTime {
   slot: number;
   blockHeader: string;
 }
-export interface StakingParams {
+export interface StakingParamsSP {
   versionRecordToken: AssetClassSP;
   stakingToken: AssetClassSP;
   stakingManagerNFT: AssetClassSP;
@@ -209,7 +209,7 @@ export interface DistributionParams {
   totalINDYSupply: number;
   initialIndyDistribution: number;
 }
-export interface CollectorParams {
+export interface CollectorParamsSP {
   versionRecordToken: AssetClassSP;
   stakingToken: AssetClassSP;
   stakingManagerNFT: AssetClassSP;
