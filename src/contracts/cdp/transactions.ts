@@ -13,7 +13,6 @@ import {
   fromSystemParamsScriptRef,
   SystemParams,
 } from '../../types/system-params';
-import { TreasuryContract } from '../treasury/transactions';
 import {
   addrDetails,
   createScriptAddress,
@@ -56,6 +55,7 @@ import { liquidationHelper } from '../stability-pool/helpers';
 import { array as A, function as F } from 'fp-ts';
 import { calculateFeeFromPercentage } from '../../utils/indigo-helpers';
 import { collectorFeeTx } from '../collector/transactions';
+import { treasuryFeeTx } from '../treasury/transactions';
 
 export async function openCdp(
   collateralAmount: bigint,
@@ -383,7 +383,7 @@ async function adjustCdp(
   const interestTreasuryAdaAmt = interestAdaAmt - interestCollectorAdaAmt;
 
   if (interestTreasuryAdaAmt > 0) {
-    await TreasuryContract.feeTx(
+    await treasuryFeeTx(
       interestTreasuryAdaAmt,
       lucid,
       sysParams,
@@ -675,7 +675,7 @@ export async function closeCdp(
   const interestTreasuryAdaAmt = interestAdaAmt - interestCollectorAdaAmt;
 
   if (interestTreasuryAdaAmt > 0) {
-    await TreasuryContract.feeTx(
+    await treasuryFeeTx(
       interestTreasuryAdaAmt,
       lucid,
       sysParams,
@@ -897,7 +897,7 @@ export async function redeemCdp(
     collectorOref,
   );
 
-  await TreasuryContract.feeTx(
+  await treasuryFeeTx(
     interestTreasuryAdaAmt,
     lucid,
     sysParams,
@@ -1198,13 +1198,7 @@ export async function liquidateCdp(
     collectorOref,
   );
 
-  await TreasuryContract.feeTx(
-    lovelacesForTreasury,
-    lucid,
-    sysParams,
-    tx,
-    treasuryOref,
-  );
+  await treasuryFeeTx(lovelacesForTreasury, lucid, sysParams, tx, treasuryOref);
 
   return tx;
 }
