@@ -31,7 +31,7 @@ import {
   matchSingle,
   mergeShards,
   ONE_DAY,
-  StakingContract,
+  openStakingPosition,
   SystemParams,
   vote,
   VoteOption,
@@ -525,7 +525,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+      openStakingPosition(1_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -538,7 +538,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+      openStakingPosition(1_000_000n, sysParams, context.lucid),
     );
     const [pkh, _] = await addrDetails(context.lucid);
 
@@ -611,7 +611,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+      openStakingPosition(1_000_000n, sysParams, context.lucid),
     );
     const [pkh, _] = await addrDetails(context.lucid);
 
@@ -711,7 +711,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -759,7 +759,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'No', sysParams, context);
@@ -865,7 +865,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -946,7 +946,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1068,7 +1068,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1200,7 +1200,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1313,7 +1313,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1423,7 +1423,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1524,7 +1524,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1628,7 +1628,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1724,7 +1724,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1823,7 +1823,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
