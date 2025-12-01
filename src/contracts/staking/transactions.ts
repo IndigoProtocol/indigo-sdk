@@ -12,7 +12,12 @@ import {
   SystemParams,
 } from '../../types/system-params';
 import { addrDetails } from '../../utils/lucid-utils';
-import { StakingHelpers, updateStakingLockedAmount } from './helpers';
+import {
+  findStakingManager,
+  findStakingManagerByOutRef,
+  findStakingPositionByOutRef,
+  updateStakingLockedAmount,
+} from './helpers';
 import {
   serialiseStakingDatum,
   StakingManager,
@@ -29,8 +34,8 @@ export async function openStakingPosition(
   const [pkh, _] = await addrDetails(lucid);
 
   const stakingManagerOut = stakingManagerRef
-    ? await StakingHelpers.findStakingManagerByOutRef(stakingManagerRef, lucid)
-    : await StakingHelpers.findStakingManager(params, lucid);
+    ? await findStakingManagerByOutRef(stakingManagerRef, lucid)
+    : await findStakingManager(params, lucid);
 
   const stakingRefScriptUtxo = matchSingle(
     await lucid.utxosByOutRef([
@@ -111,13 +116,13 @@ export async function adjustStakingPosition(
   const [pkh, _] = await addrDetails(lucid);
   const now = Date.now();
 
-  const stakingPositionOut = await StakingHelpers.findStakingPositionByOutRef(
+  const stakingPositionOut = await findStakingPositionByOutRef(
     stakingPositionRef,
     lucid,
   );
   const stakingManagerOut = stakingManagerRef
-    ? await StakingHelpers.findStakingManagerByOutRef(stakingManagerRef, lucid)
-    : await StakingHelpers.findStakingManager(params, lucid);
+    ? await findStakingManagerByOutRef(stakingManagerRef, lucid)
+    : await findStakingManager(params, lucid);
 
   const stakingRefScriptUtxo = matchSingle(
     await lucid.utxosByOutRef([
@@ -194,13 +199,13 @@ export async function closeStakingPosition(
 ): Promise<TxBuilder> {
   const [pkh, _] = await addrDetails(lucid);
 
-  const stakingPositionOut = await StakingHelpers.findStakingPositionByOutRef(
+  const stakingPositionOut = await findStakingPositionByOutRef(
     stakingPositionRef,
     lucid,
   );
   const stakingManagerOut = stakingManagerRef
-    ? await StakingHelpers.findStakingManagerByOutRef(stakingManagerRef, lucid)
-    : await StakingHelpers.findStakingManager(params, lucid);
+    ? await findStakingManagerByOutRef(stakingManagerRef, lucid)
+    : await findStakingManager(params, lucid);
 
   const stakingRefScriptUtxo = matchSingle(
     await lucid.utxosByOutRef([
