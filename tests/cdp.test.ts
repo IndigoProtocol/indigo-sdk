@@ -23,6 +23,7 @@ import {
   CDPContent,
   closeCdp,
   createScriptAddress,
+  createSpAccount,
   depositCdp,
   freezeCdp,
   fromSystemParamsAsset,
@@ -36,8 +37,8 @@ import {
   openCdp,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
+  processSpRequest,
   redeemCdp,
-  StabilityPoolContract,
   SystemParams,
   withdrawCdp,
 } from '../src';
@@ -965,7 +966,7 @@ describe('CDP', () => {
 
       await runAndAwaitTx(
         context.lucid,
-        StabilityPoolContract.createAccount(
+        createSpAccount(
           iusdAssetInfo.iassetTokenNameAscii,
           10_000_000n,
           sysParams,
@@ -991,7 +992,7 @@ describe('CDP', () => {
 
       await runAndAwaitTx(
         context.lucid,
-        StabilityPoolContract.processRequest(
+        processSpRequest(
           iusdAssetInfo.iassetTokenNameAscii,
           orefs.stabilityPoolUtxo,
           accountUtxo,
@@ -1179,7 +1180,7 @@ describe('CDP', () => {
 
       await runAndAwaitTx(
         context.lucid,
-        StabilityPoolContract.createAccount(
+        createSpAccount(
           iusdAssetInfo.iassetTokenNameAscii,
           3_000_000n,
           sysParams,
@@ -1205,7 +1206,7 @@ describe('CDP', () => {
 
       await runAndAwaitTx(
         context.lucid,
-        StabilityPoolContract.processRequest(
+        processSpRequest(
           iusdAssetInfo.iassetTokenNameAscii,
           orefs.stabilityPoolUtxo,
           accountUtxo,
@@ -1469,7 +1470,7 @@ describe('CDP', () => {
 
       await runAndAwaitTx(
         context.lucid,
-        StabilityPoolContract.createAccount(
+        createSpAccount(
           iusdAssetInfo.iassetTokenNameAscii,
           20_000_000n,
           sysParams,
@@ -1495,7 +1496,7 @@ describe('CDP', () => {
 
       await runAndAwaitTx(
         context.lucid,
-        StabilityPoolContract.processRequest(
+        processSpRequest(
           iusdAssetInfo.iassetTokenNameAscii,
           orefs.stabilityPoolUtxo,
           accountUtxo,
