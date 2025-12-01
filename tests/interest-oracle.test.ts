@@ -8,7 +8,11 @@ import { EmulatorAccount, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { addrDetails } from '../src/utils/lucid-utils';
-import { InterestOracleContract, InterestOracleParams } from '../src';
+import {
+  feedInterestOracle,
+  InterestOracleParams,
+  startInterestOracle,
+} from '../src';
 import { findInterestOracle } from './queries/interest-oracle-queries';
 
 type MyContext = LucidContext<{
@@ -44,7 +48,7 @@ test<MyContext>('Interest Oracle - Start', async ({
 
   const [pkh, _] = await addrDetails(lucid);
 
-  const [tx, _ac] = await InterestOracleContract.startInterestOracle(
+  const [tx, _ac] = await startInterestOracle(
     0n,
     0n,
     0n,
@@ -70,7 +74,7 @@ test<MyContext>('Interest Oracle - Update', async ({
     owner: pkh.hash,
   };
 
-  const [tx, assetClass] = await InterestOracleContract.startInterestOracle(
+  const [tx, assetClass] = await startInterestOracle(
     0n,
     0n,
     0n,
@@ -83,12 +87,6 @@ test<MyContext>('Interest Oracle - Update', async ({
   const utxo = await findInterestOracle(lucid, assetClass);
   await runAndAwaitTx(
     lucid,
-    InterestOracleContract.feedInterestOracle(
-      interestParams,
-      500_000n,
-      lucid,
-      undefined,
-      utxo,
-    ),
+    feedInterestOracle(interestParams, 500_000n, lucid, undefined, utxo),
   );
 });
