@@ -1,5 +1,5 @@
 import { InterestOracleDatum } from './types';
-import { oneYear } from '../../utils/time-helpers';
+import { ONE_YEAR } from '../../utils/time-helpers';
 import {
   OCD_DECIMAL_UNIT,
   ocdAdd,
@@ -16,7 +16,7 @@ export function calculateUnitaryInterest(
 ): bigint {
   return (
     (timePeriod * interestRate * unitaryInterestPrecision) /
-    oneYear /
+    ONE_YEAR /
     OCD_DECIMAL_UNIT
   );
 }
@@ -47,7 +47,7 @@ export function calculateAccruedInterest(
       ((now - interestOracleDatum.lastUpdated) *
         interestOracleDatum.interestRate.getOnChainInt *
         mintedAmount) /
-      oneYear /
+      ONE_YEAR /
       OCD_DECIMAL_UNIT;
 
     return interestFromPreviousRates + lastRateInterest;
@@ -56,7 +56,7 @@ export function calculateAccruedInterest(
       ((now - interestLastSettled) *
         interestOracleDatum.interestRate.getOnChainInt *
         mintedAmount) /
-      oneYear /
+      ONE_YEAR /
       OCD_DECIMAL_UNIT
     );
   }
