@@ -495,7 +495,7 @@ describe('LRP', () => {
     );
   });
 
-  it('single redemption and cancel', async () => {
+  it('redeem, redeem again and cancel', async () => {
     const network: Network = 'Custom';
     const account1 = generateEmulatorAccount({
       lovelace: 80_000_000_000n, // 80,000 ADA
@@ -601,15 +601,39 @@ describe('LRP', () => {
 
     const redeemedLrp = await findSingleOwnLrp();
 
+    await runAndAwaitTx(
+      lucid,
+      redeemLrp(
+        [[redeemedLrp, redemptionIAssetAmt]],
+        lrpRefScriptOutRef,
+        await findPriceOracle(
+          lucid,
+          network,
+          testCtx.oracleValHash,
+          testCtx.oracleNft,
+        ),
+        await findIAsset(
+          lucid,
+          testCtx.iassetValHash,
+          testCtx.iassetNft,
+          toText(iassetTokenName),
+        ),
+        lucid,
+        lrpParams,
+        network,
+      ),
+    );
+
     strictEqual(
       assetClassValueOf(redeemedLrp.assets, redemptionAsset),
       redemptionIAssetAmt,
       'LRP has wrong number of iassets after redemption',
     );
+    const closableLrp = await findSingleOwnLrp();
 
     await runAndAwaitTx(
       lucid,
-      cancelLrp(redeemedLrp, lrpRefScriptOutRef, lucid),
+      cancelLrp(closableLrp, lrpRefScriptOutRef, lucid),
     );
   });
 

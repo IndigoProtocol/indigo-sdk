@@ -9,6 +9,7 @@ import {
   addAssets,
   unixTimeToSlot,
   slotToUnixTime,
+  toUnit,
 } from '@lucid-evolution/lucid';
 import {
   addrDetails,
@@ -152,12 +153,29 @@ export async function redeemLrp(
         },
         priceOracleDatum.price,
       ).getOnChainInt;
+
+      console.log(
+        lovelacesForRedemption,
+        redeemIAssetAmt,
+        priceOracleDatum.price,
+      );
       const reimburstmentLovelaces = calculateFeeFromPercentage(
         iassetDatum.redemptionReimbursementPercentage,
         lovelacesForRedemption,
       );
 
+      console.log(
+        reimburstmentLovelaces,
+        iassetDatum.redemptionReimbursementPercentage,
+        lovelacesForRedemption,
+      );
+
       const lrpDatum = parseLrpDatum(getInlineDatumOrThrow(lrpUtxo));
+      const outputLovelacesAmt =
+        lrpUtxo.assets.lovelace -
+        lovelacesForRedemption +
+        reimburstmentLovelaces;
+      const assetUnit = toUnit(lrpParams.iassetPolicyId, mainLrpDatum.iasset);
 
       return acc
         .collectFrom(
@@ -190,17 +208,10 @@ export async function redeemLrp(
                 lrpDatum.lovelacesToSpend - lovelacesForRedemption,
             }),
           },
-          addAssets(
-            lrpUtxo.assets,
-            mkLovelacesOf(-(lovelacesForRedemption - reimburstmentLovelaces)),
-            mkAssetsOf(
-              {
-                currencySymbol: lrpParams.iassetPolicyId,
-                tokenName: mainLrpDatum.iasset,
-              },
-              redeemIAssetAmt,
-            ),
-          ),
+          {
+            lovelace: outputLovelacesAmt,
+            [assetUnit]: redeemIAssetAmt + (lrpUtxo.assets[assetUnit] ?? 0n),
+          },
         );
     },
   )(redemptionLrps);
@@ -236,8 +247,6 @@ export async function adjustLrp(
   lrpRefScriptOutRef: OutRef,
   lrpParams: LRPParams,
 ): Promise<TxBuilder> {
-  const ownAddr = await lucid.wallet().address();
-
   const lrpScriptRefUtxo = matchSingle(
     await lucid.utxosByOutRef([lrpRefScriptOutRef]),
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
@@ -292,7 +301,7 @@ export async function adjustLrp(
         mkLovelacesOf(lovelacesAdjustAmt),
       ),
     )
-    .addSigner(ownAddr);
+    .addSignerKey(lrpDatum.owner);
 }
 
 /**
