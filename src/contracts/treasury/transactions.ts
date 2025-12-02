@@ -1,6 +1,5 @@
 import {
   addAssets,
-  Constr,
   Data,
   LucidEvolution,
   OutRef,
@@ -12,6 +11,7 @@ import {
 } from '../../types/system-params';
 import { matchSingle } from '../../utils/utils';
 import { mkLovelacesOf } from '../../utils/value-helpers';
+import { serialiseTreasuryRedeemer } from './types';
 
 export async function treasuryFeeTx(
   fee: bigint,
@@ -35,7 +35,7 @@ export async function treasuryFeeTx(
   );
 
   tx.readFrom([treasuryRefScriptUtxo])
-    .collectFrom([treasuryUtxo], Data.to(new Constr(4, [])))
+    .collectFrom([treasuryUtxo], serialiseTreasuryRedeemer('CollectAda'))
     .pay.ToContract(
       treasuryUtxo.address,
       { kind: 'inline', value: Data.void() },
