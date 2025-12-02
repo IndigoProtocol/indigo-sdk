@@ -5,7 +5,7 @@ import {
   SpendingValidator,
 } from '@lucid-evolution/lucid';
 import { StakingParamsSP } from '../../types/system-params';
-import { _stakingValidator } from '../../validators-export/staking-validator';
+import { _stakingValidator } from '../../validators/staking-validator';
 
 export const mkStakingValidatorFromSP = (
   params: StakingParamsSP,

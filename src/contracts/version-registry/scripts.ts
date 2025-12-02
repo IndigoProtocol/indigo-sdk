@@ -7,8 +7,8 @@ import {
   castVersionRecordTokenParams,
   VersionRecordTokenParams,
 } from './types';
-import { _versionRecordTokenPolicy } from '../../validators-export/version-record-policy';
-import { _versionRegistryValidator } from '../../validators-export/version-registry-validator';
+import { _versionRecordTokenPolicy } from '../../validators/version-record-policy';
+import { _versionRegistryValidator } from '../../validators/version-registry-validator';
 
 export function mkVersionRecordTokenPolicy(
   params: VersionRecordTokenParams,

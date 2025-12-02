@@ -8,7 +8,7 @@ import {
   ExecuteParamsSP,
   fromSystemParamsAsset,
 } from '../../types/system-params';
-import { _executeValidator } from '../../validators-export/execute-validator';
+import { _executeValidator } from '../../validators/execute-validator';
 
 export const mkExecuteValidator = (
   params: ExecuteParams,
