@@ -36,3 +36,12 @@ export async function runAndAwaitTxBuilder(
   await lucid.awaitTx(txHash);
   return txHash;
 }
+
+export async function repeat(
+  times: number,
+  action: () => Promise<void>,
+): Promise<void> {
+  for (let i = 0; i < times; i++) {
+    await action();
+  }
+}

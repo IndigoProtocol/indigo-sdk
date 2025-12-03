@@ -13,11 +13,11 @@ import {
 import {
   addrDetails,
   AssetClass,
-  CDPContract,
   CDPCreatorParamsSP,
-  CdpParams,
+  CdpParamsSP,
   CollectorContract,
   CollectorParams,
+  createScriptAddress,
   ExecuteParamsSP,
   GovDatum,
   GovParamsSP,
@@ -26,11 +26,13 @@ import {
   InterestOracleContract,
   LrpParamsSP,
   mkCDPCreatorValidatorFromSP,
+  mkCdpValidatorFromSP,
   mkLrpValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
   PollManagerParamsSP,
   PollShardParamsSP,
+  PriceOracleParams,
   runOneShotMintTx,
   serialiseGovDatum,
   serialiseIAssetDatum,
@@ -61,6 +63,7 @@ import {
   serialiseStabilityPoolDatum,
   StabilityPoolContent,
 } from '../../src/types/indigo/stability-pool-new';
+import { InitialAsset } from '../mock/assets-mock';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -80,72 +83,15 @@ const accountTokenName = 'SP_ACCOUNT';
 
 const totalIndySupply = 35000000000000n;
 // const totalIndyDistribution = 0n;
-const treasuryIndyAmount = 0n;
+const treasuryIndyAmount = 100_000n;
 
 const numCdpCreators = 2n;
 const numCollectors = 2n;
 
-type InitialAsset = {
-  name: string;
-  priceOracle: {
-    tokenName: string;
-    startPrice: bigint;
-    params: {
-      biasTime: bigint;
-      expirationTime: bigint;
-    };
-  };
-  initerestOracle: {
-    tokenName: string;
-    initialInterestRate: bigint;
-    params: {
-      biasTime: bigint;
-    };
-  };
-  redemptionRatioPercentage: bigint;
-  maintenanceRatioPercentage: bigint;
-  liquidationRatioPercentage: bigint;
-  debtMintingFeePercentage: bigint;
-  liquidationProcessingFeePercentage: bigint;
-  stabilityPoolWithdrawalFeePercentage: bigint;
-  redemptionReimbursementPercentage: bigint;
-  redemptionProcessingFeePercentage: bigint;
-  interestCollectorPortionPercentage: bigint;
-  firstAsset: boolean;
-  nextAsset?: string;
+export type AssetInfo = {
+  iassetTokenNameAscii: string;
+  oracleParams: PriceOracleParams;
 };
-
-const initialAssets: InitialAsset[] = [
-  {
-    name: 'iUSD',
-    priceOracle: {
-      tokenName: 'iUSD_ORACLE',
-      startPrice: 1_000_000n,
-      params: {
-        biasTime: 120_000n,
-        expirationTime: 1_800_000n,
-      },
-    },
-    initerestOracle: {
-      tokenName: 'iUSD_ORACLE',
-      initialInterestRate: 1_000_000n,
-      params: {
-        biasTime: 120_000n,
-      },
-    },
-    redemptionRatioPercentage: 200_000_000n,
-    maintenanceRatioPercentage: 150_000_000n,
-    liquidationRatioPercentage: 120_000_000n,
-    debtMintingFeePercentage: 500_000n,
-    liquidationProcessingFeePercentage: 2_000_000n,
-    stabilityPoolWithdrawalFeePercentage: 500_000n,
-    redemptionReimbursementPercentage: 1_000_000n,
-    redemptionProcessingFeePercentage: 1_000_000n,
-    interestCollectorPortionPercentage: 40_000_000n,
-    firstAsset: true,
-    nextAsset: undefined,
-  },
-];
 
 const alwaysFailValidatorHash =
   'ea84d625650d066e1645e3e81d9c70a73f9ed837bd96dc49850ae744';
@@ -300,25 +246,27 @@ async function initStakingManager(
 
 async function initializeAsset(
   lucid: LucidEvolution,
-  cdpParams: CdpParams,
+  cdpParams: CdpParamsSP,
   iassetToken: AssetClass,
   stabilityPoolParams: StabilityPoolParamsSP,
   stabilityPoolToken: AssetClass,
   asset: InitialAsset,
   now: number = Date.now(),
-): Promise<void> {
+): Promise<AssetInfo> {
   const [pkh, _] = await addrDetails(lucid);
+  const priceOracleParams: PriceOracleParams = {
+    owner: pkh.hash,
+    biasTime: asset.priceOracle.params.biasTime,
+    expiration: asset.priceOracle.params.expirationTime,
+  };
+
   const [priceOracleStartTx, priceOracleNft] = await startPriceOracleTx(
     lucid,
     asset.name + '_ORACLE',
     {
       getOnChainInt: asset.priceOracle.startPrice,
     },
-    {
-      owner: pkh.hash,
-      biasTime: asset.priceOracle.params.biasTime,
-      expiration: asset.priceOracle.params.expirationTime,
-    },
+    priceOracleParams,
     now,
   );
   await runAndAwaitTxBuilder(lucid, priceOracleStartTx);
@@ -372,7 +320,10 @@ async function initializeAsset(
   const assetTx = lucid
     .newTx()
     .pay.ToContract(
-      CDPContract.address(cdpParams, lucid),
+      createScriptAddress(
+        lucid.config().network!,
+        validatorToScriptHash(mkCdpValidatorFromSP(cdpParams)),
+      ),
       { kind: 'inline', value: serialiseIAssetDatum(iassetDatum) },
       { [iassetToken.currencySymbol + iassetToken.tokenName]: 1n },
     );
@@ -399,7 +350,7 @@ async function initializeAsset(
     }),
     {
       kind: 'inline',
-      value: serialiseStabilityPoolDatum(stabilityPoolDatum),
+      value: serialiseStabilityPoolDatum({ StabilityPool: stabilityPoolDatum }),
     },
     {
       [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,
@@ -412,12 +363,15 @@ async function initializeAsset(
     .then((spTx) => spTx.submit());
 
   await lucid.awaitTx(spTxHash);
+
+  return { iassetTokenNameAscii: asset.name, oracleParams: priceOracleParams };
 }
 
 async function initGovernance(
   lucid: LucidEvolution,
   governanceParams: GovParamsSP,
   govToken: AssetClass,
+  initialAssets: InitialAsset[],
 ): Promise<void> {
   const datum: GovDatum = {
     currentProposal: 0n,
@@ -497,8 +451,9 @@ async function mintAuthTokenDirect(
 
 export async function init(
   lucid: LucidEvolution,
+  initialAssets: InitialAsset[],
   now: number = Date.now(),
-): Promise<SystemParams> {
+): Promise<[SystemParams, AssetInfo[]]> {
   const indyAsset: AssetClass = {
     currencySymbol: await mintOneTimeToken(
       lucid,
@@ -687,7 +642,7 @@ export async function init(
     treasuryIndyAmount,
   );
 
-  const cdpParams: CdpParams = {
+  const cdpParams: CdpParamsSP = {
     cdpAuthToken: toSystemParamsAsset(cdpToken),
     cdpAssetSymbol: { unCurrencySymbol: assetSymbol },
     iAssetAuthToken: toSystemParamsAsset(iassetToken),
@@ -702,7 +657,7 @@ export async function init(
     biasTime: 120_000,
     treasuryValHash: treasuryValHash,
   };
-  const cdpValHash = CDPContract.validatorHash(cdpParams);
+  const cdpValHash = validatorToScriptHash(mkCdpValidatorFromSP(cdpParams));
 
   const cdpCreatorParams: CDPCreatorParamsSP = {
     cdpCreatorNft: toSystemParamsAsset(cdpCreatorAsset),
@@ -721,6 +676,7 @@ export async function init(
   await initCDPCreator(lucid, cdpCreatorParams);
   await initCollector(lucid, collectorParams);
 
+  const assetInfos = [];
   if (initialAssets.length > 0) {
     await mintAuthTokenDirect(lucid, govNftAsset, pollManagerTokenName, 1n);
     await mintAuthTokenDirect(lucid, pollToken, upgradeTokenName, 1n);
@@ -734,7 +690,7 @@ export async function init(
         1n,
       );
 
-      await initializeAsset(
+      const assetInfo = await initializeAsset(
         lucid,
         cdpParams,
         iassetToken,
@@ -743,6 +699,8 @@ export async function init(
         asset,
         now,
       );
+
+      assetInfos.push(assetInfo);
     }
 
     await mintAuthTokenDirect(lucid, pollToken, upgradeTokenName, -1n);
@@ -801,7 +759,7 @@ export async function init(
   const govValidator = mkGovValidatorFromSP(govParams);
   const govValHash = validatorToScriptHash(govValidator);
 
-  await initGovernance(lucid, govParams, govNftAsset);
+  await initGovernance(lucid, govParams, govNftAsset, initialAssets);
 
   const lrpParams: LrpParamsSP = {
     iassetNft: cdpParams.iAssetAuthToken,
@@ -813,130 +771,133 @@ export async function init(
   const lrpValidator = mkLrpValidatorFromSP(lrpParams);
   const lrpValHash = validatorToScriptHash(lrpValidator);
 
-  return {
-    cdpParams: cdpParams,
-    cdpCreatorParams: cdpCreatorParams,
-    collectorParams: collectorParams,
-    executeParams: executeParams,
-    govParams: govParams,
-    stakingParams: stakingParams,
-    stabilityPoolParams: stabilityPoolParams,
-    treasuryParams: treasuryParams,
-    pollShardParams: pollShardParams,
-    pollManagerParams: pollManagerParams,
-    indyToken: toSystemParamsAsset(indyAsset),
-    distributionParams: {
-      treasuryIndyAmount: 1_575_000_000_000,
-      totalINDYSupply: 35_000_000_000_000,
-      initialIndyDistribution: 1_575_000_000_000,
-    },
-    lrpParams: lrpParams,
-    versionRecordParams: versionRecordParams,
-    startTime: {
-      slot: 0,
-      blockHeader: '',
-    },
-    scriptReferences: {
-      lrpValidatorRef: {
-        input: await initScriptRef(lucid, lrpValidator),
+  return [
+    {
+      cdpParams: cdpParams,
+      cdpCreatorParams: cdpCreatorParams,
+      collectorParams: collectorParams,
+      executeParams: executeParams,
+      govParams: govParams,
+      stakingParams: stakingParams,
+      stabilityPoolParams: stabilityPoolParams,
+      treasuryParams: treasuryParams,
+      pollShardParams: pollShardParams,
+      pollManagerParams: pollManagerParams,
+      indyToken: toSystemParamsAsset(indyAsset),
+      distributionParams: {
+        treasuryIndyAmount: 1_575_000_000_000,
+        totalINDYSupply: 35_000_000_000_000,
+        initialIndyDistribution: 1_575_000_000_000,
       },
-      cdpCreatorValidatorRef: {
-        input: await initScriptRef(lucid, cdpCreatorValidator),
+      lrpParams: lrpParams,
+      versionRecordParams: versionRecordParams,
+      startTime: {
+        slot: 0,
+        blockHeader: '',
       },
-      cdpValidatorRef: {
-        input: await initScriptRef(lucid, CDPContract.validator(cdpParams)),
-      },
-      collectorValidatorRef: {
-        input: await initScriptRef(lucid, collectorValidator),
-      },
-      executeValidatorRef: {
-        input: await initScriptRef(lucid, executeValidator),
-      },
-      govValidatorRef: {
-        input: await initScriptRef(lucid, govValidator),
-      },
-      pollShardValidatorRef: {
-        input: await initScriptRef(lucid, pollShardValidator),
-      },
-      pollManagerValidatorRef: {
-        input: await initScriptRef(lucid, pollManagerValidator),
-      },
-      iAssetTokenPolicyRef: {
-        input: await initScriptRef(lucid, assetSymbolPolicy),
-      },
-      stakingValidatorRef: {
-        input: await initScriptRef(
-          lucid,
-          StakingContract.validator(stakingParams),
-        ),
-      },
-      stabilityPoolValidatorRef: {
-        input: await initScriptRef(lucid, stabilityPoolValidator),
-      },
-      treasuryValidatorRef: {
-        input: await initScriptRef(lucid, treasuryValidator),
-      },
-      governanceValidatorRef: {
-        input: await initScriptRef(lucid, govValidator),
-      },
-      versionRegistryValidatorRef: {
-        input: await initScriptRef(lucid, versionRegistryValidator),
-      },
-      versionRecordTokenPolicyRef: {
-        input: await initScriptRef(lucid, versionRecordTokenPolicy),
-      },
-      authTokenPolicies: {
-        cdpAuthTokenRef: {
-          input: await initScriptRef(lucid, cdpTokenPolicy),
+      scriptReferences: {
+        lrpValidatorRef: {
+          input: await initScriptRef(lucid, lrpValidator),
         },
-        iAssetAuthTokenRef: {
-          input: await initScriptRef(lucid, iassetTokenPolicy),
+        cdpCreatorValidatorRef: {
+          input: await initScriptRef(lucid, cdpCreatorValidator),
         },
-        accountTokenRef: {
-          input: await initScriptRef(lucid, accountTokenPolicy),
+        cdpValidatorRef: {
+          input: await initScriptRef(lucid, mkCdpValidatorFromSP(cdpParams)),
         },
-        stabilityPoolAuthTokenRef: {
-          input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
+        collectorValidatorRef: {
+          input: await initScriptRef(lucid, collectorValidator),
         },
-        pollManagerTokenRef: {
-          input: await initScriptRef(lucid, pollTokenPolicy),
+        executeValidatorRef: {
+          input: await initScriptRef(lucid, executeValidator),
         },
-        stakingTokenRef: {
-          input: await initScriptRef(lucid, stakingTokenPolicy),
+        govValidatorRef: {
+          input: await initScriptRef(lucid, govValidator),
         },
-        versionRecordTokenRef: {
-          input: await initScriptRef(lucid, versionRecordTokenPolicy),
+        pollShardValidatorRef: {
+          input: await initScriptRef(lucid, pollShardValidator),
         },
-        iAssetTokenRef: {
+        pollManagerValidatorRef: {
+          input: await initScriptRef(lucid, pollManagerValidator),
+        },
+        iAssetTokenPolicyRef: {
           input: await initScriptRef(lucid, assetSymbolPolicy),
         },
-        upgradeTokenRef: {
-          input: await initScriptRef(lucid, upgradeTokenPolicy),
-        },
-        stabilityPoolTokenRef: {
-          input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
-        },
-        snapshotEpochToScaleToSumTokenRef: {
+        stakingValidatorRef: {
           input: await initScriptRef(
             lucid,
-            snapshotEpochToScaleToSumTokenPolicy,
+            StakingContract.validator(stakingParams),
           ),
         },
+        stabilityPoolValidatorRef: {
+          input: await initScriptRef(lucid, stabilityPoolValidator),
+        },
+        treasuryValidatorRef: {
+          input: await initScriptRef(lucid, treasuryValidator),
+        },
+        governanceValidatorRef: {
+          input: await initScriptRef(lucid, govValidator),
+        },
+        versionRegistryValidatorRef: {
+          input: await initScriptRef(lucid, versionRegistryValidator),
+        },
+        versionRecordTokenPolicyRef: {
+          input: await initScriptRef(lucid, versionRecordTokenPolicy),
+        },
+        authTokenPolicies: {
+          cdpAuthTokenRef: {
+            input: await initScriptRef(lucid, cdpTokenPolicy),
+          },
+          iAssetAuthTokenRef: {
+            input: await initScriptRef(lucid, iassetTokenPolicy),
+          },
+          accountTokenRef: {
+            input: await initScriptRef(lucid, accountTokenPolicy),
+          },
+          stabilityPoolAuthTokenRef: {
+            input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
+          },
+          pollManagerTokenRef: {
+            input: await initScriptRef(lucid, pollTokenPolicy),
+          },
+          stakingTokenRef: {
+            input: await initScriptRef(lucid, stakingTokenPolicy),
+          },
+          versionRecordTokenRef: {
+            input: await initScriptRef(lucid, versionRecordTokenPolicy),
+          },
+          iAssetTokenRef: {
+            input: await initScriptRef(lucid, assetSymbolPolicy),
+          },
+          upgradeTokenRef: {
+            input: await initScriptRef(lucid, upgradeTokenPolicy),
+          },
+          stabilityPoolTokenRef: {
+            input: await initScriptRef(lucid, stabilityPoolTokenPolicy),
+          },
+          snapshotEpochToScaleToSumTokenRef: {
+            input: await initScriptRef(
+              lucid,
+              snapshotEpochToScaleToSumTokenPolicy,
+            ),
+          },
+        },
       },
-    },
-    validatorHashes: {
-      cdpCreatorHash: cdpCreatorValHash,
-      cdpHash: cdpValHash,
-      executeHash: executeValHash,
-      govHash: govValHash,
-      pollShardHash: pollShardValHash,
-      pollManagerHash: pollManagerValHash,
-      treasuryHash: treasuryValHash,
-      stabilityPoolHash: stabilityPoolValHash,
-      stakingHash: stakingValHash,
-      collectorHash: collectorValHash,
-      versionRegistryHash: versionRegistryValHash,
-      lrpHash: lrpValHash,
-    },
-  } as SystemParams;
+      validatorHashes: {
+        cdpCreatorHash: cdpCreatorValHash,
+        cdpHash: cdpValHash,
+        executeHash: executeValHash,
+        govHash: govValHash,
+        pollShardHash: pollShardValHash,
+        pollManagerHash: pollManagerValHash,
+        treasuryHash: treasuryValHash,
+        stabilityPoolHash: stabilityPoolValHash,
+        stakingHash: stakingValHash,
+        collectorHash: collectorValHash,
+        versionRegistryHash: versionRegistryValHash,
+        lrpHash: lrpValHash,
+      },
+    } as SystemParams,
+    assetInfos,
+  ];
 }

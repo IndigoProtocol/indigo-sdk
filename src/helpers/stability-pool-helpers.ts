@@ -11,10 +11,12 @@ import {
   SPInteger,
   spMul,
   spSub,
+  StabilityPoolContent,
   StabilityPoolSnapshot,
 } from '../types/indigo/stability-pool-new';
+import { match } from 'ts-pattern';
 
-const newScaleMultiplier = 1000000000n;
+const newScaleMultiplier = 1_000_000_000n;
 
 export const initSpSnapshot: StabilityPoolSnapshot = {
   productVal: { value: 1_000_000_000_000_000_000n },
@@ -50,9 +52,9 @@ export function setSumInEpochToScaleToSum(
   sum: SPInteger,
 ): EpochToScaleToSum {
   const map = new Map<{ epoch: bigint; scale: bigint }, SPInteger>();
-  for (const [key, _] of e2s2s.entries()) {
+  for (const [key, value] of e2s2s.entries()) {
     if (!(key.epoch === epoch && key.scale === scale)) {
-      map.set(key, sum);
+      map.set(key, value);
     }
   }
 
@@ -218,4 +220,92 @@ export function updatePoolSnapshotWithdrawalFee(
         );
 
   return [newPoolDepositVal, newPoolProduct];
+}
+
+export function liquidationHelper(
+  spContent: StabilityPoolContent,
+  iassetBurnAmt: bigint,
+  /**
+   * The collateral absorbed
+   */
+  reward: bigint,
+): { newSpContent: StabilityPoolContent } {
+  const lossPerUnitStaked = spDiv(
+    mkSPInteger(iassetBurnAmt),
+    spContent.poolSnapshot.depositVal,
+  );
+  const productFactor = spSub(mkSPInteger(1n), lossPerUnitStaked);
+
+  const isScaleIncrease =
+    spMul(spContent.poolSnapshot.productVal, productFactor).value <
+    newScaleMultiplier;
+
+  const newSumSnapshot = spAdd(
+    spContent.poolSnapshot.sumVal,
+    spDiv(
+      spMul(mkSPInteger(reward), spContent.poolSnapshot.productVal),
+      spContent.poolSnapshot.depositVal,
+    ),
+  );
+  const newProductSnapshot = spMul(
+    {
+      value:
+        spContent.poolSnapshot.productVal.value *
+        (isScaleIncrease ? newScaleMultiplier : 1n),
+    },
+    productFactor,
+  );
+
+  const isEpochIncrease = newProductSnapshot.value <= 0n;
+
+  const newSnapshot: StabilityPoolSnapshot = isEpochIncrease
+    ? { ...initSpSnapshot, epoch: spContent.poolSnapshot.epoch + 1n }
+    : {
+        productVal: newProductSnapshot,
+        depositVal: spSub(
+          spContent.poolSnapshot.depositVal,
+          mkSPInteger(iassetBurnAmt),
+        ),
+        sumVal: newSumSnapshot,
+        epoch: spContent.poolSnapshot.epoch,
+        scale: spContent.poolSnapshot.scale + (isScaleIncrease ? 1n : 0n),
+      };
+
+  const newMap = setSumInEpochToScaleToSum(
+    spContent.epochToScaleToSum,
+    spContent.poolSnapshot.epoch,
+    spContent.poolSnapshot.scale,
+    newSumSnapshot,
+  );
+
+  const newEpochToScaleToSum = match(true)
+    .when(
+      () => isEpochIncrease,
+      () =>
+        setSumInEpochToScaleToSum(
+          newMap,
+          spContent.poolSnapshot.epoch + 1n,
+          spContent.poolSnapshot.scale,
+          { value: 0n },
+        ),
+    )
+    .when(
+      () => isScaleIncrease,
+      () =>
+        setSumInEpochToScaleToSum(
+          newMap,
+          spContent.poolSnapshot.epoch,
+          spContent.poolSnapshot.scale + 1n,
+          newSumSnapshot,
+        ),
+    )
+    .otherwise(() => newMap);
+
+  return {
+    newSpContent: {
+      asset: spContent.asset,
+      epochToScaleToSum: newEpochToScaleToSum,
+      poolSnapshot: newSnapshot,
+    },
+  };
 }

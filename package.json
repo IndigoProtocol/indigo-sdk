@@ -44,6 +44,7 @@
     "@evolution-sdk/evolution": "^0.2.5",
     "@harmoniclabs/crypto": "^0.3.0",
     "@lucid-evolution/lucid": "^0.4.29",
+    "decimal.js": "^10.6.0",
     "dotenv": "^16.5.0",
     "fp-ts": "^2.16.10",
     "ts-pattern": "^5.8.0"
@@ -54,6 +55,7 @@
     "@babel/preset-typescript": "^7.21.4",
     "@eslint/js": "^9.32.0",
     "@types/node": "^24.3.0",
+    "@vitest/eslint-plugin": "^1.5.0",
     "eslint": "^9.32.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.5",
@@ -61,6 +63,6 @@
     "tsup": "^8.3.6",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.0",
-    "vitest": "3.2.4"
+    "vitest": "^4.0.14"
   }
 }

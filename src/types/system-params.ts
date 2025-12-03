@@ -22,7 +22,7 @@ export interface SystemParams {
   executeParams: ExecuteParamsSP;
   distributionParams: DistributionParams;
   collectorParams: CollectorParams;
-  cdpParams: CdpParams;
+  cdpParams: CdpParamsSP;
   cdpCreatorParams: CDPCreatorParamsSP;
 }
 export type ValidatorHashes = {
@@ -214,7 +214,7 @@ export interface CollectorParams {
   stakingToken: AssetClassSP;
   stakingManagerNFT: AssetClassSP;
 }
-export interface CdpParams {
+export interface CdpParamsSP {
   versionRecordToken: AssetClassSP;
   upgradeToken: AssetClassSP;
   treasuryValHash: string;

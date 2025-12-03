@@ -1,6 +1,7 @@
 import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { option as O, function as F } from 'fp-ts';
 import { match, P } from 'ts-pattern';
+import { DEFAULT_SCHEMA_OPTIONS } from '../evolution-schema';
 
 const StakingPosLockedAmtSchema = EvoCore.TSchema.Map(
   EvoCore.TSchema.Integer,
@@ -37,7 +38,12 @@ type StakingDatum = typeof StakingDatumSchema.Type;
 
 export function parseStakingPosition(datum: string): O.Option<StakingPosition> {
   try {
-    return match(EvoCore.Data.withSchema(StakingDatumSchema).fromCBORHex(datum))
+    return match(
+      EvoCore.Data.withSchema(
+        StakingDatumSchema,
+        DEFAULT_SCHEMA_OPTIONS,
+      ).fromCBORHex(datum),
+    )
       .with({ owner: P.any }, (res) => O.some(res))
       .otherwise(() => O.none);
   } catch (_) {
@@ -55,7 +61,12 @@ export function parseStakingPositionOrThrow(datum: string): StakingPosition {
 }
 
 export function parseStakingManagerDatum(datum: string): StakingManager {
-  return match(EvoCore.Data.withSchema(StakingDatumSchema).fromCBORHex(datum))
+  return match(
+    EvoCore.Data.withSchema(
+      StakingDatumSchema,
+      DEFAULT_SCHEMA_OPTIONS,
+    ).fromCBORHex(datum),
+  )
     .with({ totalStake: P.any }, (res) => res)
     .otherwise(() => {
       throw new Error('Expected a StakingPosition datum.');
@@ -63,14 +74,8 @@ export function parseStakingManagerDatum(datum: string): StakingManager {
 }
 
 export function serialiseStakingDatum(d: StakingDatum): string {
-  return EvoCore.Data.withSchema(StakingDatumSchema, {
-    mode: 'custom',
-    useIndefiniteArrays: true,
-    // This is important to match aiken's Map encoding.
-    useIndefiniteMaps: false,
-    useDefiniteForEmpty: true,
-    sortMapKeys: false,
-    useMinimalEncoding: true,
-    mapsAsObjects: false,
-  }).toCBORHex(d);
+  return EvoCore.Data.withSchema(
+    StakingDatumSchema,
+    DEFAULT_SCHEMA_OPTIONS,
+  ).toCBORHex(d);
 }

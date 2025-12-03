@@ -1000,11 +1000,16 @@ export async function executeProposal(
           ),
           {
             kind: 'inline',
-            value: serialiseStabilityPoolDatum({
-              asset: fromHex(proposeContent.asset),
-              poolSnapshot: initSpSnapshot,
-              epochToScaleToSum: initEpochToScaleToSumMap(),
-            }),
+            value: serialiseStabilityPoolDatum(
+              {
+                StabilityPool: {
+                  asset: fromHex(proposeContent.asset),
+                  poolSnapshot: initSpSnapshot,
+                  epochToScaleToSum: initEpochToScaleToSumMap(),
+                },
+              },
+              true,
+            ),
           },
           spAuthVal,
         );

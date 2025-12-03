@@ -62,6 +62,7 @@ import {
   getValueChangeAtAddressAfterAction,
 } from './utils';
 import { serialiseUpgradePaths } from '../src/types/indigo/gov-new';
+import { iusdInitialAssetCfg } from './mock/assets-mock';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -278,7 +279,7 @@ describe('Gov', () => {
   test<MyContext>('Create text proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, __] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const govUtxo = await findGov(
       context.lucid,
@@ -302,7 +303,7 @@ describe('Gov', () => {
   test<MyContext>('Create text proposal with shards', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const govUtxo = await findGov(
       context.lucid,
@@ -334,13 +335,13 @@ describe('Gov', () => {
     expect(
       pollUtxo.datum.createdShardsCount === pollUtxo.datum.totalShardsCount,
       'Expected total shards count being created',
-    );
+    ).toBeTruthy();
   });
 
   test<MyContext>('Merge proposal shards', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const govUtxo = await findGov(
       context.lucid,
@@ -430,7 +431,7 @@ describe('Gov', () => {
   test<MyContext>('Create asset proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, ___] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const [pkh, _] = await addrDetails(context.lucid);
 
@@ -500,7 +501,7 @@ describe('Gov', () => {
   test<MyContext>('Vote on proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const govUtxo = await findGov(
       context.lucid,
@@ -533,7 +534,7 @@ describe('Gov', () => {
   test<MyContext>('Vote on 2 proposals sequentially (lower pollID first)', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, __] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     await runAndAwaitTx(
       context.lucid,
@@ -606,7 +607,7 @@ describe('Gov', () => {
   test<MyContext>('Vote on 2 proposals in reverse (higher pollID first), both yes and no votes', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, __] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     await runAndAwaitTx(
       context.lucid,
@@ -686,7 +687,7 @@ describe('Gov', () => {
   test<MyContext>('End passed proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const [tx, pollId] = await createProposal(
       { TextProposal: { bytes: fromText('smth') } },
@@ -734,7 +735,7 @@ describe('Gov', () => {
   test<MyContext>('End failed proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, __] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const [tx, pollId] = await createProposal(
       { TextProposal: { bytes: fromText('smth') } },
@@ -840,7 +841,7 @@ describe('Gov', () => {
   test<MyContext>('Execute text proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const [tx, pollId] = await createProposal(
       { TextProposal: { bytes: fromText('smth') } },
@@ -905,7 +906,7 @@ describe('Gov', () => {
   test<MyContext>('Execute text proposal with treasury withdrawal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, __] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const withdrawalIndyAmt = 1_000n;
     const treasuryWithdrawalUtxo = await createUtxoAtTreasury(
@@ -993,15 +994,15 @@ describe('Gov', () => {
         fromSystemParamsAsset(sysParams.govParams.indyAsset),
       ) === withdrawalIndyAmt,
       'Unexpected withdrawn indy amt',
-    );
+    ).toBeTruthy();
   });
 
   test<MyContext>('Execute create asset proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
-    const [pkh, _] = await addrDetails(context.lucid);
+    const [pkh, __] = await addrDetails(context.lucid);
 
     const [startInterestTx, interestOracleNft] =
       await InterestOracleContract.startInterestOracle(
@@ -1115,9 +1116,9 @@ describe('Gov', () => {
   test<MyContext>('Execute create asset proposal with treasury withdrawal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
-    const [pkh, _] = await addrDetails(context.lucid);
+    const [pkh, ___] = await addrDetails(context.lucid);
 
     const withdrawalIndyAmt = 1_000n;
     const treasuryWithdrawalUtxo = await createUtxoAtTreasury(
@@ -1254,13 +1255,13 @@ describe('Gov', () => {
         fromSystemParamsAsset(sysParams.govParams.indyAsset),
       ) === withdrawalIndyAmt,
       'Unexpected withdrawn indy amt',
-    );
+    ).toBeTruthy();
   });
 
   test<MyContext>('Execute modify asset proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const govUtxo = await findGov(
       context.lucid,
@@ -1354,7 +1355,7 @@ describe('Gov', () => {
   test<MyContext>('Execute modify asset proposal with treasury withdrawal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const withdrawalIndyAmt = 1_000n;
     const treasuryWithdrawalUtxo = await createUtxoAtTreasury(
@@ -1471,13 +1472,13 @@ describe('Gov', () => {
         fromSystemParamsAsset(sysParams.govParams.indyAsset),
       ) === withdrawalIndyAmt,
       'Unexpected withdrawn indy amt',
-    );
+    ).toBeTruthy();
   });
 
   test<MyContext>('Execute modify protocol params proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const govUtxo = await findGov(
       context.lucid,
@@ -1565,7 +1566,7 @@ describe('Gov', () => {
   test<MyContext>('Execute modify protocol params proposal with treasury withdrawal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const withdrawalIndyAmt = 1_000n;
     const treasuryWithdrawalUtxo = await createUtxoAtTreasury(
@@ -1676,13 +1677,13 @@ describe('Gov', () => {
         fromSystemParamsAsset(sysParams.govParams.indyAsset),
       ) === withdrawalIndyAmt,
       'Unexpected withdrawn indy amt',
-    );
+    ).toBeTruthy();
   });
 
   test<MyContext>('Execute upgrade protocol proposal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const govUtxo = await findGov(
       context.lucid,
@@ -1762,10 +1763,10 @@ describe('Gov', () => {
     );
   });
 
-  test<MyContext>('Execute upgrade protocol proposal', async (context: MyContext) => {
+  test<MyContext>('Execute upgrade protocol proposal with withdrawal', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const sysParams = await init(context.lucid);
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
 
     const withdrawalIndyAmt = 1_000n;
     const treasuryWithdrawalUtxo = await createUtxoAtTreasury(
@@ -1871,6 +1872,6 @@ describe('Gov', () => {
         fromSystemParamsAsset(sysParams.govParams.indyAsset),
       ) === withdrawalIndyAmt,
       'Unexpected withdrawn indy amt',
-    );
+    ).toBeTruthy();
   });
 });

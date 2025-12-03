@@ -80,7 +80,7 @@ test<MyContext>('Interest Oracle - Update', async ({
 
   await runAndAwaitTxBuilder(lucid, tx);
 
-  const [utxo, _datum] = await findInterestOracle(lucid, assetClass);
+  const utxo = await findInterestOracle(lucid, assetClass);
   await runAndAwaitTx(
     lucid,
     InterestOracleContract.feedInterestOracle(
