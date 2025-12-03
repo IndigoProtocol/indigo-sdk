@@ -1,4 +1,5 @@
 import { UTxO } from '@lucid-evolution/lucid';
+import { getInlineDatumOrThrow } from './lucid-utils';
 import {
   EpochToScaleToSum,
   fromSPInteger,
@@ -11,9 +12,20 @@ import {
   spMul,
   spSub,
   StabilityPoolSnapshot,
-} from '../types/indigo/stability-pool';
+} from '../types/indigo/stability-pool-new';
 
 const newScaleMultiplier = 1000000000n;
+
+export const initSpSnapshot: StabilityPoolSnapshot = {
+  productVal: { value: 1_000_000_000_000_000_000n },
+  depositVal: { value: 0n },
+  sumVal: { value: 0n },
+  epoch: 0n,
+  scale: 0n,
+};
+
+export const initEpochToScaleToSumMap = (): EpochToScaleToSum =>
+  new Map([[{ epoch: 0n, scale: 0n }, { value: 0n }]]);
 
 export function getSumFromEpochToScaleToSum(
   e2s2s: EpochToScaleToSum,
@@ -28,6 +40,9 @@ export function getSumFromEpochToScaleToSum(
   return undefined;
 }
 
+/**
+ * It's necessary to use this to update map entries because typescript can't compare keys as objects.
+ */
 export function setSumInEpochToScaleToSum(
   e2s2s: EpochToScaleToSum,
   epoch: bigint,
@@ -35,14 +50,13 @@ export function setSumInEpochToScaleToSum(
   sum: SPInteger,
 ): EpochToScaleToSum {
   const map = new Map<{ epoch: bigint; scale: bigint }, SPInteger>();
-  for (const [key, value] of e2s2s.entries()) {
+  for (const [key, _] of e2s2s.entries()) {
     if (!(key.epoch === epoch && key.scale === scale)) {
-      map.set(key, value);
+      map.set(key, sum);
     }
   }
 
   map.set({ epoch, scale }, sum);
-
   return map;
 }
 
@@ -104,11 +118,11 @@ function findEpochToScaleToSum(
   let ess1: EpochToScaleToSum;
   try {
     ess1 = parseSnapshotEpochToScaleToSumDatum(
-      snapshotEpochToScaleToSumTokenRef1.datum,
+      getInlineDatumOrThrow(snapshotEpochToScaleToSumTokenRef1),
     ).snapshot;
   } catch (_) {
     ess1 = parseStabilityPoolDatum(
-      snapshotEpochToScaleToSumTokenRef1.datum,
+      getInlineDatumOrThrow(snapshotEpochToScaleToSumTokenRef1),
     ).epochToScaleToSum;
   }
 
@@ -119,7 +133,7 @@ function findEpochToScaleToSum(
 
   if (snapshotEpochToScaleToSumTokenRef2) {
     const ess2 = parseSnapshotEpochToScaleToSumDatum(
-      snapshotEpochToScaleToSumTokenRef2.datum,
+      getInlineDatumOrThrow(snapshotEpochToScaleToSumTokenRef2),
     );
     const ess2Ref: SnapshotESSSearchResult = {
       utxo: snapshotEpochToScaleToSumTokenRef2,

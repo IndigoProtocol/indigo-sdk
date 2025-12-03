@@ -2,12 +2,12 @@ import {
   Constr,
   credentialToAddress,
   Data,
+  fromHex,
   fromText,
   LucidEvolution,
   mintingPolicyToId,
   PolicyId,
   SpendingValidator,
-  validatorToAddress,
   validatorToScriptHash,
 } from '@lucid-evolution/lucid';
 import {
@@ -23,23 +23,17 @@ import {
   GovParamsSP,
   IAssetContent,
   Input,
-  InterestOracleDatum,
-  InterestOracleParams,
+  InterestOracleContract,
+  LrpParamsSP,
   mkCDPCreatorValidatorFromSP,
-  mkInterestOracleValidator,
+  mkLrpValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
   PollManagerParamsSP,
   PollShardParamsSP,
-  PriceOracleDatum,
-  PriceOracleParams,
   runOneShotMintTx,
   serialiseGovDatum,
   serialiseIAssetDatum,
-  serialiseInterestOracleDatum,
-  serialisePriceOracleDatum,
-  serialiseStabilityPoolDatum,
-  StabilityPoolContent,
   StabilityPoolParamsSP,
   StakingParams,
   SystemParams,
@@ -50,14 +44,23 @@ import {
 } from '../../src';
 import { mkAuthTokenPolicy } from '../../src/scripts/auth-token-policy';
 import { StakingContract } from '../../src/contracts/staking';
-import { serialiseStakingDatum } from '../../src/types/indigo/staking';
 import { mkIAssetTokenPolicy } from '../../src/scripts/iasset-policy';
-import { mkPriceOracleValidator } from '../../src/scripts/price-oracle-validator';
 import { mkVersionRecordTokenPolicy } from '../../src/scripts/version-record-policy';
 import { mkVersionRegistryValidator } from '../../src/scripts/version-registry';
 import { mkExecuteValidatorFromSP } from '../../src/scripts/execute-validator';
 import { mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
 import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool-validator';
+import { runAndAwaitTxBuilder } from '../test-helpers';
+import { startPriceOracleTx } from '../../src/contracts/price-oracle';
+import { serialiseStakingDatum } from '../../src/types/indigo/staking-new';
+import {
+  initEpochToScaleToSumMap,
+  initSpSnapshot,
+} from '../../src/helpers/stability-pool-helpers';
+import {
+  serialiseStabilityPoolDatum,
+  StabilityPoolContent,
+} from '../../src/types/indigo/stability-pool-new';
 
 const indyTokenName = 'INDY';
 const daoTokenName = 'DAO';
@@ -140,7 +143,7 @@ const initialAssets: InitialAsset[] = [
     redemptionProcessingFeePercentage: 1_000_000n,
     interestCollectorPortionPercentage: 40_000_000n,
     firstAsset: true,
-    nextAsset: null,
+    nextAsset: undefined,
   },
 ];
 
@@ -167,11 +170,11 @@ async function initScriptRef(
   validator: SpendingValidator,
 ): Promise<Input> {
   const tx = lucid.newTx().pay.ToContract(
-    credentialToAddress(lucid.config().network, {
+    credentialToAddress(lucid.config().network!, {
       hash: alwaysFailValidatorHash,
       type: 'Script',
     }),
-    null,
+    undefined,
     undefined,
     validator,
   );
@@ -218,7 +221,7 @@ async function initCDPCreator(
 
   for (let i = 0; i < Number(numCdpCreators); i++) {
     tx.pay.ToContract(
-      credentialToAddress(lucid.config().network, {
+      credentialToAddress(lucid.config().network!, {
         hash: validatorToScriptHash(
           mkCDPCreatorValidatorFromSP(cdpCreatorParams),
         ),
@@ -248,7 +251,7 @@ async function initTreasury(
   treasuryIndyAmount: bigint,
 ): Promise<void> {
   const tx = lucid.newTx().pay.ToContract(
-    credentialToAddress(lucid.config().network, {
+    credentialToAddress(lucid.config().network!, {
       hash: TreasuryContract.validatorHash(treasuryParams),
       type: 'Script',
     }),
@@ -278,9 +281,8 @@ async function initStakingManager(
       {
         kind: 'inline',
         value: serialiseStakingDatum({
-          StakingManager: {
-            content: { totalStake: 0n, managerSnapshot: { snapshotAda: 0n } },
-          },
+          totalStake: 0n,
+          managerSnapshot: { snapshotAda: 0n },
         }),
       },
       {
@@ -296,78 +298,6 @@ async function initStakingManager(
   await lucid.awaitTx(txHash);
 }
 
-async function startPriceOracleTx(
-  lucid: LucidEvolution,
-  assetName: string,
-  startPrice: bigint,
-  oracleParams: PriceOracleParams,
-  now: number = Date.now(),
-): Promise<string> {
-  const oraclePolicyId = await mintOneTimeToken(lucid, fromText(assetName), 1n);
-  const oracleValidator = mkPriceOracleValidator(oracleParams);
-
-  const oracleDatum: PriceOracleDatum = {
-    price: {
-      getOnChainInt: startPrice,
-    },
-    expiration: BigInt(now) + oracleParams.expiration,
-  };
-
-  const tx = lucid.newTx().pay.ToContract(
-    validatorToAddress(lucid.config().network, oracleValidator),
-    { kind: 'inline', value: serialisePriceOracleDatum(oracleDatum) },
-    {
-      lovelace: 5_000_000n,
-      [oraclePolicyId + fromText(assetName)]: 1n,
-    },
-  );
-
-  const txHash = await tx
-    .complete()
-    .then((tx) => tx.sign.withWallet().complete())
-    .then((tx) => tx.submit());
-
-  await lucid.awaitTx(txHash);
-
-  return oraclePolicyId;
-}
-
-async function startInterestOracleTx(
-  lucid: LucidEvolution,
-  assetName: string,
-  initialInterestRate: bigint,
-  oracleParams: InterestOracleParams,
-): Promise<string> {
-  const oraclePolicyId = await mintOneTimeToken(lucid, fromText(assetName), 1n);
-  const oracleValidator = mkInterestOracleValidator(oracleParams);
-
-  const oracleDatum: InterestOracleDatum = {
-    unitaryInterest: 0n,
-    lastUpdated: 0n,
-    interestRate: {
-      getOnChainInt: initialInterestRate,
-    },
-  };
-
-  const tx = lucid.newTx().pay.ToContract(
-    validatorToAddress(lucid.config().network, oracleValidator),
-    { kind: 'inline', value: serialiseInterestOracleDatum(oracleDatum) },
-    {
-      lovelace: 5_000_000n,
-      [oraclePolicyId + fromText(assetName)]: 1n,
-    },
-  );
-
-  const txHash = await tx
-    .complete()
-    .then((tx) => tx.sign.withWallet().complete())
-    .then((tx) => tx.submit());
-
-  await lucid.awaitTx(txHash);
-
-  return oraclePolicyId;
-}
-
 async function initializeAsset(
   lucid: LucidEvolution,
   cdpParams: CdpParams,
@@ -378,11 +308,12 @@ async function initializeAsset(
   now: number = Date.now(),
 ): Promise<void> {
   const [pkh, _] = await addrDetails(lucid);
-  const priceOracleTokenName = asset.name + '_ORACLE';
-  const priceOraclePolicyId = await startPriceOracleTx(
+  const [priceOracleStartTx, priceOracleNft] = await startPriceOracleTx(
     lucid,
-    priceOracleTokenName,
-    asset.priceOracle.startPrice,
+    asset.name + '_ORACLE',
+    {
+      getOnChainInt: asset.priceOracle.startPrice,
+    },
     {
       owner: pkh.hash,
       biasTime: asset.priceOracle.params.biasTime,
@@ -390,34 +321,31 @@ async function initializeAsset(
     },
     now,
   );
+  await runAndAwaitTxBuilder(lucid, priceOracleStartTx);
 
   const interestOracleTokenName = asset.name + '_ORACLE';
-  const interestOraclePolicyId = await startInterestOracleTx(
-    lucid,
-    interestOracleTokenName,
-    asset.initerestOracle.initialInterestRate,
-    {
-      owner: pkh.hash,
-      biasTime: asset.priceOracle.params.biasTime,
-    },
-  );
+  const [startInterestOracleTx, interestOracleNft] =
+    await InterestOracleContract.startInterestOracle(
+      0n,
+      asset.initerestOracle.initialInterestRate,
+      0n,
+      {
+        owner: pkh.hash,
+        biasTime: asset.priceOracle.params.biasTime,
+      },
+      lucid,
+      interestOracleTokenName,
+    );
+  await runAndAwaitTxBuilder(lucid, startInterestOracleTx);
 
   const iassetDatum: IAssetContent = {
     assetName: fromText(asset.name),
     price: {
       Oracle: {
-        oracleNft: {
-          asset: {
-            currencySymbol: priceOraclePolicyId,
-            tokenName: fromText(priceOracleTokenName),
-          },
-        },
+        content: priceOracleNft,
       },
     },
-    interestOracleNft: {
-      currencySymbol: interestOraclePolicyId,
-      tokenName: fromText(interestOracleTokenName),
-    },
+    interestOracleNft: interestOracleNft,
     redemptionRatio: { getOnChainInt: asset.redemptionRatioPercentage },
     maintenanceRatio: { getOnChainInt: asset.maintenanceRatioPercentage },
     liquidationRatio: { getOnChainInt: asset.liquidationRatioPercentage },
@@ -457,19 +385,13 @@ async function initializeAsset(
   await lucid.awaitTx(assetTxHash);
 
   const stabilityPoolDatum: StabilityPoolContent = {
-    asset: fromText(asset.name),
-    snapshot: {
-      productVal: { value: 1n },
-      depositVal: { value: 0n },
-      sumVal: { value: 0n },
-      epoch: 0n,
-      scale: 0n,
-    },
-    epochToScaleToSum: new Map(),
+    asset: fromHex(fromText(asset.name)),
+    poolSnapshot: initSpSnapshot,
+    epochToScaleToSum: initEpochToScaleToSumMap(),
   };
 
   const spTx = lucid.newTx().pay.ToContract(
-    credentialToAddress(lucid.config().network, {
+    credentialToAddress(lucid.config().network!, {
       hash: validatorToScriptHash(
         mkStabilityPoolValidatorFromSP(stabilityPoolParams),
       ),
@@ -477,9 +399,7 @@ async function initializeAsset(
     }),
     {
       kind: 'inline',
-      value: serialiseStabilityPoolDatum({
-        StabilityPool: { content: stabilityPoolDatum },
-      }),
+      value: serialiseStabilityPoolDatum(stabilityPoolDatum),
     },
     {
       [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,
@@ -505,12 +425,12 @@ async function initGovernance(
     protocolParams: {
       effectiveDelay: 1_000n,
       expirationPeriod: 180_000n,
-      proposalDeposit: 0n,
-      proposingPeriod: 8_000n,
+      proposalDeposit: 1_000n,
+      proposingPeriod: 100_000n,
       collateralFeePercentage: {
         getOnChainInt: 1_500_000n,
       },
-      votingPeriod: 10_000n,
+      votingPeriod: 1000_000n,
       totalShards: 4n,
       minimumQuorum: 100_000n,
       maxTreasuryLovelaceSpend: 10_000_000n,
@@ -521,7 +441,7 @@ async function initGovernance(
     iassetsCount: BigInt(initialAssets.length),
   };
   const tx = lucid.newTx().pay.ToContract(
-    credentialToAddress(lucid.config().network, {
+    credentialToAddress(lucid.config().network!, {
       hash: validatorToScriptHash(mkGovValidatorFromSP(governanceParams)),
       type: 'Script',
     }),
@@ -753,7 +673,7 @@ export async function init(
   const treasuryParams: TreasuryParams = {
     upgradeToken: toSystemParamsAsset(upgradeToken),
     versionRecordToken: toSystemParamsAsset(versionRecordToken),
-    treasuryUtxosStakeCredential: null,
+    treasuryUtxosStakeCredential: undefined,
   };
 
   const treasuryValidator = TreasuryContract.validator(treasuryParams);
@@ -883,6 +803,16 @@ export async function init(
 
   await initGovernance(lucid, govParams, govNftAsset);
 
+  const lrpParams: LrpParamsSP = {
+    iassetNft: cdpParams.iAssetAuthToken,
+    iassetPolicyId: cdpParams.cdpAssetSymbol,
+    minRedemptionLovelacesAmt: 10_000_000n,
+    versionRecordToken: cdpParams.versionRecordToken,
+  };
+
+  const lrpValidator = mkLrpValidatorFromSP(lrpParams);
+  const lrpValHash = validatorToScriptHash(lrpValidator);
+
   return {
     cdpParams: cdpParams,
     cdpCreatorParams: cdpCreatorParams,
@@ -900,12 +830,16 @@ export async function init(
       totalINDYSupply: 35_000_000_000_000,
       initialIndyDistribution: 1_575_000_000_000,
     },
+    lrpParams: lrpParams,
     versionRecordParams: versionRecordParams,
     startTime: {
       slot: 0,
       blockHeader: '',
     },
     scriptReferences: {
+      lrpValidatorRef: {
+        input: await initScriptRef(lucid, lrpValidator),
+      },
       cdpCreatorValidatorRef: {
         input: await initScriptRef(lucid, cdpCreatorValidator),
       },
@@ -950,12 +884,6 @@ export async function init(
       },
       versionRecordTokenPolicyRef: {
         input: await initScriptRef(lucid, versionRecordTokenPolicy),
-      },
-      liquidityValidatorRef: {
-        input: undefined,
-      },
-      vestingValidatorRef: {
-        input: undefined,
       },
       authTokenPolicies: {
         cdpAuthTokenRef: {
@@ -1008,6 +936,7 @@ export async function init(
       stakingHash: stakingValHash,
       collectorHash: collectorValHash,
       versionRegistryHash: versionRegistryValHash,
+      lrpHash: lrpValHash,
     },
   } as SystemParams;
 }

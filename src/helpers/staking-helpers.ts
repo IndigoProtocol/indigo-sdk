@@ -4,16 +4,31 @@ import { StakingContract } from '../contracts/staking';
 import { SystemParams } from '../types/system-params';
 import {
   parseStakingManagerDatum,
-  parseStakingPositionDatum,
-  StakingManagerContent,
-  StakingPositionContent,
-} from '../types/indigo/staking';
+  parseStakingPositionOrThrow,
+  StakingManager,
+  StakingPosition,
+  StakingPosLockedAmt,
+} from '../types/indigo/staking-new';
 
 export type StakingPositionOutput = {
   utxo: UTxO;
-  datum: StakingPositionContent;
+  datum: StakingPosition;
 };
-export type StakingManagerOutput = { utxo: UTxO; datum: StakingManagerContent };
+export type StakingManagerOutput = { utxo: UTxO; datum: StakingManager };
+
+/**
+ * Update the staking position locked amount. In case proposal's voting finished, unlock the amount.
+ */
+export function updateStakingLockedAmount(
+  stakingPosLockedAmt: StakingPosLockedAmt,
+  currentTime: bigint,
+): StakingPosLockedAmt {
+  return new Map(
+    stakingPosLockedAmt
+      .entries()
+      .filter(([_, { votingEnd }]) => votingEnd > currentTime),
+  );
+}
 
 export class StakingHelpers {
   static async findStakingManagerByOutRef(
@@ -78,7 +93,7 @@ export class StakingHelpers {
         utxos
           .map((utxo) => {
             if (!utxo.datum) return undefined;
-            const datum = parseStakingPositionDatum(utxo.datum);
+            const datum = parseStakingPositionOrThrow(utxo.datum);
             return { utxo, datum };
           })
           .find((utxo) => utxo !== undefined),

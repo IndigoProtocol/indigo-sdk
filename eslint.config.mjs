@@ -22,6 +22,7 @@ export default tseslint.config(
     rules: {
       'no-unreachable': 'warn',
       'no-use-before-define': 'error',
+      'no-unused-expressions': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

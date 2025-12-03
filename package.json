@@ -7,7 +7,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean --tsconfig tsconfig.build.json",
-    "lint": "npx eslint .",
+    "type-check": "tsc --noEmit",
+    "lint": "pnpm eslint .",
     "lint:fix": "npx eslint --fix .",
     "repack": "pnpm run build  && pnpm pack",
     "format": "npx prettier --write src/ tests/",
@@ -39,7 +40,9 @@
   "author": "3rd Eye Labs",
   "license": "MIT",
   "dependencies": {
-    "@lucid-evolution/experimental": "^0.0.9",
+    "@3rd-eye-labs/cardano-offchain-common": "github:3rd-Eye-Labs/cardano-offchain-common#v1.1.1",
+    "@evolution-sdk/evolution": "^0.2.5",
+    "@harmoniclabs/crypto": "^0.3.0",
     "@lucid-evolution/lucid": "^0.4.29",
     "dotenv": "^16.5.0",
     "fp-ts": "^2.16.10",

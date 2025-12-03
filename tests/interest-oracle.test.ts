@@ -4,16 +4,20 @@ import {
   runAndAwaitTx,
   runAndAwaitTxBuilder,
 } from './test-helpers';
-import { Lucid } from '@lucid-evolution/lucid';
+import { EmulatorAccount, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { addrDetails } from '../src/helpers/lucid-utils';
 import { InterestOracleContract, InterestOracleParams } from '../src';
 import { findInterestOracle } from './queries/interest-oracle-queries';
 
+type MyContext = LucidContext<{
+  user: EmulatorAccount;
+}>;
+
 let originalDateNow: () => number;
 
-beforeEach<LucidContext>(async (context: LucidContext) => {
+beforeEach<MyContext>(async (context: MyContext) => {
   context.users = {
     user: generateEmulatorAccount({
       lovelace: BigInt(100_000_000_000_000),
@@ -32,10 +36,10 @@ afterEach(() => {
   Date.now = originalDateNow;
 });
 
-test<LucidContext>('Interest Oracle - Start', async ({
+test<MyContext>('Interest Oracle - Start', async ({
   lucid,
   users,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
 
   const [pkh, _] = await addrDetails(lucid);
@@ -54,10 +58,10 @@ test<LucidContext>('Interest Oracle - Start', async ({
   await runAndAwaitTxBuilder(lucid, tx);
 });
 
-test<LucidContext>('Interest Oracle - Update', async ({
+test<MyContext>('Interest Oracle - Update', async ({
   lucid,
   users,
-}: LucidContext) => {
+}: MyContext) => {
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
 
   const [pkh, _] = await addrDetails(lucid);

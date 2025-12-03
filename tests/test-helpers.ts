@@ -5,9 +5,9 @@ import {
   TxBuilder,
 } from '@lucid-evolution/lucid';
 
-export type LucidContext = {
+export type LucidContext<T extends Record<string, EmulatorAccount>> = {
   lucid: LucidEvolution;
-  users: { [key: string]: EmulatorAccount };
+  users: T;
   emulator: Emulator;
 };
 

@@ -1,8 +1,9 @@
-import { Data, Datum } from '@lucid-evolution/lucid';
-import { AssetClassSchema } from '../generic';
+import { Data, Datum, Redeemer } from '@lucid-evolution/lucid';
+import { AssetClassSchema, OutputReferenceSchema } from '../generic';
 import { OnChainDecimalSchema } from '../on-chain-decimal';
 import { OracleAssetNftSchema } from './price-oracle';
 import { match, P } from 'ts-pattern';
+import { option as O, function as F } from 'fp-ts';
 
 export const CDPFeesSchema = Data.Enum([
   Data.Object({
@@ -26,15 +27,19 @@ export const CDPContentSchema = Data.Object({
   cdpFees: CDPFeesSchema,
 });
 
+export const IAssetPriceInfoSchema = Data.Enum([
+  Data.Object({
+    Delisted: Data.Object({ content: OnChainDecimalSchema }),
+  }),
+  Data.Object({
+    Oracle: Data.Object({ content: OracleAssetNftSchema }),
+  }),
+]);
+
 export const IAssetContentSchema = Data.Object({
   /** Use the HEX encoding */
   assetName: Data.Bytes(),
-  price: Data.Enum([
-    Data.Object({ Delisted: OnChainDecimalSchema }),
-    Data.Object({
-      Oracle: OracleAssetNftSchema,
-    }),
-  ]),
+  price: IAssetPriceInfoSchema,
   interestOracleNft: AssetClassSchema,
   redemptionRatio: OnChainDecimalSchema,
   maintenanceRatio: OnChainDecimalSchema,
@@ -63,6 +68,32 @@ const CDPContent = CDPContentSchema as unknown as CDPContent;
 export type IAssetContent = Data.Static<typeof IAssetContentSchema>;
 const IAssetContent = IAssetContentSchema as unknown as IAssetContent;
 
+const CDPRedeemerSchema = Data.Enum([
+  Data.Object({
+    AdjustCdp: Data.Object({
+      currentTime: Data.Integer(),
+      mintedAmtChange: Data.Integer(),
+      collateralAmtChange: Data.Integer(),
+    }),
+  }),
+  Data.Object({ CloseCdp: Data.Object({ currentTime: Data.Integer() }) }),
+  Data.Object({ RedeemCdp: Data.Object({ currentTime: Data.Integer() }) }),
+  Data.Object({ FreezeCdp: Data.Object({ currentTime: Data.Integer() }) }),
+  Data.Literal('MergeCdps'),
+  Data.Object({
+    MergeAuxiliary: Data.Object({ mainMergeUtxo: OutputReferenceSchema }),
+  }),
+  Data.Literal('Liquidate'),
+  Data.Literal('UpdateOrInsertAsset'),
+  Data.Literal('UpgradeVersion'),
+]);
+export type CDPRedeemer = Data.Static<typeof CDPRedeemerSchema>;
+const CDPRedeemer = CDPRedeemerSchema as unknown as CDPRedeemer;
+
+export function serialiseCdpRedeemer(r: CDPRedeemer): Redeemer {
+  return Data.to<CDPRedeemer>(r, CDPRedeemer);
+}
+
 export function parseCDPDatum(datum: Datum): CDPContent {
   return match(Data.from<CDPDatum>(datum, CDPDatum))
     .with({ CDP: { content: P.select() } }, (res) => res)
@@ -75,12 +106,23 @@ export function serialiseCDPDatum(cdpDatum: CDPContent): Datum {
   return Data.to<CDPDatum>({ CDP: { content: cdpDatum } }, CDPDatum);
 }
 
-export function parseIAssetDatum(datum: Datum): IAssetContent {
-  return match(Data.from<CDPDatum>(datum, CDPDatum))
-    .with({ IAsset: { content: P.select() } }, (res) => res)
-    .otherwise(() => {
+export function parseIAssetDatum(datum: Datum): O.Option<IAssetContent> {
+  try {
+    return match(Data.from<CDPDatum>(datum, CDPDatum))
+      .with({ IAsset: { content: P.select() } }, (res) => O.some(res))
+      .otherwise(() => O.none);
+  } catch (_) {
+    return O.none;
+  }
+}
+
+export function parseIAssetDatumOrThrow(datum: Datum): IAssetContent {
+  return F.pipe(
+    parseIAssetDatum(datum),
+    O.match(() => {
       throw new Error('Expected an IAsset datum.');
-    });
+    }, F.identity),
+  );
 }
 
 export function serialiseIAssetDatum(iassetDatum: IAssetContent): Datum {
