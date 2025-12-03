@@ -4,14 +4,14 @@ import {
   parsePollShard,
   PollManagerContent,
   PollShardContent,
-} from '../../src/types/indigo/poll';
+} from '../../src/contracts/poll/types-poll';
 import {
   AssetClass,
   matchSingle,
   createScriptAddress,
   getRandomElement,
 } from '../../src';
-import { assetClassToUnit } from '../../src/helpers/value-helpers';
+import { assetClassToUnit } from '../../src/utils/value-helpers';
 import { option as O, array as A, function as F } from 'fp-ts';
 
 export async function findPollManager(

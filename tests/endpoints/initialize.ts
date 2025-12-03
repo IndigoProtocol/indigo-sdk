@@ -27,6 +27,7 @@ import {
   LrpParamsSP,
   mkCDPCreatorValidatorFromSP,
   mkCdpValidatorFromSP,
+  mkExecuteValidatorFromSP,
   mkLrpValidatorFromSP,
   mkPollManagerValidatorFromSP,
   mkPollShardValidatorFromSP,
@@ -45,24 +46,25 @@ import {
   VersionRecordParams,
 } from '../../src';
 import { mkAuthTokenPolicy } from '../../src/scripts/auth-token-policy';
-import { StakingContract } from '../../src/contracts/staking';
+import { StakingContract } from '../../src/contracts/staking/transactions';
 import { mkIAssetTokenPolicy } from '../../src/scripts/iasset-policy';
-import { mkVersionRecordTokenPolicy } from '../../src/scripts/version-record-policy';
-import { mkVersionRegistryValidator } from '../../src/scripts/version-registry';
-import { mkExecuteValidatorFromSP } from '../../src/scripts/execute-validator';
-import { mkGovValidatorFromSP } from '../../src/scripts/gov-validator';
-import { mkStabilityPoolValidatorFromSP } from '../../src/scripts/stability-pool-validator';
+import {
+  mkVersionRecordTokenPolicy,
+  mkVersionRegistryValidator,
+} from '../../src/contracts/version-registry/scripts';
+import { mkGovValidatorFromSP } from '../../src/contracts/gov/scripts';
+import { mkStabilityPoolValidatorFromSP } from '../../src/contracts/stability-pool/scripts';
 import { runAndAwaitTxBuilder } from '../test-helpers';
-import { startPriceOracleTx } from '../../src/contracts/price-oracle';
-import { serialiseStakingDatum } from '../../src/types/indigo/staking-new';
+import { startPriceOracleTx } from '../../src/contracts/price-oracle/transactions';
+import { serialiseStakingDatum } from '../../src/contracts/staking/types-new';
 import {
   initEpochToScaleToSumMap,
   initSpSnapshot,
-} from '../../src/helpers/stability-pool-helpers';
+} from '../../src/contracts/stability-pool/helpers';
 import {
   serialiseStabilityPoolDatum,
   StabilityPoolContent,
-} from '../../src/types/indigo/stability-pool-new';
+} from '../../src/contracts/stability-pool/types-new';
 import { InitialAsset } from '../mock/assets-mock';
 
 const indyTokenName = 'INDY';
