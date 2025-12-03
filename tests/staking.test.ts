@@ -3,11 +3,15 @@ import { LucidContext, runAndAwaitTx } from './test-helpers';
 import { EmulatorAccount, fromText, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
-import { StakingContract } from '../src/contracts/staking/transactions';
 import { init } from './endpoints/initialize';
 import { addrDetails } from '../src/utils/lucid-utils';
 import { findStakingPosition } from './queries/staking-queries';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
+import {
+  adjustStakingPosition,
+  closeStakingPosition,
+  openStakingPosition,
+} from '../src/contracts/staking/transactions';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -34,7 +38,7 @@ test<MyContext>('Staking - Create Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    StakingContract.openPosition(1_000_000n, systemParams, lucid),
+    openStakingPosition(1_000_000n, systemParams, lucid),
   );
 });
 
@@ -47,7 +51,7 @@ test<MyContext>('Staking - Adjust Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    StakingContract.openPosition(1_000_000n, systemParams, lucid),
+    openStakingPosition(1_000_000n, systemParams, lucid),
   );
 
   const [pkh, __] = await addrDetails(lucid);
@@ -66,7 +70,7 @@ test<MyContext>('Staking - Adjust Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    StakingContract.adjustPosition(
+    adjustStakingPosition(
       myStakingPosition.utxo,
       1_000_000n,
       systemParams,
@@ -84,7 +88,7 @@ test<MyContext>('Staking - Close Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    StakingContract.openPosition(1_000_000n, systemParams, lucid),
+    openStakingPosition(1_000_000n, systemParams, lucid),
   );
 
   const [pkh, __] = await addrDetails(lucid);
@@ -103,6 +107,6 @@ test<MyContext>('Staking - Close Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    StakingContract.closePosition(myStakingPosition.utxo, systemParams, lucid),
+    closeStakingPosition(myStakingPosition.utxo, systemParams, lucid),
   );
 });

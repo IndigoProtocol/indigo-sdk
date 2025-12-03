@@ -22,7 +22,6 @@ import {
   GovParamsSP,
   IAssetContent,
   Input,
-  InterestOracleContract,
   LrpParamsSP,
   mkCDPCreatorValidatorFromSP,
   mkCdpValidatorFromSP,
@@ -40,6 +39,7 @@ import {
   serialiseIAssetDatum,
   StabilityPoolParamsSP,
   StakingParamsSP,
+  startInterestOracle,
   SystemParams,
   toSystemParamsAsset,
   TreasuryParamsSP,
@@ -283,18 +283,17 @@ async function initializeAsset(
   await runAndAwaitTxBuilder(lucid, priceOracleStartTx);
 
   const interestOracleTokenName = asset.name + '_ORACLE';
-  const [startInterestOracleTx, interestOracleNft] =
-    await InterestOracleContract.startInterestOracle(
-      0n,
-      asset.initerestOracle.initialInterestRate,
-      0n,
-      {
-        owner: pkh.hash,
-        biasTime: asset.priceOracle.params.biasTime,
-      },
-      lucid,
-      interestOracleTokenName,
-    );
+  const [startInterestOracleTx, interestOracleNft] = await startInterestOracle(
+    0n,
+    asset.initerestOracle.initialInterestRate,
+    0n,
+    {
+      owner: pkh.hash,
+      biasTime: asset.priceOracle.params.biasTime,
+    },
+    lucid,
+    interestOracleTokenName,
+  );
   await runAndAwaitTxBuilder(lucid, startInterestOracleTx);
 
   const iassetDatum: IAssetContent = {

@@ -21,131 +21,129 @@ import { ONE_SECOND } from '../../utils/time-helpers';
 import { calculateUnitaryInterestSinceOracleLastUpdated } from '../interest-oracle/helpers';
 import { getInlineDatumOrThrow } from '../../utils/lucid-utils';
 
-export class InterestOracleContract {
-  static async startInterestOracle(
-    initialUnitaryInterest: bigint,
-    initialInterestRate: bigint,
-    initialLastInterestUpdate: bigint,
-    oracleParams: InterestOracleParams,
-    lucid: LucidEvolution,
-    interestTokenName?: string,
-    withScriptRef: boolean = false,
-    refOutRef?: OutRef,
-  ): Promise<[TxBuilder, AssetClass]> {
-    const network = lucid.config().network!;
+export async function startInterestOracle(
+  initialUnitaryInterest: bigint,
+  initialInterestRate: bigint,
+  initialLastInterestUpdate: bigint,
+  oracleParams: InterestOracleParams,
+  lucid: LucidEvolution,
+  interestTokenName?: string,
+  withScriptRef: boolean = false,
+  refOutRef?: OutRef,
+): Promise<[TxBuilder, AssetClass]> {
+  const network = lucid.config().network!;
 
-    const tokenName = interestTokenName ?? 'INTEREST_ORACLE';
-    if (!refOutRef) {
-      refOutRef = (await lucid.wallet().getUtxos())[0];
-    }
-
-    const [tx, policyId] = await oneShotMintTx(lucid, {
-      referenceOutRef: {
-        txHash: refOutRef.txHash,
-        outputIdx: BigInt(refOutRef.outputIndex),
-      },
-      mintAmounts: [
-        {
-          tokenName: fromText(tokenName),
-          amount: 1n,
-        },
-      ],
-    });
-
-    const validator = mkInterestOracleValidator(oracleParams);
-
-    tx.pay.ToContract(
-      validatorToAddress(network, validator),
-      {
-        kind: 'inline',
-        value: serialiseInterestOracleDatum({
-          unitaryInterest: initialUnitaryInterest,
-          interestRate: {
-            getOnChainInt: initialInterestRate,
-          },
-          lastUpdated: initialLastInterestUpdate,
-        }),
-      },
-      {
-        lovelace: 2_500_000n,
-        [toUnit(policyId, fromText(tokenName))]: 1n,
-      },
-    );
-
-    if (withScriptRef) {
-      tx.pay.ToAddressWithData(
-        validatorToAddress(network, validator),
-        undefined,
-        undefined,
-        validator,
-      );
-    }
-
-    return [
-      tx,
-      {
-        currencySymbol: policyId,
-        tokenName: fromText(tokenName),
-      },
-    ];
+  const tokenName = interestTokenName ?? 'INTEREST_ORACLE';
+  if (!refOutRef) {
+    refOutRef = (await lucid.wallet().getUtxos())[0];
   }
 
-  static async feedInterestOracle(
-    params: InterestOracleParams,
-    newInterestRate: bigint,
-    lucid: LucidEvolution,
-    assetClass?: AssetClass,
-    utxo?: UTxO,
-    scriptRef?: UTxO,
-  ): Promise<TxBuilder> {
-    if (!assetClass && !utxo)
-      throw new Error('Either interest oracle nft or utxo must be provided');
-    if (assetClass && !utxo) {
-      utxo = await findInterestOracle(lucid, assetClass);
-    }
+  const [tx, policyId] = await oneShotMintTx(lucid, {
+    referenceOutRef: {
+      txHash: refOutRef.txHash,
+      outputIdx: BigInt(refOutRef.outputIndex),
+    },
+    mintAmounts: [
+      {
+        tokenName: fromText(tokenName),
+        amount: 1n,
+      },
+    ],
+  });
 
-    const now = BigInt(Date.now());
-    const tx = lucid.newTx();
-    const datum = parseInterestOracleDatum(getInlineDatumOrThrow(utxo!));
+  const validator = mkInterestOracleValidator(oracleParams);
 
-    if (scriptRef) {
-      tx.readFrom([scriptRef]);
-    } else {
-      tx.attach.Script(mkInterestOracleValidator(params));
-    }
+  tx.pay.ToContract(
+    validatorToAddress(network, validator),
+    {
+      kind: 'inline',
+      value: serialiseInterestOracleDatum({
+        unitaryInterest: initialUnitaryInterest,
+        interestRate: {
+          getOnChainInt: initialInterestRate,
+        },
+        lastUpdated: initialLastInterestUpdate,
+      }),
+    },
+    {
+      lovelace: 2_500_000n,
+      [toUnit(policyId, fromText(tokenName))]: 1n,
+    },
+  );
 
-    tx.collectFrom(
-      [utxo!],
-      serialiseFeedInterestOracleRedeemer({
-        newInterestRate: {
+  if (withScriptRef) {
+    tx.pay.ToAddressWithData(
+      validatorToAddress(network, validator),
+      undefined,
+      undefined,
+      validator,
+    );
+  }
+
+  return [
+    tx,
+    {
+      currencySymbol: policyId,
+      tokenName: fromText(tokenName),
+    },
+  ];
+}
+
+export async function feedInterestOracle(
+  params: InterestOracleParams,
+  newInterestRate: bigint,
+  lucid: LucidEvolution,
+  assetClass?: AssetClass,
+  utxo?: UTxO,
+  scriptRef?: UTxO,
+): Promise<TxBuilder> {
+  if (!assetClass && !utxo)
+    throw new Error('Either interest oracle nft or utxo must be provided');
+  if (assetClass && !utxo) {
+    utxo = await findInterestOracle(lucid, assetClass);
+  }
+
+  const now = BigInt(Date.now());
+  const tx = lucid.newTx();
+  const datum = parseInterestOracleDatum(getInlineDatumOrThrow(utxo!));
+
+  if (scriptRef) {
+    tx.readFrom([scriptRef]);
+  } else {
+    tx.attach.Script(mkInterestOracleValidator(params));
+  }
+
+  tx.collectFrom(
+    [utxo!],
+    serialiseFeedInterestOracleRedeemer({
+      newInterestRate: {
+        getOnChainInt: newInterestRate,
+      },
+      currentTime: now,
+    }),
+  );
+
+  tx.pay.ToContract(
+    utxo!.address,
+    {
+      kind: 'inline',
+      value: serialiseInterestOracleDatum({
+        unitaryInterest:
+          datum.unitaryInterest +
+          calculateUnitaryInterestSinceOracleLastUpdated(now, datum),
+        interestRate: {
           getOnChainInt: newInterestRate,
         },
-        currentTime: now,
+        lastUpdated: now,
       }),
-    );
+    },
+    utxo!.assets,
+  );
 
-    tx.pay.ToContract(
-      utxo!.address,
-      {
-        kind: 'inline',
-        value: serialiseInterestOracleDatum({
-          unitaryInterest:
-            datum.unitaryInterest +
-            calculateUnitaryInterestSinceOracleLastUpdated(now, datum),
-          interestRate: {
-            getOnChainInt: newInterestRate,
-          },
-          lastUpdated: now,
-        }),
-      },
-      utxo!.assets,
-    );
+  tx.validFrom(Number(now) - ONE_SECOND);
+  tx.validTo(Number(now + params.biasTime) - ONE_SECOND);
 
-    tx.validFrom(Number(now) - ONE_SECOND);
-    tx.validTo(Number(now + params.biasTime) - ONE_SECOND);
+  tx.addSignerKey(params.owner);
 
-    tx.addSignerKey(params.owner);
-
-    return tx;
-  }
+  return tx;
 }

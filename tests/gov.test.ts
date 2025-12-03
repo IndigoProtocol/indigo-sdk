@@ -27,11 +27,11 @@ import {
   endProposal,
   executeProposal,
   fromSystemParamsAsset,
-  InterestOracleContract,
   matchSingle,
   mergeShards,
   ONE_DAY,
-  StakingContract,
+  openStakingPosition,
+  startInterestOracle,
   SystemParams,
   vote,
   VoteOption,
@@ -435,17 +435,16 @@ describe('Gov', () => {
 
     const [pkh, _] = await addrDetails(context.lucid);
 
-    const [startInterestTx, interestOracleNft] =
-      await InterestOracleContract.startInterestOracle(
-        0n,
-        0n,
-        0n,
-        {
-          biasTime: 120_000n,
-          owner: pkh.hash,
-        },
-        context.lucid,
-      );
+    const [startInterestTx, interestOracleNft] = await startInterestOracle(
+      0n,
+      0n,
+      0n,
+      {
+        biasTime: 120_000n,
+        owner: pkh.hash,
+      },
+      context.lucid,
+    );
     await runAndAwaitTxBuilder(context.lucid, startInterestTx);
 
     const [priceOracleTx, priceOranceNft] = await startPriceOracleTx(
@@ -525,7 +524,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+      openStakingPosition(1_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -538,7 +537,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+      openStakingPosition(1_000_000n, sysParams, context.lucid),
     );
     const [pkh, _] = await addrDetails(context.lucid);
 
@@ -611,7 +610,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(1_000_000n, sysParams, context.lucid),
+      openStakingPosition(1_000_000n, sysParams, context.lucid),
     );
     const [pkh, _] = await addrDetails(context.lucid);
 
@@ -711,7 +710,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -759,7 +758,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'No', sysParams, context);
@@ -865,7 +864,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -946,7 +945,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1004,17 +1003,16 @@ describe('Gov', () => {
 
     const [pkh, __] = await addrDetails(context.lucid);
 
-    const [startInterestTx, interestOracleNft] =
-      await InterestOracleContract.startInterestOracle(
-        0n,
-        0n,
-        0n,
-        {
-          biasTime: 120_000n,
-          owner: pkh.hash,
-        },
-        context.lucid,
-      );
+    const [startInterestTx, interestOracleNft] = await startInterestOracle(
+      0n,
+      0n,
+      0n,
+      {
+        biasTime: 120_000n,
+        owner: pkh.hash,
+      },
+      context.lucid,
+    );
     await runAndAwaitTxBuilder(context.lucid, startInterestTx);
 
     const [priceOracleTx, priceOranceNft] = await startPriceOracleTx(
@@ -1068,7 +1066,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1127,17 +1125,16 @@ describe('Gov', () => {
       context,
     );
 
-    const [startInterestTx, interestOracleNft] =
-      await InterestOracleContract.startInterestOracle(
-        0n,
-        0n,
-        0n,
-        {
-          biasTime: 120_000n,
-          owner: pkh.hash,
-        },
-        context.lucid,
-      );
+    const [startInterestTx, interestOracleNft] = await startInterestOracle(
+      0n,
+      0n,
+      0n,
+      {
+        biasTime: 120_000n,
+        owner: pkh.hash,
+      },
+      context.lucid,
+    );
     await runAndAwaitTxBuilder(context.lucid, startInterestTx);
 
     const [priceOracleTx, priceOranceNft] = await startPriceOracleTx(
@@ -1200,7 +1197,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1313,7 +1310,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1423,7 +1420,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1524,7 +1521,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1628,7 +1625,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1724,7 +1721,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
@@ -1823,7 +1820,7 @@ describe('Gov', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      StakingContract.openPosition(100_000_000_000n, sysParams, context.lucid),
+      openStakingPosition(100_000_000_000n, sysParams, context.lucid),
     );
 
     await runVote(pollId, 'Yes', sysParams, context);

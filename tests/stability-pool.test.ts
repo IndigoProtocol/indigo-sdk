@@ -6,9 +6,12 @@ import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { init } from './endpoints/initialize';
 import {
   addrDetails,
+  adjustSpAccount,
+  closeSpAccount,
+  createSpAccount,
   fromSystemParamsAsset,
   openCdp,
-  StabilityPoolContract,
+  processSpRequest,
 } from '../src';
 import {
   findStabilityPool,
@@ -101,12 +104,7 @@ test<MyContext>('Stability Pool - Create Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.createAccount(
-      iusdInfo.iassetTokenNameAscii,
-      10n,
-      systemParams,
-      lucid,
-    ),
+    createSpAccount(iusdInfo.iassetTokenNameAscii, 10n, systemParams, lucid),
   );
 
   const stabilityPoolUtxo = await findStabilityPool(
@@ -151,7 +149,7 @@ test<MyContext>('Stability Pool - Create Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.processRequest(
+    processSpRequest(
       iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
@@ -217,12 +215,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.createAccount(
-      iusdInfo.iassetTokenNameAscii,
-      10n,
-      systemParams,
-      lucid,
-    ),
+    createSpAccount(iusdInfo.iassetTokenNameAscii, 10n, systemParams, lucid),
   );
 
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
@@ -267,7 +260,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.processRequest(
+    processSpRequest(
       iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
@@ -307,7 +300,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.adjustAccount(
+    adjustSpAccount(
       iusdInfo.iassetTokenNameAscii,
       10n,
       accountUtxo,
@@ -326,7 +319,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.processRequest(
+    processSpRequest(
       iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
@@ -367,7 +360,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.adjustAccount(
+    adjustSpAccount(
       iusdInfo.iassetTokenNameAscii,
       -10n,
       accountUtxo,
@@ -386,7 +379,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.processRequest(
+    processSpRequest(
       iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
@@ -452,12 +445,7 @@ test<MyContext>('Stability Pool - Close Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.createAccount(
-      iusdInfo.iassetTokenNameAscii,
-      10n,
-      systemParams,
-      lucid,
-    ),
+    createSpAccount(iusdInfo.iassetTokenNameAscii, 10n, systemParams, lucid),
   );
 
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
@@ -502,7 +490,7 @@ test<MyContext>('Stability Pool - Close Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.processRequest(
+    processSpRequest(
       iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
@@ -540,10 +528,7 @@ test<MyContext>('Stability Pool - Close Account', async ({
     iusdInfo.iassetTokenNameAscii,
   );
 
-  await runAndAwaitTx(
-    lucid,
-    StabilityPoolContract.closeAccount(accountUtxo, systemParams, lucid),
-  );
+  await runAndAwaitTx(lucid, closeSpAccount(accountUtxo, systemParams, lucid));
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
 
   accountUtxo = await findStabilityPoolAccount(
@@ -555,7 +540,7 @@ test<MyContext>('Stability Pool - Close Account', async ({
 
   await runAndAwaitTx(
     lucid,
-    StabilityPoolContract.processRequest(
+    processSpRequest(
       iusdInfo.iassetTokenNameAscii,
       stabilityPoolUtxo,
       accountUtxo,
