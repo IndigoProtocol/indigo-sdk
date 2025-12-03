@@ -238,8 +238,6 @@ export async function adjustLrp(
   lrpRefScriptOutRef: OutRef,
   lrpParams: LRPParams,
 ): Promise<TxBuilder> {
-  const ownAddr = await lucid.wallet().address();
-
   const lrpScriptRefUtxo = matchSingle(
     await lucid.utxosByOutRef([lrpRefScriptOutRef]),
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
@@ -294,7 +292,7 @@ export async function adjustLrp(
         mkLovelacesOf(lovelacesAdjustAmt),
       ),
     )
-    .addSigner(ownAddr);
+    .addSignerKey(lrpDatum.owner);
 }
 
 /**

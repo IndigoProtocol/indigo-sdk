@@ -9,6 +9,7 @@ import {
   credentialToAddress,
   fromHex,
   OutRef,
+  toHex,
 } from '@lucid-evolution/lucid';
 import { ActionReturnDatum } from './types';
 import { SystemParams } from '../../types/system-params';
@@ -99,7 +100,6 @@ export async function adjustSpAccount(
   params: SystemParams,
   lucid: LucidEvolution,
 ): Promise<TxBuilder> {
-  const [pkh, _] = await addrDetails(lucid);
   const myAddress = await lucid.wallet().address();
 
   const stabilityPoolScriptRef = await scriptRef(
@@ -165,7 +165,7 @@ export async function adjustSpAccount(
       },
       value,
     )
-    .addSignerKey(pkh.hash);
+    .addSignerKey(toHex(oldAccountDatum.owner));
 }
 
 export async function closeSpAccount(
@@ -173,7 +173,6 @@ export async function closeSpAccount(
   params: SystemParams,
   lucid: LucidEvolution,
 ): Promise<TxBuilder> {
-  const [pkh, _] = await addrDetails(lucid);
   const myAddress = await lucid.wallet().address();
 
   const stabilityPoolScriptRef = await scriptRef(
@@ -221,7 +220,7 @@ export async function closeSpAccount(
         fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
       },
     )
-    .addSignerKey(pkh.hash);
+    .addSignerKey(toHex(oldAccountDatum.owner));
 }
 
 export async function processSpRequest(
