@@ -1,6 +1,10 @@
-import { fromText, OutRef, UTxO } from '@lucid-evolution/lucid';
+import {
+  fromText,
+  OutRef,
+  UTxO,
+  validatorToScriptHash,
+} from '@lucid-evolution/lucid';
 import { LucidEvolution } from '@lucid-evolution/lucid';
-import { StakingContract } from './transactions';
 import { SystemParams } from '../../types/system-params';
 import {
   parseStakingManagerDatum,
@@ -9,6 +13,8 @@ import {
   StakingPosition,
   StakingPosLockedAmt,
 } from './types-new';
+import { createScriptAddress } from '../../utils/lucid-utils';
+import { mkStakingValidatorFromSP } from './scripts';
 
 export type StakingPositionOutput = {
   utxo: UTxO;
@@ -61,7 +67,10 @@ export class StakingHelpers {
   ): Promise<StakingManagerOutput> {
     return lucid
       .utxosAtWithUnit(
-        StakingContract.address(params.stakingParams, lucid),
+        createScriptAddress(
+          lucid.config().network!,
+          validatorToScriptHash(mkStakingValidatorFromSP(params.stakingParams)),
+        ),
         params.stakingParams.stakingManagerNFT[0].unCurrencySymbol +
           fromText(params.stakingParams.stakingManagerNFT[1].unTokenName),
       )
