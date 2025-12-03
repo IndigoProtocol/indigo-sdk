@@ -605,6 +605,143 @@ describe('LRP', () => {
     );
   });
 
+  it('redeem, redeem again and cancel', async () => {
+    const network: Network = 'Custom';
+    const account1 = generateEmulatorAccount({
+      lovelace: 80_000_000_000n, // 80,000 ADA
+    });
+
+    const emulator = new Emulator([account1]);
+    const lucid = await Lucid(emulator, network);
+
+    lucid.selectWallet.fromSeed(account1.seedPhrase);
+
+    const iassetTokenName = fromText('iBTC');
+    const testCtx = await initTest(
+      lucid,
+      network,
+      iassetTokenName,
+      10_000_000n,
+      OCD_ONE,
+    );
+
+    const [ownPkh, _] = await addrDetails(lucid);
+
+    const lrpParams: LRPParams = {
+      versionRecordToken: {
+        currencySymbol: fromText('smth'),
+        tokenName: fromText('version_record'),
+      },
+      iassetNft: testCtx.iassetNft,
+      iassetPolicyId: testCtx.iassetAc.currencySymbol,
+      minRedemptionLovelacesAmt: 1_000_000n,
+    };
+
+    const lrpValidator = mkLrpValidator(lrpParams);
+    const lrpValidatorHash = validatorToScriptHash(lrpValidator);
+    const lrpRefScriptOutRef = await runCreateScriptRefTx(
+      lucid,
+      lrpValidator,
+      network,
+    );
+
+    const findSingleOwnLrp = async (): Promise<UTxO> => {
+      return matchSingle(
+        await findLrp(
+          lucid,
+          network,
+          lrpValidatorHash,
+          ownPkh.hash,
+          iassetTokenName,
+        ),
+        (res) =>
+          new Error('Expected a single LRP UTXO.: ' + JSON.stringify(res)),
+      );
+    };
+
+    await runAndAwaitTx(
+      lucid,
+      openLrp(
+        iassetTokenName,
+        20_000_000n,
+        { getOnChainInt: 1_000_000n },
+        lucid,
+        lrpValidatorHash,
+        network,
+      ),
+    );
+
+    const lrpUtxo = await findSingleOwnLrp();
+
+    const redemptionAsset: AssetClass = {
+      currencySymbol: testCtx.iassetAc.currencySymbol,
+      tokenName: iassetTokenName,
+    };
+
+    strictEqual(
+      assetClassValueOf(lrpUtxo.assets, redemptionAsset),
+      0n,
+      'LRP should have no iassets before redemption',
+    );
+
+    const redemptionIAssetAmt = 5_000_000n;
+
+    await runAndAwaitTx(
+      lucid,
+      redeemLrp(
+        [[lrpUtxo, redemptionIAssetAmt]],
+        lrpRefScriptOutRef,
+        await findPriceOracle(lucid, testCtx.oracleNft),
+        (
+          await findIAsset(
+            lucid,
+            testCtx.iassetValHash,
+            testCtx.iassetNft,
+            toText(iassetTokenName),
+          )
+        ).utxo,
+        lucid,
+        lrpParams,
+        network,
+      ),
+    );
+
+    const redeemedLrp = await findSingleOwnLrp();
+
+    await runAndAwaitTx(
+      lucid,
+      redeemLrp(
+        [[redeemedLrp, redemptionIAssetAmt]],
+        lrpRefScriptOutRef,
+        await findPriceOracle(lucid, testCtx.oracleNft),
+        (
+          await findIAsset(
+            lucid,
+            testCtx.iassetValHash,
+            testCtx.iassetNft,
+            toText(iassetTokenName),
+          )
+        ).utxo,
+        lucid,
+        lrpParams,
+        network,
+      ),
+    );
+
+    strictEqual(
+      assetClassValueOf(redeemedLrp.assets, redemptionAsset),
+      redemptionIAssetAmt,
+      'LRP has wrong number of iassets after redemption',
+    );
+
+    const closableLrp = await findSingleOwnLrp();
+
+    await runAndAwaitTx(
+      lucid,
+      cancelLrp(closableLrp, lrpRefScriptOutRef, lucid),
+    );
+  });
+
   it('multi redemption case', async () => {
     const network: Network = 'Custom';
     const account1 = generateEmulatorAccount({

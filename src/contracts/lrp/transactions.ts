@@ -194,7 +194,7 @@ export async function redeemLrp(
           },
           addAssets(
             lrpUtxo.assets,
-            mkLovelacesOf(-(lovelacesForRedemption - reimburstmentLovelaces)),
+            mkLovelacesOf(-lovelacesForRedemption + reimburstmentLovelaces),
             mkAssetsOf(
               {
                 currencySymbol: lrpParams.iassetPolicyId,
