@@ -16,7 +16,7 @@ export const mkPollManagerValidator = (
   params: PollManagerParams,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_pollManagerValidator.cborHex, [
       castPollManagerParams(params),
     ]),
@@ -27,7 +27,7 @@ export const mkPollManagerValidatorFromSP = (
   params: PollManagerParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_pollManagerValidator.cborHex, [
       castPollManagerParams({
         govNFT: fromSystemParamsAsset(params.govNFT),
@@ -48,7 +48,7 @@ export const mkPollShardValidator = (
   params: PollShardParams,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_pollShardValidator.cborHex, [
       castPollShardParams(params),
     ]),
@@ -59,7 +59,7 @@ export const mkPollShardValidatorFromSP = (
   params: PollShardParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_pollShardValidator.cborHex, [
       castPollShardParams({
         pollToken: fromSystemParamsAsset(params.pollToken),

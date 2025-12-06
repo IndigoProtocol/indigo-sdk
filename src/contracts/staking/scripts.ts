@@ -11,7 +11,7 @@ export const mkStakingValidatorFromSP = (
   params: StakingParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_stakingValidator.cborHex, [
       new Constr(0, [
         new Constr(0, [

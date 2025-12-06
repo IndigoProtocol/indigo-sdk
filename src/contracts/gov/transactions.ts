@@ -383,18 +383,15 @@ function voteHelper(
     }))
     .exhaustive();
 
-  const newLockedAmt: [
-    bigint,
-    { readonly voteAmt: bigint; readonly votingEnd: bigint },
-  ][] = [
-    ...updateStakingLockedAmount(stakingPosLockedAmt, currentTime).entries(),
+  const newLockedAmt: StakingPosLockedAmt = [
+    ...updateStakingLockedAmount(stakingPosLockedAmt, currentTime),
     [
-      pollShard.pollId,
+      BigInt(pollShard.pollId),
       { voteAmt: indyStakedAmt, votingEnd: pollShard.votingEndTime },
     ],
   ];
 
-  return [new Map(newLockedAmt), newPollStatus];
+  return [newLockedAmt, newPollStatus];
 }
 
 export async function vote(
@@ -448,7 +445,10 @@ export async function vote(
 
   const validityFrom = Number(currentTime) - ONE_SECOND;
 
-  if (stakingPosDatum.lockedAmount.has(pollShardDatum.pollId)) {
+  if (
+    stakingPosDatum.lockedAmount.find((x) => x[0] === pollShardDatum.pollId) !==
+    undefined
+  ) {
     throw new Error('Already voted for that proposal.');
   }
 

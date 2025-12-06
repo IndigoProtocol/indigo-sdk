@@ -10,7 +10,7 @@ export function mkInterestOracleValidator(
   params: InterestOracleParams,
 ): SpendingValidator {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_interestOracleValidator.cborHex, [
       castInterestOracleParams(params),
     ]),

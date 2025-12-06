@@ -10,7 +10,7 @@ export const mkStabilityPoolValidator = (
   params: StabilityPoolParams,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_stabilityPoolValidator.cborHex, [
       castStabilityPoolParams(params),
     ]),
@@ -21,7 +21,7 @@ export const mkStabilityPoolValidatorFromSP = (
   params: StabilityPoolParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_stabilityPoolValidator.cborHex, [
       castStabilityPoolParams({
         assetSymbol: params.assetSymbol.unCurrencySymbol,

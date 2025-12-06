@@ -14,7 +14,7 @@ export function mkVersionRecordTokenPolicy(
   params: VersionRecordTokenParams,
 ): MintingPolicy {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_versionRecordTokenPolicy.cborHex, [
       castVersionRecordTokenParams(params),
     ]),
@@ -23,7 +23,7 @@ export function mkVersionRecordTokenPolicy(
 
 export const mkVersionRegistryValidator = (): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: _versionRegistryValidator.cborHex,
   };
 };

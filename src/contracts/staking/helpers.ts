@@ -29,10 +29,8 @@ export function updateStakingLockedAmount(
   stakingPosLockedAmt: StakingPosLockedAmt,
   currentTime: bigint,
 ): StakingPosLockedAmt {
-  return new Map(
-    stakingPosLockedAmt
-      .entries()
-      .filter(([_, { votingEnd }]) => votingEnd > currentTime),
+  return stakingPosLockedAmt.filter(
+    ([_, { votingEnd }]) => votingEnd > currentTime,
   );
 }
 

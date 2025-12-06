@@ -7,7 +7,7 @@ export const mkCdpValidatorFromSP = (
   params: CdpParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_cdpValidator.cborHex, [
       castCdpParams({
         cdp_auth_token: fromSystemParamsAsset(params.cdpAuthToken),

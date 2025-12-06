@@ -11,7 +11,7 @@ export const mkCollectorValidatorFromSP = (
   params: CollectorParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_collectorValidator.cborHex, [
       new Constr(0, [
         new Constr(0, [

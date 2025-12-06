@@ -5,7 +5,7 @@ import { _lrpValidator } from '../../validators/lrp-validator';
 
 export const mkLrpValidator = (params: LRPParams): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_lrpValidator.cborHex, [castLrpParams(params)]),
   };
 };
@@ -14,7 +14,7 @@ export const mkLrpValidatorFromSP = (
   params: LrpParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_lrpValidator.cborHex, [
       castLrpParams({
         versionRecordToken: fromSystemParamsAsset(params.versionRecordToken),

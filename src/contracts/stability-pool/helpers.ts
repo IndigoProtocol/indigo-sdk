@@ -26,15 +26,16 @@ export const initSpSnapshot: StabilityPoolSnapshot = {
   scale: 0n,
 };
 
-export const initEpochToScaleToSumMap = (): EpochToScaleToSum =>
-  new Map([[{ epoch: 0n, scale: 0n }, { value: 0n }]]);
+export const initEpochToScaleToSumMap = (): EpochToScaleToSum => [
+  [{ epoch: 0n, scale: 0n }, { value: 0n }],
+];
 
 export function getSumFromEpochToScaleToSum(
   e2s2s: EpochToScaleToSum,
   epoch: bigint,
   scale: bigint,
 ): SPInteger | undefined {
-  for (const [key, value] of e2s2s.entries()) {
+  for (const [key, value] of e2s2s) {
     if (key.epoch === epoch && key.scale === scale) {
       return value;
     }
@@ -51,15 +52,11 @@ export function setSumInEpochToScaleToSum(
   scale: bigint,
   sum: SPInteger,
 ): EpochToScaleToSum {
-  const map = new Map<{ epoch: bigint; scale: bigint }, SPInteger>();
-  for (const [key, value] of e2s2s.entries()) {
-    if (!(key.epoch === epoch && key.scale === scale)) {
-      map.set(key, value);
-    }
-  }
+  const newE2S2S = e2s2s.filter(
+    (x) => !(x[0].epoch === epoch && x[0].scale === scale),
+  );
 
-  map.set({ epoch, scale }, sum);
-  return map;
+  return [...newE2S2S, [{ epoch, scale }, sum]];
 }
 
 export function getAccountReward(
@@ -172,20 +169,10 @@ export function adjustmentHelper(
       spESTSTokenRef2,
     );
     if (ess2) {
-      accumulatedEpochToScaleToSum = new Map<
-        { epoch: bigint; scale: bigint },
-        SPInteger
-      >([
-        ...Array.from(ess1.e2s2s.entries()),
-        ...Array.from(ess2.e2s2s.entries()),
-        ...Array.from(e2s2s.entries()),
-      ]);
+      accumulatedEpochToScaleToSum = [...ess1.e2s2s, ...ess2.e2s2s, ...e2s2s];
       refInputs = [ess1.utxo, ess2.utxo];
     } else {
-      accumulatedEpochToScaleToSum = new Map<
-        { epoch: bigint; scale: bigint },
-        SPInteger
-      >([...Array.from(ess1.e2s2s.entries()), ...Array.from(e2s2s.entries())]);
+      accumulatedEpochToScaleToSum = [...ess1.e2s2s, ...e2s2s];
       refInputs = [ess1.utxo];
     }
   }

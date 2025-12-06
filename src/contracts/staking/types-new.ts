@@ -3,12 +3,14 @@ import { option as O, function as F } from 'fp-ts';
 import { match, P } from 'ts-pattern';
 import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
 
-const StakingPosLockedAmtSchema = EvoCore.TSchema.Map(
-  EvoCore.TSchema.Integer,
-  EvoCore.TSchema.Struct({
-    voteAmt: EvoCore.TSchema.Integer,
-    votingEnd: EvoCore.TSchema.Integer,
-  }),
+const StakingPosLockedAmtSchema = EvoCore.TSchema.Array(
+  EvoCore.TSchema.Tuple([
+    EvoCore.TSchema.Integer,
+    EvoCore.TSchema.Struct({
+      voteAmt: EvoCore.TSchema.Integer,
+      votingEnd: EvoCore.TSchema.Integer,
+    }),
+  ]),
 );
 
 export type StakingPosLockedAmt = typeof StakingPosLockedAmtSchema.Type;

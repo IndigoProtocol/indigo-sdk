@@ -600,7 +600,10 @@ describe('Gov', () => {
       pkh.hash,
     );
 
-    expect([...stakingPosUtxo.datum.lockedAmount.keys()]).toEqual([1n, 2n]);
+    expect([...stakingPosUtxo.datum.lockedAmount.map((x) => x[0])]).toEqual([
+      1n,
+      2n,
+    ]);
   });
 
   test<MyContext>('Vote on 2 proposals in reverse (higher pollID first), both yes and no votes', async (context: MyContext) => {
@@ -680,7 +683,10 @@ describe('Gov', () => {
       pkh.hash,
     );
 
-    expect([...stakingPosUtxo.datum.lockedAmount.keys()]).toEqual([2n, 1n]);
+    expect([...stakingPosUtxo.datum.lockedAmount.map((x) => x[0])]).toEqual([
+      2n,
+      1n,
+    ]);
   });
 
   test<MyContext>('End passed proposal', async (context: MyContext) => {

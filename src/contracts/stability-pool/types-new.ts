@@ -36,12 +36,14 @@ const AccountActionSchema = EvoCore.TSchema.Union(
 
 export type AccountAction = typeof AccountActionSchema.Type;
 
-export const EpochToScaleToSumSchema = EvoCore.TSchema.Map(
-  EvoCore.TSchema.Struct({
-    epoch: EvoCore.TSchema.Integer,
-    scale: EvoCore.TSchema.Integer,
-  }),
-  SPIntegerSchema,
+export const EpochToScaleToSumSchema = EvoCore.TSchema.Array(
+  EvoCore.TSchema.Tuple([
+    EvoCore.TSchema.Struct({
+      epoch: EvoCore.TSchema.Integer,
+      scale: EvoCore.TSchema.Integer,
+    }),
+    SPIntegerSchema,
+  ]),
 );
 
 export type EpochToScaleToSum = typeof EpochToScaleToSumSchema.Type;

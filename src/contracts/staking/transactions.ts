@@ -62,7 +62,7 @@ export async function openStakingPosition(
 
   const stakingPositionDatum: StakingPosition = {
     owner: fromHex(pkh.hash),
-    lockedAmount: new Map([]),
+    lockedAmount: [],
     positionSnapshot: {
       snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,
     },

@@ -11,7 +11,7 @@ export const mkTreasuryValidatorFromSP = (
   params: TreasuryParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_treasuryValidator.cborHex, [
       new Constr(0, [
         new Constr(0, [

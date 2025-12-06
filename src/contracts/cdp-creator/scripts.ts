@@ -10,7 +10,7 @@ export const mkCDPCreatorValidator = (
   params: CDPCreatorParams,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_cdpCreatorValidator.cborHex, [
       castCDPCreatorParams(params),
     ]),
@@ -21,7 +21,7 @@ export const mkCDPCreatorValidatorFromSP = (
   params: CDPCreatorParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_cdpCreatorValidator.cborHex, [
       castCDPCreatorParams({
         cdpCreatorNft: fromSystemParamsAsset(params.cdpCreatorNft),

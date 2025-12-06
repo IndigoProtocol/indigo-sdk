@@ -14,7 +14,7 @@ export const mkExecuteValidator = (
   params: ExecuteParams,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applySingleCborEncoding(
       applyParamsToScript(_executeValidator.cborHex, [
         castExecuteParams(params),
@@ -27,7 +27,7 @@ export const mkExecuteValidatorFromSP = (
   params: ExecuteParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applySingleCborEncoding(
       applyParamsToScript(_executeValidator.cborHex, [
         castExecuteParams({

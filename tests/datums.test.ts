@@ -168,14 +168,14 @@ describe('Datum checks', () => {
 
   it('Staking Position', () => {
     const stakingPositionDatum =
-      'd87a9fd8799f581cd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43a11853d8799f1a5c8c1cfb1b0000019616971410ffd8799f1b0000013a7ed5b0fdffffff';
+      'd87a9fd8799f581cd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f439f9f1853d8799f1a5c8c1cfb1b0000019616971410ffffffd8799f1b0000013a7ed5b0fdffffff';
     const stakingPositionObject: StakingPosition = {
       owner: fromHex(
         'd45527a088a92fd31f42b5777fe39c40f810e0f79d13c6d77eeb7f43',
       ),
-      lockedAmount: new Map([
+      lockedAmount: [
         [83n, { voteAmt: 1552686331n, votingEnd: 1744135722000n }],
-      ]),
+      ],
       positionSnapshot: {
         snapshotAda: 1350747664637n,
       },
@@ -191,7 +191,7 @@ describe('Datum checks', () => {
 
   it('Stability Pool', () => {
     const stabilityPoolDatum =
-      'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ffa2d8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deffffff';
+      'd8799fd8799f4469555344d8799fd8799f1b0a37ad5c452ffb2affd8799fc24d1f94ac680ce6b48ea21bb122baffd8799f1b0fde3bba456cd5deff0100ff9f9fd8799f0000ffd8799f1b084494e2d23b2b7effff9fd8799f0100ffd8799f1b0fde3bba456cd5deffffffffff';
     const stabilityPoolObject: StabilityPoolContent = {
       asset: fromHex(fromText('iUSD')),
       poolSnapshot: {
@@ -201,10 +201,10 @@ describe('Datum checks', () => {
         epoch: 1n,
         scale: 0n,
       },
-      epochToScaleToSum: new Map([
+      epochToScaleToSum: [
         [{ epoch: 0n, scale: 0n }, { value: 595764752630360958n }],
         [{ epoch: 1n, scale: 0n }, { value: 1143417026613401054n }],
-      ]),
+      ],
     };
     expect(parseStabilityPoolDatum(stabilityPoolDatum)).toEqual(
       stabilityPoolObject,
@@ -282,13 +282,13 @@ describe('Datum checks', () => {
 
   it('Stability Pool SnapshotEpochToScaleToSum', () => {
     const stabilityPoolDatum =
-      'd87b9fd8799fa2d8799f0000ffd8799f1b084494e2d23b2b7effd8799f0100ffd8799f1b0fde3bba456cd5deff4469555344ffff';
+      'd87b9fd8799f9f9fd8799f0000ffd8799f1b084494e2d23b2b7effff9fd8799f0100ffd8799f1b0fde3bba456cd5deffffff4469555344ffff';
     const stabilityPoolObject: SnapshotEpochToScaleToSumContent = {
       asset: fromHex(fromText('iUSD')),
-      snapshot: new Map([
+      snapshot: [
         [{ epoch: 0n, scale: 0n }, { value: 595764752630360958n }],
         [{ epoch: 1n, scale: 0n }, { value: 1143417026613401054n }],
-      ]),
+      ],
     };
 
     expect(parseSnapshotEpochToScaleToSumDatum(stabilityPoolDatum)).toEqual(

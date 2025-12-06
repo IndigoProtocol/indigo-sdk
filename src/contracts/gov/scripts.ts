@@ -5,7 +5,7 @@ import { _governanceValidator } from '../../validators/governance-validator';
 
 export const mkGovValidator = (params: GovParams): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_governanceValidator.cborHex, [
       castGovParams(params),
     ]),
@@ -16,7 +16,7 @@ export const mkGovValidatorFromSP = (
   params: GovParamsSP,
 ): SpendingValidator => {
   return {
-    type: 'PlutusV2',
+    type: 'PlutusV3',
     script: applyParamsToScript(_governanceValidator.cborHex, [
       castGovParams({
         gBiasTime: BigInt(params.gBiasTime),
