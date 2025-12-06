@@ -5,6 +5,7 @@ import {
   fromText,
   LucidEvolution,
   OutRef,
+  toHex,
   TxBuilder,
 } from '@lucid-evolution/lucid';
 import {
@@ -113,7 +114,6 @@ export async function adjustStakingPosition(
   lucid: LucidEvolution,
   stakingManagerRef?: OutRef,
 ): Promise<TxBuilder> {
-  const [pkh, _] = await addrDetails(lucid);
   const now = Date.now();
 
   const stakingPositionOut = await findStakingPositionByOutRef(
@@ -188,7 +188,7 @@ export async function adjustStakingPosition(
         [indyToken]: stakingPositionOut.utxo.assets[indyToken] + amount,
       },
     )
-    .addSignerKey(pkh.hash);
+    .addSignerKey(toHex(stakingPositionOut.datum.owner));
 }
 
 export async function closeStakingPosition(
@@ -197,8 +197,6 @@ export async function closeStakingPosition(
   lucid: LucidEvolution,
   stakingManagerRef?: OutRef,
 ): Promise<TxBuilder> {
-  const [pkh, _] = await addrDetails(lucid);
-
   const stakingPositionOut = await findStakingPositionByOutRef(
     stakingPositionRef,
     lucid,
@@ -266,5 +264,5 @@ export async function closeStakingPosition(
       },
       Data.void(),
     )
-    .addSignerKey(pkh.hash);
+    .addSignerKey(toHex(stakingPositionOut.datum.owner));
 }

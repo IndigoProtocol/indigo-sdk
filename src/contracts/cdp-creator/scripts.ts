@@ -4,7 +4,7 @@ import {
   CDPCreatorParamsSP,
   fromSystemParamsAsset,
 } from '../../types/system-params';
-import { _cdpCreatorValidator } from '../../validators-export/cdp-creator-validator';
+import { _cdpCreatorValidator } from '../../validators/cdp-creator-validator';
 
 export const mkCDPCreatorValidator = (
   params: CDPCreatorParams,

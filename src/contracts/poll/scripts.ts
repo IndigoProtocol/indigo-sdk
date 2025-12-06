@@ -9,8 +9,8 @@ import {
   fromSystemParamsAsset,
 } from '../../types/system-params';
 import { castPollShardParams, PollShardParams } from './types-poll-shard';
-import { _pollManagerValidator } from '../../validators-export/poll-manager-validator';
-import { _pollShardValidator } from '../../validators-export/poll-shard-validator';
+import { _pollManagerValidator } from '../../validators/poll-manager-validator';
+import { _pollShardValidator } from '../../validators/poll-shard-validator';
 
 export const mkPollManagerValidator = (
   params: PollManagerParams,

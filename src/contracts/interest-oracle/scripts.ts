@@ -4,7 +4,7 @@ import {
   castInterestOracleParams,
   InterestOracleParams,
 } from '../interest-oracle/types';
-import { _interestOracleValidator } from '../../validators-export/interest-oracle-validator';
+import { _interestOracleValidator } from '../../validators/interest-oracle-validator';
 
 export function mkInterestOracleValidator(
   params: InterestOracleParams,

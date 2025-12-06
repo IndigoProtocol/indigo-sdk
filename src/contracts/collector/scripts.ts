@@ -5,7 +5,7 @@ import {
   SpendingValidator,
 } from '@lucid-evolution/lucid';
 import { CollectorParamsSP } from '../../types/system-params';
-import { _collectorValidator } from '../../validators-export/collector-validator';
+import { _collectorValidator } from '../../validators/collector-validator';
 
 export const mkCollectorValidatorFromSP = (
   params: CollectorParamsSP,

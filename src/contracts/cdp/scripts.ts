@@ -1,7 +1,7 @@
 import { applyParamsToScript, SpendingValidator } from '@lucid-evolution/lucid';
 import { CdpParamsSP, fromSystemParamsAsset } from '../../types/system-params';
 import { castCdpParams } from './types';
-import { _cdpValidator } from '../../validators-export/cdp-validator';
+import { _cdpValidator } from '../../validators/cdp-validator';
 
 export const mkCdpValidatorFromSP = (
   params: CdpParamsSP,

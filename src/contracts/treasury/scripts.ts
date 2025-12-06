@@ -5,7 +5,7 @@ import {
   SpendingValidator,
 } from '@lucid-evolution/lucid';
 import { TreasuryParamsSP } from '../../types/system-params';
-import { _treasuryValidator } from '../../validators-export/treasury-validator';
+import { _treasuryValidator } from '../../validators/treasury-validator';
 
 export const mkTreasuryValidatorFromSP = (
   params: TreasuryParamsSP,

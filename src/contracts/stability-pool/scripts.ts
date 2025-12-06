@@ -4,7 +4,7 @@ import {
   fromSystemParamsAsset,
   StabilityPoolParamsSP,
 } from '../../types/system-params';
-import { _stabilityPoolValidator } from '../../validators-export/stability-pool-validator';
+import { _stabilityPoolValidator } from '../../validators/stability-pool-validator';
 
 export const mkStabilityPoolValidator = (
   params: StabilityPoolParams,

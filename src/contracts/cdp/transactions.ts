@@ -235,8 +235,6 @@ async function adjustCdp(
   const network = lucid.config().network!;
   const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
-  const [pkh, _] = await addrDetails(lucid);
-
   const cdpRefScriptUtxo = matchSingle(
     await lucid.utxosByOutRef([
       fromSystemParamsScriptRef(sysParams.scriptReferences.cdpValidatorRef),
@@ -309,7 +307,6 @@ async function adjustCdp(
     )
     .readFrom([cdpRefScriptUtxo])
     .readFrom([iassetUtxo, govUtxo, priceOracleUtxo, interestOracleUtxo])
-    .addSignerKey(pkh.hash)
     .pay.ToContract(
       cdpUtxo.address,
       {
@@ -331,6 +328,12 @@ async function adjustCdp(
       },
       addAssets(cdpUtxo.assets, mkLovelacesOf(collateralAmount)),
     );
+
+  if (!cdpDatum.cdpOwner) {
+    throw new Error('Expected active CDP');
+  }
+
+  tx.addSignerKey(cdpDatum.cdpOwner);
 
   if (mintAmount !== 0n) {
     const iAssetTokenPolicyRefScriptUtxo = matchSingle(
@@ -546,8 +549,6 @@ export async function closeCdp(
   currentSlot: number,
 ): Promise<TxBuilder> {
   const network = lucid.config().network!;
-  // Find Pkh, Skh
-  const [pkh, _] = await addrDetails(lucid);
   const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
   const cdpRefScriptUtxo = matchSingle(
@@ -645,8 +646,13 @@ export async function closeCdp(
     .collectFrom(
       [cdpUtxo],
       serialiseCdpRedeemer({ CloseCdp: { currentTime: currentTime } }),
-    )
-    .addSignerKey(pkh.hash);
+    );
+
+  if (!cdpDatum.cdpOwner) {
+    throw new Error('Expected active CDP');
+  }
+
+  tx.addSignerKey(cdpDatum.cdpOwner);
 
   const interestAdaAmt = match(cdpDatum.cdpFees)
     .with({ FrozenCDPAccumulatedFees: P.any }, () => {
