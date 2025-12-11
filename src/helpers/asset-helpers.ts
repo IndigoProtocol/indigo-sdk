@@ -33,22 +33,28 @@ export class IAssetHelpers {
     params: SystemParams,
     lucid: LucidEvolution,
   ): Promise<IAssetOutput> {
+    console.log(
+      CDPContract.address(params.cdpParams, lucid),
+      params.cdpParams.iAssetAuthToken[0].unCurrencySymbol +
+        fromText(params.cdpParams.iAssetAuthToken[1].unTokenName),
+    );
     return lucid
       .utxosAtWithUnit(
         CDPContract.address(params.cdpParams, lucid),
         params.cdpParams.iAssetAuthToken[0].unCurrencySymbol +
           fromText(params.cdpParams.iAssetAuthToken[1].unTokenName),
       )
-      .then((utxos) =>
-        utxos
+      .then((utxos) => {
+        console.log('iasset utxos', utxos);
+        return utxos
           .map((utxo) => {
             if (!utxo.datum) return undefined;
             const datum = parseIAssetDatum(utxo.datum);
             if (datum.assetName !== fromText(assetName)) return undefined;
             return { utxo, datum };
           })
-          .find((utxo) => utxo !== undefined),
-      )
+          .find((utxo) => utxo !== undefined);
+      })
       .then((result) => {
         if (!result) throw new Error('Unable to locate IAsset by name.');
         return result;
