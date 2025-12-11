@@ -96,7 +96,6 @@ export class StabilityPoolContract {
     params: SystemParams,
     lucid: LucidEvolution,
   ): Promise<TxBuilder> {
-    const [pkh, _] = await addrDetails(lucid);
     const myAddress = await lucid.wallet().address();
 
     const stabilityPoolScriptRef = await scriptRef(
@@ -162,7 +161,7 @@ export class StabilityPoolContract {
         },
         value,
       )
-      .addSignerKey(pkh.hash);
+      .addSignerKey(oldAccountDatum.owner);
   }
 
   static async closeAccount(
@@ -170,7 +169,6 @@ export class StabilityPoolContract {
     params: SystemParams,
     lucid: LucidEvolution,
   ): Promise<TxBuilder> {
-    const [pkh, _] = await addrDetails(lucid);
     const myAddress = await lucid.wallet().address();
 
     const stabilityPoolScriptRef = await scriptRef(
@@ -225,7 +223,7 @@ export class StabilityPoolContract {
           fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
         },
       )
-      .addSignerKey(pkh.hash);
+      .addSignerKey(oldAccountDatum.owner);
   }
 
   static async processRequest(

@@ -342,7 +342,6 @@ export class CDPContract {
   ): Promise<TxBuilder> {
     const network = lucid.config().network;
     // Find Pkh, Skh
-    const [pkh, _] = await addrDetails(lucid);
     const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
     // Find Outputs: iAsset Output, CDP Output, Gov Output
@@ -388,7 +387,7 @@ export class CDPContract {
         Data.to(new Constr(0, [currentTime, mintAmount, collateralAmount])),
       )
       .readFrom([iAsset.utxo, gov, cdpScriptRefUtxo])
-      .addSignerKey(pkh.hash);
+      .addSignerKey(cdpDatum.cdpOwner);
     if (!cdp.datum) throw new Error('Unable to find CDP Datum');
     const cdpD = parseCDPDatum(cdp.datum);
 
@@ -529,7 +528,6 @@ export class CDPContract {
   ): Promise<TxBuilder> {
     const network = lucid.config().network;
     // Find Pkh, Skh
-    const [pkh, _] = await addrDetails(lucid);
     const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
     // Find Outputs: iAsset Output, CDP Output, Gov Output
@@ -570,7 +568,7 @@ export class CDPContract {
       .newTx()
       .collectFrom([cdp], Data.to(new Constr(1, [currentTime])))
       .readFrom([iAsset.utxo, gov, cdpScriptRefUtxo])
-      .addSignerKey(pkh.hash);
+      .addSignerKey(cdpDatum.cdpOwner);
     if (!cdp.datum) throw new Error('Unable to find CDP Datum');
     const cdpD = parseCDPDatum(cdp.datum);
     if (!('ActiveCDPInterestTracking' in cdpD.cdpFees))
