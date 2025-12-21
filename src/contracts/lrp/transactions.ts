@@ -1,7 +1,5 @@
 import {
   LucidEvolution,
-  Network,
-  ScriptHash,
   TxBuilder,
   Credential,
   OutRef,
@@ -9,25 +7,23 @@ import {
   addAssets,
   unixTimeToSlot,
   slotToUnixTime,
+  Data,
 } from '@lucid-evolution/lucid';
 import {
   addrDetails,
   createScriptAddress,
   getInlineDatumOrThrow,
 } from '../../utils/lucid-utils';
-import { match, P } from 'ts-pattern';
 import { unzip, zip } from 'fp-ts/lib/Array';
-import { reduceWithIndex } from 'fp-ts/lib/Array';
 import {
   LRPDatum,
-  LRPParams,
-  parseLrpDatum,
+  parseLrpDatumOrThrow,
   serialiseLrpDatum,
   serialiseLrpRedeemer,
 } from './types';
 import { parsePriceOracleDatum } from '../price-oracle/types';
-import { ocdMul, OnChainDecimal } from '../../types/on-chain-decimal';
-import { parseIAssetDatumOrThrow } from '../cdp/types';
+import { OnChainDecimal } from '../../types/on-chain-decimal';
+import { parseIAssetDatumOrThrow, serialiseCdpDatum } from '../cdp/types';
 import {
   assetClassValueOf,
   mkAssetsOf,
@@ -36,18 +32,34 @@ import {
 import { calculateFeeFromPercentage } from '../../utils/indigo-helpers';
 import { matchSingle } from '../../utils/utils';
 import { AssetClass } from '../../types/generic';
-
-const MIN_UTXO_COLLATERAL_AMT = 2_000_000n;
+import {
+  fromSystemParamsAsset,
+  fromSystemParamsScriptRef,
+  SystemParams,
+} from '../../types/system-params';
+import { oracleExpirationAwareValidity } from '../price-oracle/helpers';
+import { parseInterestOracleDatum } from '../interest-oracle/types';
+import { serialiseCDPCreatorRedeemer } from '../cdp-creator/types';
+import { collectorFeeTx } from '../collector/transactions';
+import { calculateUnitaryInterestSinceOracleLastUpdated } from '../interest-oracle/helpers';
+import {
+  buildRedemptionsTx,
+  MIN_LRP_COLLATERAL_AMT,
+  randomLrpsSubsetSatisfyingLeverage,
+  summarizeLeverage,
+  summarizeLeverageRedemptions,
+} from './helpers';
 
 export async function openLrp(
   assetTokenName: string,
   lovelacesAmt: bigint,
   maxPrice: OnChainDecimal,
   lucid: LucidEvolution,
-  lrpScriptHash: ScriptHash,
-  network: Network,
+  sysParams: SystemParams,
   lrpStakeCredential?: Credential,
 ): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+
   const [ownPkh, _] = await addrDetails(lucid);
 
   const newDatum: LRPDatum = {
@@ -58,22 +70,28 @@ export async function openLrp(
   };
 
   return lucid.newTx().pay.ToContract(
-    createScriptAddress(network, lrpScriptHash, lrpStakeCredential),
+    createScriptAddress(
+      network,
+      sysParams.validatorHashes.lrpHash,
+      lrpStakeCredential,
+    ),
     {
       kind: 'inline',
       value: serialiseLrpDatum(newDatum),
     },
-    { lovelace: lovelacesAmt + MIN_UTXO_COLLATERAL_AMT },
+    { lovelace: lovelacesAmt + MIN_LRP_COLLATERAL_AMT },
   );
 }
 
 export async function cancelLrp(
   lrpOutRef: OutRef,
-  lrpRefScriptOutRef: OutRef,
+  sysParams: SystemParams,
   lucid: LucidEvolution,
 ): Promise<TxBuilder> {
   const lrpScriptRefUtxo = matchSingle(
-    await lucid.utxosByOutRef([lrpRefScriptOutRef]),
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.lrpValidatorRef),
+    ]),
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
   );
 
@@ -82,7 +100,7 @@ export async function cancelLrp(
     (_) => new Error('Expected a single LRP UTXO.'),
   );
 
-  const lrpDatum = parseLrpDatum(getInlineDatumOrThrow(lrpUtxo));
+  const lrpDatum = parseLrpDatumOrThrow(getInlineDatumOrThrow(lrpUtxo));
 
   return lucid
     .newTx()
@@ -94,15 +112,17 @@ export async function cancelLrp(
 export async function redeemLrp(
   /** The tuple represents the LRP outref and the amount of iAssets to redeem against it. */
   redemptionLrpsData: [OutRef, bigint][],
-  lrpRefScriptOutRef: OutRef,
   priceOracleOutRef: OutRef,
   iassetOutRef: OutRef,
   lucid: LucidEvolution,
-  lrpParams: LRPParams,
-  network: Network,
+  sysParams: SystemParams,
 ): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+
   const lrpScriptRefUtxo = matchSingle(
-    await lucid.utxosByOutRef([lrpRefScriptOutRef]),
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.lrpValidatorRef),
+    ]),
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
   );
 
@@ -131,81 +151,13 @@ export async function redeemLrp(
     .utxosByOutRef(lrpsToRedeemOutRefs)
     .then((val) => zip(val, lrpRedemptionIAssetAmt));
 
-  const [[mainLrpUtxo, _], __] = match(redemptionLrps)
-    .with(
-      [P._, ...P.array()],
-      ([[firstLrp, _], ...rest]): [[UTxO, bigint], [UTxO, bigint][]] => [
-        [firstLrp, _],
-        rest,
-      ],
-    )
-    .otherwise(() => {
-      throw new Error('Expects at least 1 UTXO to redeem.');
-    });
-
-  const mainLrpDatum = parseLrpDatum(getInlineDatumOrThrow(mainLrpUtxo));
-
-  const tx = reduceWithIndex<[UTxO, bigint], TxBuilder>(
+  const tx = buildRedemptionsTx(
+    redemptionLrps,
+    priceOracleDatum.price,
+    iassetDatum.redemptionReimbursementPercentage,
+    sysParams,
     lucid.newTx(),
-    (idx, acc, [lrpUtxo, redeemIAssetAmt]) => {
-      const lovelacesForRedemption = ocdMul(
-        {
-          getOnChainInt: redeemIAssetAmt,
-        },
-        priceOracleDatum.price,
-      ).getOnChainInt;
-      const reimburstmentLovelaces = calculateFeeFromPercentage(
-        iassetDatum.redemptionReimbursementPercentage,
-        lovelacesForRedemption,
-      );
-
-      const lrpDatum = parseLrpDatum(getInlineDatumOrThrow(lrpUtxo));
-
-      return acc
-        .collectFrom(
-          [lrpUtxo],
-          serialiseLrpRedeemer(
-            idx === 0
-              ? { Redeem: { continuingOutputIdx: 0n } }
-              : {
-                  RedeemAuxiliary: {
-                    continuingOutputIdx: BigInt(idx),
-                    mainRedeemOutRef: {
-                      txHash: { hash: mainLrpUtxo.txHash },
-                      outputIndex: BigInt(mainLrpUtxo.outputIndex),
-                    },
-                    asset: mainLrpDatum.iasset,
-                    assetPrice: priceOracleDatum.price,
-                    redemptionReimbursementPercentage:
-                      iassetDatum.redemptionReimbursementPercentage,
-                  },
-                },
-          ),
-        )
-        .pay.ToContract(
-          lrpUtxo.address,
-          {
-            kind: 'inline',
-            value: serialiseLrpDatum({
-              ...lrpDatum,
-              lovelacesToSpend:
-                lrpDatum.lovelacesToSpend - lovelacesForRedemption,
-            }),
-          },
-          addAssets(
-            lrpUtxo.assets,
-            mkLovelacesOf(-lovelacesForRedemption + reimburstmentLovelaces),
-            mkAssetsOf(
-              {
-                currencySymbol: lrpParams.iassetPolicyId,
-                tokenName: mainLrpDatum.iasset,
-              },
-              redeemIAssetAmt,
-            ),
-          ),
-        );
-    },
-  )(redemptionLrps);
+  );
 
   return (
     lucid
@@ -224,6 +176,209 @@ export async function redeemLrp(
   );
 }
 
+export async function redeemLrpWithCdpOpen(
+  leverage: number,
+  baseCollateral: bigint,
+  targetCollateralRatioPercentage: OnChainDecimal,
+
+  priceOracleOutRef: OutRef,
+  iassetOutRef: OutRef,
+  cdpCreatorOref: OutRef,
+  interestOracleOref: OutRef,
+  collectorOref: OutRef,
+  sysParams: SystemParams,
+  lucid: LucidEvolution,
+  allLrps: [UTxO, LRPDatum][],
+  currentSlot: number,
+): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  const currentTime = BigInt(slotToUnixTime(network, currentSlot));
+
+  const [pkh, skh] = await addrDetails(lucid);
+
+  // TODO: check that the requested leverage is smaller than the max leverage.
+
+  const lrpScriptRefUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.lrpValidatorRef),
+    ]),
+    (_) => new Error('Expected a single LRP Ref Script UTXO'),
+  );
+
+  const cdpCreatorRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.cdpCreatorValidatorRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single cdp creator Ref Script UTXO'),
+  );
+  const cdpAuthTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.authTokenPolicies.cdpAuthTokenRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single cdp auth token policy Ref Script UTXO'),
+  );
+  const iAssetTokenPolicyRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(
+        sysParams.scriptReferences.iAssetTokenPolicyRef,
+      ),
+    ]),
+    (_) => new Error('Expected a single iasset token policy Ref Script UTXO'),
+  );
+
+  const cdpCreatorUtxo = matchSingle(
+    await lucid.utxosByOutRef([cdpCreatorOref]),
+    (_) => new Error('Expected a single CDP creator UTXO'),
+  );
+
+  const interestOracleUtxo = matchSingle(
+    await lucid.utxosByOutRef([interestOracleOref]),
+    (_) => new Error('Expected a single interest oracle UTXO'),
+  );
+  const interestOracleDatum = parseInterestOracleDatum(
+    getInlineDatumOrThrow(interestOracleUtxo),
+  );
+
+  const priceOracleUtxo = matchSingle(
+    await lucid.utxosByOutRef([priceOracleOutRef]),
+    (_) => new Error('Expected a single price oracle UTXO'),
+  );
+  const priceOracleDatum = parsePriceOracleDatum(
+    getInlineDatumOrThrow(priceOracleUtxo),
+  );
+
+  const iassetUtxo = matchSingle(
+    await lucid.utxosByOutRef([iassetOutRef]),
+    (_) => new Error('Expected a single IAsset UTXO'),
+  );
+  const iassetDatum = parseIAssetDatumOrThrow(
+    getInlineDatumOrThrow(iassetUtxo),
+  );
+
+  // We don't return the mintedAmt here, because it depends on the individual redemptions.
+  const leverageSummary = summarizeLeverage(
+    baseCollateral,
+    leverage,
+    iassetDatum.redemptionReimbursementPercentage,
+    targetCollateralRatioPercentage,
+    priceOracleDatum.price,
+    iassetDatum.debtMintingFeePercentage,
+  );
+
+  const redemptionDetails = summarizeLeverageRedemptions(
+    leverageSummary.lovelacesForRedemptionWithReimbursement,
+    iassetDatum.redemptionReimbursementPercentage,
+    priceOracleDatum.price,
+    randomLrpsSubsetSatisfyingLeverage(
+      leverageSummary.lovelacesForRedemptionWithReimbursement,
+      allLrps,
+    ),
+  );
+
+  const txValidity = oracleExpirationAwareValidity(
+    currentSlot,
+    Number(sysParams.cdpCreatorParams.biasTime),
+    Number(priceOracleDatum.expiration),
+    network,
+  );
+
+  const tx = buildRedemptionsTx(
+    redemptionDetails.redemptions.map((r) => [
+      r.utxo,
+      r.iassetsForRedemptionAmt,
+    ]),
+    priceOracleDatum.price,
+    iassetDatum.redemptionReimbursementPercentage,
+    sysParams,
+    lucid.newTx(),
+  );
+
+  const mintedAmt = redemptionDetails.totalRedemptionIAssets;
+  // TODO: this should probably come from the redemptionDetails
+  const collateralAmt = leverageSummary.finalCollateral;
+
+  const cdpNftVal = mkAssetsOf(
+    fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+    1n,
+  );
+
+  const iassetTokensVal = mkAssetsOf(
+    {
+      currencySymbol: sysParams.cdpParams.cdpAssetSymbol.unCurrencySymbol,
+      tokenName: iassetDatum.assetName,
+    },
+    mintedAmt,
+  );
+
+  tx.validFrom(txValidity.validFrom)
+    .validTo(txValidity.validTo)
+    // Ref scripts
+    .readFrom([
+      cdpCreatorRefScriptUtxo,
+      cdpAuthTokenPolicyRefScriptUtxo,
+      iAssetTokenPolicyRefScriptUtxo,
+      lrpScriptRefUtxo,
+    ])
+    // Ref inputs
+    .readFrom([priceOracleUtxo, interestOracleUtxo, iassetUtxo])
+    .mintAssets(cdpNftVal, Data.void())
+    .mintAssets(iassetTokensVal, Data.void())
+    .collectFrom(
+      [cdpCreatorUtxo],
+      serialiseCDPCreatorRedeemer({
+        CreateCDP: {
+          cdpOwner: pkh.hash,
+          minted: mintedAmt,
+          collateral: collateralAmt,
+          currentTime: currentTime,
+        },
+      }),
+    )
+    .pay.ToContract(
+      createScriptAddress(network, sysParams.validatorHashes.cdpHash, skh),
+      {
+        kind: 'inline',
+        value: serialiseCdpDatum({
+          cdpOwner: pkh.hash,
+          iasset: iassetDatum.assetName,
+          mintedAmt: mintedAmt,
+          cdpFees: {
+            ActiveCDPInterestTracking: {
+              lastSettled: currentTime,
+              unitaryInterestSnapshot:
+                calculateUnitaryInterestSinceOracleLastUpdated(
+                  currentTime,
+                  interestOracleDatum,
+                ) + interestOracleDatum.unitaryInterest,
+            },
+          },
+        }),
+      },
+      addAssets(cdpNftVal, mkLovelacesOf(collateralAmt)),
+    )
+    .pay.ToContract(
+      cdpCreatorUtxo.address,
+      { kind: 'inline', value: Data.void() },
+      cdpCreatorUtxo.assets,
+    )
+    .addSignerKey(pkh.hash);
+
+  const debtMintingFee = calculateFeeFromPercentage(
+    iassetDatum.debtMintingFeePercentage,
+    (mintedAmt * priceOracleDatum.price.getOnChainInt) / 1_000_000n,
+  );
+
+  if (debtMintingFee > 0) {
+    await collectorFeeTx(debtMintingFee, lucid, sysParams, tx, collectorOref);
+  }
+
+  return tx;
+}
+
 /**
  * Create Tx adjusting the LRP and claiming the received iAssets
  */
@@ -235,11 +390,12 @@ export async function adjustLrp(
    * and a negative amount takes lovelaces from the LRP.
    */
   lovelacesAdjustAmt: bigint,
-  lrpRefScriptOutRef: OutRef,
-  lrpParams: LRPParams,
+  sysParams: SystemParams,
 ): Promise<TxBuilder> {
   const lrpScriptRefUtxo = matchSingle(
-    await lucid.utxosByOutRef([lrpRefScriptOutRef]),
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(sysParams.scriptReferences.lrpValidatorRef),
+    ]),
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
   );
 
@@ -248,10 +404,10 @@ export async function adjustLrp(
     (_) => new Error('Expected a single LRP UTXO.'),
   );
 
-  const lrpDatum = parseLrpDatum(getInlineDatumOrThrow(lrpUtxo));
+  const lrpDatum = parseLrpDatumOrThrow(getInlineDatumOrThrow(lrpUtxo));
 
   const rewardAssetClass: AssetClass = {
-    currencySymbol: lrpParams.iassetPolicyId,
+    currencySymbol: sysParams.lrpParams.iassetPolicyId.unCurrencySymbol,
     tokenName: lrpDatum.iasset,
   };
   const rewardAssetsAmt = assetClassValueOf(lrpUtxo.assets, rewardAssetClass);
@@ -301,8 +457,7 @@ export async function adjustLrp(
 export async function claimLrp(
   lucid: LucidEvolution,
   lrpOutRef: OutRef,
-  lrpRefScriptOutRef: OutRef,
-  lrpParams: LRPParams,
+  sysParams: SystemParams,
 ): Promise<TxBuilder> {
-  return adjustLrp(lucid, lrpOutRef, 0n, lrpRefScriptOutRef, lrpParams);
+  return adjustLrp(lucid, lrpOutRef, 0n, sysParams);
 }
