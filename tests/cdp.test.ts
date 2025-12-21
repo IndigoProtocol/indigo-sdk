@@ -28,7 +28,6 @@ import {
   freezeCdp,
   fromSystemParamsAsset,
   getInlineDatumOrThrow,
-  IAssetOutput,
   InterestOracleDatum,
   liquidateCdp,
   matchSingle,
@@ -44,105 +43,29 @@ import {
 } from '../src';
 import {
   findAllActiveCdps,
+  findAllNecessaryOrefs,
   findCdp,
   findFrozenCDPs,
-  findRandomCdpCreator,
 } from './queries/cdp-queries';
-import { findIAsset } from './queries/iasset-queries';
-import { findPriceOracle } from './queries/price-oracle-queries';
-import { match, P } from 'ts-pattern';
-import { findRandomCollector } from './queries/collector-queries';
-import { findGov } from './queries/governance-queries';
-import { findRandomTreasuryUtxo } from './queries/treasury-queries';
 import { getValueChangeAtAddressAfterAction } from './utils';
 import { cdpCollateralRatioPercentage } from '../src/contracts/cdp/helpers';
 import { OnChainDecimal } from '../src/types/on-chain-decimal';
-import { findInterestOracle } from './queries/interest-oracle-queries';
 import { feedPriceOracleTx } from '../src/contracts/price-oracle/transactions';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 import { assertValueInRange } from './utils/asserts';
-import {
-  findStabilityPool,
-  findStabilityPoolAccount,
-} from './queries/stability-pool-queries';
+import { findStabilityPoolAccount } from './queries/stability-pool-queries';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
   user: EmulatorAccount;
 }>;
 
-async function findAllNecessaryOrefs(
-  context: MyContext,
-  sysParams: SystemParams,
-  asset: string,
-): Promise<{
-  stabilityPoolUtxo: UTxO;
-  iasset: IAssetOutput;
-  cdpCreatorUtxo: UTxO;
-  priceOracleUtxo: UTxO;
-  interestOracleUtxo: UTxO;
-  collectorUtxo: UTxO;
-  govUtxo: UTxO;
-  treasuryUtxo: UTxO;
-}> {
-  const iasset = await findIAsset(
-    context.lucid,
-    sysParams.validatorHashes.cdpHash,
-    fromSystemParamsAsset(sysParams.cdpParams.iAssetAuthToken),
-    asset,
-  );
-
-  const stabilityPool = await findStabilityPool(
-    context.lucid,
-    sysParams.validatorHashes.stabilityPoolHash,
-    fromSystemParamsAsset(sysParams.stabilityPoolParams.stabilityPoolToken),
-    asset,
-  );
-
-  return {
-    stabilityPoolUtxo: stabilityPool,
-    iasset,
-    cdpCreatorUtxo: await findRandomCdpCreator(
-      context.lucid,
-      sysParams.validatorHashes.cdpCreatorHash,
-      fromSystemParamsAsset(sysParams.cdpCreatorParams.cdpCreatorNft),
-    ),
-    priceOracleUtxo: await findPriceOracle(
-      context.lucid,
-      match(iasset.datum.price)
-        .with({ Oracle: { content: P.select() } }, (oracleNft) => oracleNft)
-        .otherwise(() => {
-          throw new Error('Expected active oracle');
-        }),
-    ),
-    interestOracleUtxo: await findInterestOracle(
-      context.lucid,
-      iasset.datum.interestOracleNft,
-    ),
-    collectorUtxo: await findRandomCollector(
-      context.lucid,
-      sysParams.validatorHashes.collectorHash,
-    ),
-    govUtxo: (
-      await findGov(
-        context.lucid,
-        sysParams.validatorHashes.govHash,
-        fromSystemParamsAsset(sysParams.govParams.govNFT),
-      )
-    ).utxo,
-    treasuryUtxo: await findRandomTreasuryUtxo(
-      context.lucid,
-      sysParams.validatorHashes.treasuryHash,
-    ),
-  };
-}
-
 async function findPrice(
   context: MyContext,
   sysParams: SystemParams,
   asset: string,
 ): Promise<OnChainDecimal> {
-  const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+  const orefs = await findAllNecessaryOrefs(context.lucid, sysParams, asset);
 
   const priceOracleUtxo = matchSingle(
     await context.lucid.utxosByOutRef([orefs.priceOracleUtxo]),
@@ -160,7 +83,7 @@ async function findInterestDatum(
   sysParams: SystemParams,
   asset: string,
 ): Promise<InterestOracleDatum> {
-  const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+  const orefs = await findAllNecessaryOrefs(context.lucid, sysParams, asset);
 
   const interestOracleUtxo = matchSingle(
     await context.lucid.utxosByOutRef([orefs.interestOracleUtxo]),
@@ -209,7 +132,7 @@ describe('CDP', () => {
 
     const asset = 'iUSD';
 
-    const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+    const orefs = await findAllNecessaryOrefs(context.lucid, sysParams, asset);
 
     await runAndAwaitTx(
       context.lucid,
@@ -241,7 +164,11 @@ describe('CDP', () => {
     const initialCollateral = 10_000_000n;
 
     {
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       await runAndAwaitTx(
         context.lucid,
@@ -270,7 +197,11 @@ describe('CDP', () => {
         pkh.hash,
         skh,
       );
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       const [_, treasuryValChange] = await getValueChangeAtAddressAfterAction(
         context.lucid,
@@ -328,7 +259,11 @@ describe('CDP', () => {
     const initialCollateral = 15_000_000n;
 
     {
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       await runAndAwaitTx(
         context.lucid,
@@ -357,7 +292,11 @@ describe('CDP', () => {
         pkh.hash,
         skh,
       );
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       const [_, treasuryValChange] = await getValueChangeAtAddressAfterAction(
         context.lucid,
@@ -415,7 +354,11 @@ describe('CDP', () => {
     const initialCollateral = 12_000_000n;
 
     {
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       await runAndAwaitTx(
         context.lucid,
@@ -444,7 +387,11 @@ describe('CDP', () => {
         pkh.hash,
         skh,
       );
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       const [_, treasuryValChange] = await getValueChangeAtAddressAfterAction(
         context.lucid,
@@ -502,7 +449,11 @@ describe('CDP', () => {
     const initialCollateral = 12_000_000n;
 
     {
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       await runAndAwaitTx(
         context.lucid,
@@ -531,7 +482,11 @@ describe('CDP', () => {
         pkh.hash,
         skh,
       );
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       const [_, treasuryValChange] = await getValueChangeAtAddressAfterAction(
         context.lucid,
@@ -586,7 +541,11 @@ describe('CDP', () => {
     const asset = 'iUSD';
 
     {
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       await runAndAwaitTx(
         context.lucid,
@@ -616,7 +575,11 @@ describe('CDP', () => {
         skh,
       );
 
-      const orefs = await findAllNecessaryOrefs(context, sysParams, asset);
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        asset,
+      );
 
       await runAndAwaitTx(
         context.lucid,
@@ -647,7 +610,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -674,7 +637,7 @@ describe('CDP', () => {
       context.lucid.selectWallet.fromSeed(context.users.user.seedPhrase);
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -713,7 +676,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -750,7 +713,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -801,7 +764,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -835,7 +798,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -869,7 +832,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -916,7 +879,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -943,7 +906,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -978,7 +941,7 @@ describe('CDP', () => {
     // Process the create account request
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1018,7 +981,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1055,7 +1018,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1086,7 +1049,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1106,7 +1069,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1130,7 +1093,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1157,7 +1120,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1192,7 +1155,7 @@ describe('CDP', () => {
     // Process the create account request
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1232,7 +1195,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1269,7 +1232,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1300,7 +1263,7 @@ describe('CDP', () => {
       );
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1320,7 +1283,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1344,7 +1307,7 @@ describe('CDP', () => {
 
     await repeat(3, async () => {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1368,7 +1331,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1399,7 +1362,7 @@ describe('CDP', () => {
 
       for (const cdp of activeCdps) {
         const orefs = await findAllNecessaryOrefs(
-          context,
+          context.lucid,
           sysParams,
           iusdAssetInfo.iassetTokenNameAscii,
         );
@@ -1447,7 +1410,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1482,7 +1445,7 @@ describe('CDP', () => {
     // Process the create account request
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1528,7 +1491,7 @@ describe('CDP', () => {
       ).toBeTruthy();
 
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
@@ -1548,7 +1511,7 @@ describe('CDP', () => {
 
     {
       const orefs = await findAllNecessaryOrefs(
-        context,
+        context.lucid,
         sysParams,
         iusdAssetInfo.iassetTokenNameAscii,
       );
