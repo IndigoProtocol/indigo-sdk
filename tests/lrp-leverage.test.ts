@@ -1,5 +1,15 @@
 import { beforeEach, test } from 'vitest';
-import { openLrp, redeemLrpWithCdpOpen, SystemParams } from '../src';
+import {
+  addrDetails,
+  cdpCollateralRatioPercentage,
+  fromSystemParamsAsset,
+  getInlineDatumOrThrow,
+  openLrp,
+  parseInterestOracleDatum,
+  parsePriceOracleDatum,
+  redeemLrpWithCdpOpen,
+  SystemParams,
+} from '../src';
 import {
   addAssets,
   Emulator,
@@ -9,10 +19,10 @@ import {
   Lucid,
   toText,
 } from '@lucid-evolution/lucid';
-import { findAllNecessaryOrefs } from './queries/cdp-queries';
+import { findAllNecessaryOrefs, findCdp } from './queries/cdp-queries';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
 import { describe } from 'vitest';
-import { mkLovelacesOf } from '../src/utils/value-helpers';
+import { lovelacesAmt, mkLovelacesOf } from '../src/utils/value-helpers';
 import { init } from './endpoints/initialize';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 import { findAllLrps } from './queries/lrp-queries';
@@ -80,19 +90,50 @@ describe('LRP leverage', () => {
       toText(iasset),
     );
 
-    await redeemLrpWithCdpOpen(
-      1.5,
-      1_000n,
-      { getOnChainInt: 140_000_000n },
-      orefs.priceOracleUtxo,
-      orefs.iasset.utxo,
-      orefs.cdpCreatorUtxo,
-      orefs.interestOracleUtxo,
-      orefs.collectorUtxo,
-      sysParams,
+    const baseCollateral = 20_000_000n;
+    await runAndAwaitTx(
       context.lucid,
-      allLrps.map((lrps) => [lrps.utxo, lrps.datum]),
-      context.emulator.slot,
+      redeemLrpWithCdpOpen(
+        2,
+        baseCollateral,
+        { getOnChainInt: 160_000_000n },
+        orefs.priceOracleUtxo,
+        orefs.iasset.utxo,
+        orefs.cdpCreatorUtxo,
+        orefs.interestOracleUtxo,
+        orefs.collectorUtxo,
+        sysParams,
+        context.lucid,
+        allLrps.map((lrps) => [lrps.utxo, lrps.datum]),
+        context.emulator.slot,
+      ),
+    );
+
+    const [pkh, skh] = await addrDetails(context.lucid);
+
+    const res = await findCdp(
+      context.lucid,
+      sysParams.validatorHashes.cdpHash,
+      fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+      pkh.hash,
+      skh,
+    );
+
+    console.log(Number(lovelacesAmt(res.utxo.assets)) / Number(baseCollateral));
+    console.log(res.datum);
+
+    console.log(
+      cdpCollateralRatioPercentage(
+        context.emulator.slot,
+        parsePriceOracleDatum(getInlineDatumOrThrow(orefs.priceOracleUtxo))
+          .price,
+        res.utxo,
+        res.datum,
+        parseInterestOracleDatum(
+          getInlineDatumOrThrow(orefs.interestOracleUtxo),
+        ),
+        context.lucid.config().network!,
+      ),
     );
   });
 });

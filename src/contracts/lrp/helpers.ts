@@ -35,7 +35,7 @@ export const MIN_LRP_COLLATERAL_AMT = 2_000_000n;
 /**
  * How many LRP redemptions can we fit into a TX with CDP open.
  */
-const MAX_REDEMPTIONS_WITH_CDP_OPEN = 3;
+const MAX_REDEMPTIONS_WITH_CDP_OPEN = 5;
 
 export function buildRedemptionsTx(
   /** The tuple represents the LRP UTXO and the amount of iAssets to redeem against it. */
@@ -74,6 +74,9 @@ export function buildRedemptionsTx(
           redemptionReimbursementPercentage,
           lovelacesForRedemption,
         );
+
+        console.log('FOr redem:', lovelacesForRedemption);
+        console.log('reimb:', reimburstmentLovelaces);
 
         const lrpDatum = parseLrpDatumOrThrow(getInlineDatumOrThrow(lrpUtxo));
 
@@ -167,28 +170,22 @@ export function calculateTotalAdaForRedemption(
   );
 }
 
-export function calculateIAssetsRedemptionAmtForLeverage(
-  leverage: number,
-  baseCollateral: bigint,
-  iassetPrice: OnChainDecimal,
-): bigint {
-  const priceDecimal = Decimal(iassetPrice.getOnChainInt).div(OCD_DECIMAL_UNIT);
-  const partialLeverage = Decimal(leverage).sub(1);
-
-  return fromDecimal(
-    Decimal(baseCollateral).mul(partialLeverage).div(priceDecimal).floor(),
-  );
-}
-
 type LRPRedemptionDetails = {
   utxo: UTxO;
-  // This is including the reimbursement fee.
-  redemptionLovelacesAmt: bigint;
+  /**
+   * This is including the reimbursement fee.
+   **/
+  redemptionLovelacesAmtInclReimbursement: bigint;
   iassetsForRedemptionAmt: bigint;
   reimbursementLovelacesAmt: bigint;
 };
 
-export function summarizeLeverage(
+/**
+ * We assume exact precision. However, actual redemptions include rounding and
+ * the rounding behaviour changes based on the number of redemptions.
+ * This may slightly tweak the numbers and the result can be different.
+ */
+export function approximateLeverageRedemptions(
   baseCollateral: bigint,
   leverage: number,
   redemptionReimbursementPercentage: OnChainDecimal,
@@ -196,10 +193,9 @@ export function summarizeLeverage(
   iassetPrice: OnChainDecimal,
   debtMintingFeePercentage: OnChainDecimal,
 ): {
-  finalCollateral: bigint;
   lovelacesForRedemptionWithReimbursement: bigint;
 } {
-  const reimburstmentRatioDecimal = Decimal(
+  const reimbursementRatioDecimal = Decimal(
     redemptionReimbursementPercentage.getOnChainInt,
   )
     .div(OCD_DECIMAL_UNIT)
@@ -243,21 +239,29 @@ export function summarizeLeverage(
   const lovelacesForRedemption =
     finalCollateral + mintingFeeLovelaces - baseCollateral;
 
-  // x * (1 + reimbursement_fee) = lovelaces spent from LRP (including the reimbursement fee)
+  /**
+   * `y` - lovelaces with reimbursement
+   * `x` - lovelaces without reimbursement
+   * `f` - reimbursement fee ratio
+   *
+   * `y - y * f = x`
+   *
+   * Solved for `y`:
+   * `y = x / (1 - f)`
+   */
   const lovelacesForRedemptionWithReimbursement = fromDecimal(
     Decimal(lovelacesForRedemption)
-      .mul(reimburstmentRatioDecimal.add(1))
+      .div(Decimal(1).sub(reimbursementRatioDecimal))
       .floor(),
   );
 
   return {
-    finalCollateral: finalCollateral,
     lovelacesForRedemptionWithReimbursement:
       lovelacesForRedemptionWithReimbursement,
   };
 }
 
-export function summarizeLeverageRedemptions(
+export function summarizeActualLeverageRedemptions(
   lovelacesForRedemptionWithReimbursement: bigint,
   redemptionReimbursementPercentage: OnChainDecimal,
   iassetPrice: OnChainDecimal,
@@ -308,21 +312,21 @@ export function summarizeLeverageRedemptions(
           iassetPrice,
         ).getOnChainInt;
 
-        const reimburstmentLovelaces = calculateFeeFromPercentage(
+        const reimbursementLovelaces = calculateFeeFromPercentage(
           redemptionReimbursementPercentage,
           finalRedemptionLovelaces,
         );
 
         return {
           remainingRedemptionLovelaces:
-            acc.remainingRedemptionLovelaces - finalRedemptionIAssets,
+            acc.remainingRedemptionLovelaces - finalRedemptionLovelaces,
           redemptions: [
             ...acc.redemptions,
             {
               utxo: utxo,
               iassetsForRedemptionAmt: finalRedemptionIAssets,
-              redemptionLovelacesAmt: finalRedemptionLovelaces,
-              reimbursementLovelacesAmt: reimburstmentLovelaces,
+              redemptionLovelacesAmtInclReimbursement: finalRedemptionLovelaces,
+              reimbursementLovelacesAmt: reimbursementLovelaces,
             },
           ],
         };
@@ -339,7 +343,7 @@ export function summarizeLeverageRedemptions(
       return {
         redeemedLovelaces:
           acc.redeemedLovelaces +
-          details.redemptionLovelacesAmt -
+          details.redemptionLovelacesAmtInclReimbursement -
           details.reimbursementLovelacesAmt,
         redemptionIAssets:
           acc.redemptionIAssets + details.iassetsForRedemptionAmt,
@@ -354,17 +358,24 @@ export function summarizeLeverageRedemptions(
   };
 }
 
-export function calculateMaxLeverage(
-  baseCollateral: bigint,
-  targetCollateralRatioPercentage: OnChainDecimal,
+/**
+ * `c` = collateral with minting fee
+ * `r` = collateral ratio
+ * `p` = price
+ * `f` = debt minting fee
+ * `m` = minted amount
+ *
+ * `m = ((c - fpm) / rp)`
+ *
+ * After modifications:
+ * `m = c / (p * (r + f))`
+ * */
+export function mintedAmtFromCollateralWithMintingFee(
+  collateralWithMintingFee: bigint,
   iassetPrice: OnChainDecimal,
   debtMintingFeePercentage: OnChainDecimal,
-  // iasset: IAssetContent,
-  redemptionReimbursementPercentage: OnChainDecimal,
-  allLrps: [UTxO, LRPDatum][],
-): number {
-  // TODO: check that all the LRPs correspond to the iasset.
-
+  targetCollateralRatioPercentage: OnChainDecimal,
+): bigint {
   const debtMintingFeeRatioDecimal = Decimal(
     debtMintingFeePercentage.getOnChainInt,
   )
@@ -372,6 +383,34 @@ export function calculateMaxLeverage(
     .div(100);
 
   const priceDecimal = Decimal(iassetPrice.getOnChainInt).div(OCD_DECIMAL_UNIT);
+  const collateralRatioDecimal = Decimal(
+    targetCollateralRatioPercentage.getOnChainInt,
+  )
+    .div(OCD_DECIMAL_UNIT)
+    .div(100);
+
+  return fromDecimal(
+    Decimal(collateralWithMintingFee)
+      .div(
+        priceDecimal.mul(
+          debtMintingFeeRatioDecimal.add(collateralRatioDecimal),
+        ),
+      )
+      // Prefer slight higher CR by flooring.
+      .floor(),
+  );
+}
+
+export function calculateMaxLeverage(
+  baseCollateral: bigint,
+  targetCollateralRatioPercentage: OnChainDecimal,
+  iassetPrice: OnChainDecimal,
+  debtMintingFeePercentage: OnChainDecimal,
+  redemptionReimbursementPercentage: OnChainDecimal,
+  allLrps: [UTxO, LRPDatum][],
+): number {
+  // TODO: check that all the LRPs correspond to the iasset.
+
   const collateralRatioDecimal = Decimal(
     targetCollateralRatioPercentage.getOnChainInt,
   )
@@ -406,27 +445,11 @@ export function calculateMaxLeverage(
       maxAvailableAdaForRedemption,
     );
 
-  /**
-   * `c` = collateral with minting fee
-   * `r` = collateral ratio
-   * `p` = price
-   * `f` = debt minting fee
-   * `m` = minted amount
-   *
-   * `m = ((c - fpm) / rp)`
-   *
-   * After modifications:
-   * `m = c / (p * (r + f))`
-   * */
-  const mintedAmt = fromDecimal(
-    Decimal(collateralWithMintingFee)
-      .div(
-        priceDecimal.mul(
-          debtMintingFeeRatioDecimal.add(collateralRatioDecimal),
-        ),
-      )
-      // Prefer slight higher CR by flooring.
-      .floor(),
+  const mintedAmt = mintedAmtFromCollateralWithMintingFee(
+    collateralWithMintingFee,
+    iassetPrice,
+    debtMintingFeePercentage,
+    targetCollateralRatioPercentage,
   );
 
   const finalCollateral =

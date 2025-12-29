@@ -46,8 +46,9 @@ import {
   buildRedemptionsTx,
   MIN_LRP_COLLATERAL_AMT,
   randomLrpsSubsetSatisfyingLeverage,
-  summarizeLeverage,
-  summarizeLeverageRedemptions,
+  approximateLeverageRedemptions,
+  summarizeActualLeverageRedemptions,
+  mintedAmtFromCollateralWithMintingFee,
 } from './helpers';
 
 export async function openLrp(
@@ -260,7 +261,7 @@ export async function redeemLrpWithCdpOpen(
   );
 
   // We don't return the mintedAmt here, because it depends on the individual redemptions.
-  const leverageSummary = summarizeLeverage(
+  const leverageSummary = approximateLeverageRedemptions(
     baseCollateral,
     leverage,
     iassetDatum.redemptionReimbursementPercentage,
@@ -269,7 +270,7 @@ export async function redeemLrpWithCdpOpen(
     iassetDatum.debtMintingFeePercentage,
   );
 
-  const redemptionDetails = summarizeLeverageRedemptions(
+  const redemptionDetails = summarizeActualLeverageRedemptions(
     leverageSummary.lovelacesForRedemptionWithReimbursement,
     iassetDatum.redemptionReimbursementPercentage,
     priceOracleDatum.price,
@@ -297,9 +298,22 @@ export async function redeemLrpWithCdpOpen(
     lucid.newTx(),
   );
 
-  const mintedAmt = redemptionDetails.totalRedemptionIAssets;
-  // TODO: this should probably come from the redemptionDetails
-  const collateralAmt = leverageSummary.finalCollateral;
+  const collateralAmtWithMintingFee =
+    redemptionDetails.totalRedeemedLovelaces + baseCollateral;
+
+  const mintedAmt = mintedAmtFromCollateralWithMintingFee(
+    collateralAmtWithMintingFee,
+    priceOracleDatum.price,
+    iassetDatum.debtMintingFeePercentage,
+    targetCollateralRatioPercentage,
+  );
+
+  const debtMintingFee = calculateFeeFromPercentage(
+    iassetDatum.debtMintingFeePercentage,
+    (mintedAmt * priceOracleDatum.price.getOnChainInt) / 1_000_000n,
+  );
+
+  const collateralAmt = collateralAmtWithMintingFee - debtMintingFee;
 
   const cdpNftVal = mkAssetsOf(
     fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
@@ -366,11 +380,6 @@ export async function redeemLrpWithCdpOpen(
       cdpCreatorUtxo.assets,
     )
     .addSignerKey(pkh.hash);
-
-  const debtMintingFee = calculateFeeFromPercentage(
-    iassetDatum.debtMintingFeePercentage,
-    (mintedAmt * priceOracleDatum.price.getOnChainInt) / 1_000_000n,
-  );
 
   if (debtMintingFee > 0) {
     await collectorFeeTx(debtMintingFee, lucid, sysParams, tx, collectorOref);

@@ -14,6 +14,10 @@ export function shuffle<T>(arr: T[]): T[] {
  * The parameter `arr` should be sorted for correct results.
  */
 export function insertSorted<T>(arr: T[], item: T, ord: Ord.Ord<T>): T[] {
+  if (arr.length === 0) {
+    return [item];
+  }
+
   const arrOrd = ord.compare(arr[0], arr[arr.length - 1]);
   // Array containing the same items
   if (arrOrd === 0) {
