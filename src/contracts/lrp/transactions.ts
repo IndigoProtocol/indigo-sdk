@@ -22,7 +22,7 @@ import {
   serialiseLrpRedeemer,
 } from './types';
 import { parsePriceOracleDatum } from '../price-oracle/types';
-import { OnChainDecimal } from '../../types/on-chain-decimal';
+import { ocdMul, OnChainDecimal } from '../../types/on-chain-decimal';
 import { parseIAssetDatumOrThrow, serialiseCdpDatum } from '../cdp/types';
 import {
   assetClassValueOf,
@@ -48,7 +48,8 @@ import {
   randomLrpsSubsetSatisfyingLeverage,
   approximateLeverageRedemptions,
   summarizeActualLeverageRedemptions,
-  mintedAmtFromCollateralWithMintingFee,
+  calculateMaxLeverage,
+  mintedAmtFromCollateralWithMintingFeeInclReimb,
 } from './helpers';
 
 export async function openLrp(
@@ -158,6 +159,7 @@ export async function redeemLrp(
     iassetDatum.redemptionReimbursementPercentage,
     sysParams,
     lucid.newTx(),
+    0n,
   );
 
   return (
@@ -181,7 +183,6 @@ export async function redeemLrpWithCdpOpen(
   leverage: number,
   baseCollateral: bigint,
   targetCollateralRatioPercentage: OnChainDecimal,
-
   priceOracleOutRef: OutRef,
   iassetOutRef: OutRef,
   cdpCreatorOref: OutRef,
@@ -196,8 +197,6 @@ export async function redeemLrpWithCdpOpen(
   const currentTime = BigInt(slotToUnixTime(network, currentSlot));
 
   const [pkh, skh] = await addrDetails(lucid);
-
-  // TODO: check that the requested leverage is smaller than the max leverage.
 
   const lrpScriptRefUtxo = matchSingle(
     await lucid.utxosByOutRef([
@@ -260,6 +259,21 @@ export async function redeemLrpWithCdpOpen(
     getInlineDatumOrThrow(iassetUtxo),
   );
 
+  const maxLeverage = calculateMaxLeverage(
+    iassetDatum.assetName,
+    baseCollateral,
+    targetCollateralRatioPercentage,
+    priceOracleDatum.price,
+    iassetDatum.debtMintingFeePercentage,
+    iassetDatum.redemptionReimbursementPercentage,
+    sysParams.lrpParams,
+    allLrps,
+  );
+
+  if (maxLeverage < leverage) {
+    throw new Error("Can't use more leverage than max.");
+  }
+
   // We don't return the mintedAmt here, because it depends on the individual redemptions.
   const leverageSummary = approximateLeverageRedemptions(
     baseCollateral,
@@ -274,9 +288,13 @@ export async function redeemLrpWithCdpOpen(
     leverageSummary.lovelacesForRedemptionWithReimbursement,
     iassetDatum.redemptionReimbursementPercentage,
     priceOracleDatum.price,
+    sysParams.lrpParams,
     randomLrpsSubsetSatisfyingLeverage(
+      iassetDatum.assetName,
       leverageSummary.lovelacesForRedemptionWithReimbursement,
+      priceOracleDatum.price,
       allLrps,
+      sysParams.lrpParams,
     ),
   );
 
@@ -287,33 +305,26 @@ export async function redeemLrpWithCdpOpen(
     network,
   );
 
-  const tx = buildRedemptionsTx(
-    redemptionDetails.redemptions.map((r) => [
-      r.utxo,
-      r.iassetsForRedemptionAmt,
-    ]),
-    priceOracleDatum.price,
-    iassetDatum.redemptionReimbursementPercentage,
-    sysParams,
-    lucid.newTx(),
-  );
+  const collateralAmtWithMintingFeeInclReimb =
+    redemptionDetails.totalRedeemedLovelaces +
+    redemptionDetails.totalReimbursementLovelaces +
+    baseCollateral;
 
-  const collateralAmtWithMintingFee =
-    redemptionDetails.totalRedeemedLovelaces + baseCollateral;
-
-  const mintedAmt = mintedAmtFromCollateralWithMintingFee(
-    collateralAmtWithMintingFee,
+  const mintedAmt = mintedAmtFromCollateralWithMintingFeeInclReimb(
+    collateralAmtWithMintingFeeInclReimb,
     priceOracleDatum.price,
     iassetDatum.debtMintingFeePercentage,
     targetCollateralRatioPercentage,
+    iassetDatum.redemptionReimbursementPercentage,
   );
 
   const debtMintingFee = calculateFeeFromPercentage(
     iassetDatum.debtMintingFeePercentage,
-    (mintedAmt * priceOracleDatum.price.getOnChainInt) / 1_000_000n,
+    ocdMul({ getOnChainInt: mintedAmt }, priceOracleDatum.price).getOnChainInt,
   );
 
-  const collateralAmt = collateralAmtWithMintingFee - debtMintingFee;
+  const collateralAmt =
+    redemptionDetails.totalRedeemedLovelaces + baseCollateral - debtMintingFee;
 
   const cdpNftVal = mkAssetsOf(
     fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
@@ -328,8 +339,12 @@ export async function redeemLrpWithCdpOpen(
     mintedAmt,
   );
 
-  tx.validFrom(txValidity.validFrom)
+  let tx = lucid
+    .newTx()
+    .validFrom(txValidity.validFrom)
     .validTo(txValidity.validTo)
+    // Ref inputs
+    .readFrom([priceOracleUtxo, interestOracleUtxo, iassetUtxo])
     // Ref scripts
     .readFrom([
       cdpCreatorRefScriptUtxo,
@@ -337,8 +352,6 @@ export async function redeemLrpWithCdpOpen(
       iAssetTokenPolicyRefScriptUtxo,
       lrpScriptRefUtxo,
     ])
-    // Ref inputs
-    .readFrom([priceOracleUtxo, interestOracleUtxo, iassetUtxo])
     .mintAssets(cdpNftVal, Data.void())
     .mintAssets(iassetTokensVal, Data.void())
     .collectFrom(
@@ -380,6 +393,18 @@ export async function redeemLrpWithCdpOpen(
       cdpCreatorUtxo.assets,
     )
     .addSignerKey(pkh.hash);
+
+  tx = buildRedemptionsTx(
+    redemptionDetails.redemptions.map((r) => [
+      r.utxo,
+      r.iassetsForRedemptionAmt,
+    ]),
+    priceOracleDatum.price,
+    iassetDatum.redemptionReimbursementPercentage,
+    sysParams,
+    tx,
+    2n,
+  );
 
   if (debtMintingFee > 0) {
     await collectorFeeTx(debtMintingFee, lucid, sysParams, tx, collectorOref);

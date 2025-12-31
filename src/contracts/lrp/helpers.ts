@@ -23,10 +23,10 @@ import {
   fromDecimal,
   sum,
 } from '../../utils/bigint-utils';
-import { array as A, function as F, ord as Ord } from 'fp-ts';
+import { array as A, function as F, ord as Ord, option as O } from 'fp-ts';
 import { Decimal } from 'decimal.js';
 import { insertSorted, shuffle } from '../../utils/array-utils';
-import { SystemParams } from '../../types/system-params';
+import { LrpParamsSP, SystemParams } from '../../types/system-params';
 import { match, P } from 'ts-pattern';
 import { getInlineDatumOrThrow } from '../../utils/lucid-utils';
 
@@ -35,7 +35,37 @@ export const MIN_LRP_COLLATERAL_AMT = 2_000_000n;
 /**
  * How many LRP redemptions can we fit into a TX with CDP open.
  */
-const MAX_REDEMPTIONS_WITH_CDP_OPEN = 5;
+export const MAX_REDEMPTIONS_WITH_CDP_OPEN = 5;
+
+/**
+ * Calculate the actually redeemable lovelaces taking into account:
+ *  - LRP datum
+ *  - UTXO's value
+ *  - min redemption
+ *
+ * This helps to handle incorrectly initialised LRPs, too.
+ */
+export function lrpRedeemableLovelacesInclReimb(
+  lrp: [UTxO, LRPDatum],
+  lrpParams: LrpParamsSP,
+): bigint {
+  const datum = lrp[1];
+  const utxo = lrp[0];
+
+  let res = 0n;
+  // When incorrectly initialised
+  if (datum.lovelacesToSpend > lovelacesAmt(utxo.assets)) {
+    res = bigintMax(lovelacesAmt(utxo.assets) - MIN_LRP_COLLATERAL_AMT, 0n);
+  } else {
+    res = datum.lovelacesToSpend;
+  }
+
+  if (res < lrpParams.minRedemptionLovelacesAmt) {
+    return 0n;
+  }
+
+  return res;
+}
 
 export function buildRedemptionsTx(
   /** The tuple represents the LRP UTXO and the amount of iAssets to redeem against it. */
@@ -44,6 +74,10 @@ export function buildRedemptionsTx(
   redemptionReimbursementPercentage: OnChainDecimal,
   sysParams: SystemParams,
   tx: TxBuilder,
+  /**
+   * The number of Tx outputs before these.
+   */
+  txOutputsBeforeCount: bigint,
 ): TxBuilder {
   const [[mainLrpUtxo, _], __] = match(redemptions)
     .with(
@@ -75,9 +109,6 @@ export function buildRedemptionsTx(
           lovelacesForRedemption,
         );
 
-        console.log('FOr redem:', lovelacesForRedemption);
-        console.log('reimb:', reimburstmentLovelaces);
-
         const lrpDatum = parseLrpDatumOrThrow(getInlineDatumOrThrow(lrpUtxo));
 
         const resultVal = addAssets(
@@ -102,10 +133,10 @@ export function buildRedemptionsTx(
             [lrpUtxo],
             serialiseLrpRedeemer(
               idx === 0
-                ? { Redeem: { continuingOutputIdx: 0n } }
+                ? { Redeem: { continuingOutputIdx: txOutputsBeforeCount + 0n } }
                 : {
                     RedeemAuxiliary: {
-                      continuingOutputIdx: BigInt(idx),
+                      continuingOutputIdx: txOutputsBeforeCount + BigInt(idx),
                       mainRedeemOutRef: {
                         txHash: { hash: mainLrpUtxo.txHash },
                         outputIndex: BigInt(mainLrpUtxo.outputIndex),
@@ -136,36 +167,55 @@ export function buildRedemptionsTx(
 }
 
 /**
- * Given all available LRP UTXOs, calculate total available ADA that can be redeemed.
+ * Given all available LRP UTXOs, calculate total available ADA that can be redeemed. There's
+ * a flag to either subtract the reimbursement fee or not.
  * Taking into account the reimburstment fee and incorrectly initialised LRPs (without base collateral).
  */
-// TODO: use this in calculating the max leverage
 export function calculateTotalAdaForRedemption(
+  iasset: string,
   redemptionReimbursementPercentage: OnChainDecimal,
+  iassetPrice: OnChainDecimal,
+  lrpParams: LrpParamsSP,
   allLrps: [UTxO, LRPDatum][],
+  /**
+   * When false, subtracts reimbursement fee from individual redemptions.
+   */
+  includingReimbursement: boolean = false,
 ): bigint {
-  // TODO: do we want to sanity check that all the LRPs correspond to the right iasset.
   return F.pipe(
-    allLrps.map(([utxo, datum]) => {
-      // This case can happen when LRP is incorrectly initialised.
-      if (datum.lovelacesToSpend > lovelacesAmt(utxo.assets)) {
-        return bigintMax(
-          lovelacesAmt(utxo.assets) - MIN_LRP_COLLATERAL_AMT,
-          0n,
-        );
-      } else {
-        return (
-          datum.lovelacesToSpend -
-          calculateFeeFromPercentage(
-            redemptionReimbursementPercentage,
-            datum.lovelacesToSpend,
-          )
-        );
+    allLrps,
+    A.filterMap(([utxo, datum]) => {
+      if (
+        datum.iasset !== iasset ||
+        datum.maxPrice.getOnChainInt < iassetPrice.getOnChainInt
+      ) {
+        return O.none;
       }
+
+      const lovelacesToSpend = lrpRedeemableLovelacesInclReimb(
+        [utxo, datum],
+        lrpParams,
+      );
+
+      if (lovelacesToSpend === 0n) {
+        return O.none;
+      }
+
+      // Subtract the reimbursement fee here on each iteration to simulate real redemptions.
+      return O.some(
+        lovelacesToSpend -
+          (includingReimbursement
+            ? 0n
+            : calculateFeeFromPercentage(
+                redemptionReimbursementPercentage,
+                lovelacesToSpend,
+              )),
+      );
     }),
     // From largest to smallest
     A.sort(Ord.reverse(BigIntOrd)),
-    // TODO: take N based on the benchmark, i.e. how many redemptions we can do during CDP open.
+    // We can fit only this number of redemptions with CDP open into a single Tx.
+    A.takeLeft(MAX_REDEMPTIONS_WITH_CDP_OPEN),
     sum,
   );
 }
@@ -195,12 +245,6 @@ export function approximateLeverageRedemptions(
 ): {
   lovelacesForRedemptionWithReimbursement: bigint;
 } {
-  const reimbursementRatioDecimal = Decimal(
-    redemptionReimbursementPercentage.getOnChainInt,
-  )
-    .div(OCD_DECIMAL_UNIT)
-    .div(100);
-
   const collateralRatioDecimal = Decimal(
     targetCollateralRatioPercentage.getOnChainInt,
   )
@@ -235,29 +279,17 @@ export function approximateLeverageRedemptions(
     ocdMul({ getOnChainInt: mintedAmt }, iassetPrice).getOnChainInt,
   );
 
-  // This is the amount that has to be received from the LRPs
-  const lovelacesForRedemption =
-    finalCollateral + mintingFeeLovelaces - baseCollateral;
-
-  /**
-   * `y` - lovelaces with reimbursement
-   * `x` - lovelaces without reimbursement
-   * `f` - reimbursement fee ratio
-   *
-   * `y - y * f = x`
-   *
-   * Solved for `y`:
-   * `y = x / (1 - f)`
-   */
-  const lovelacesForRedemptionWithReimbursement = fromDecimal(
-    Decimal(lovelacesForRedemption)
-      .div(Decimal(1).sub(reimbursementRatioDecimal))
-      .floor(),
+  const reimbursementFee = calculateFeeFromPercentage(
+    redemptionReimbursementPercentage,
+    ocdMul({ getOnChainInt: mintedAmt }, iassetPrice).getOnChainInt,
   );
 
+  // This is the amount that has to be received from the LRPs
+  const lovelacesForRedemption =
+    finalCollateral + mintingFeeLovelaces + reimbursementFee - baseCollateral;
+
   return {
-    lovelacesForRedemptionWithReimbursement:
-      lovelacesForRedemptionWithReimbursement,
+    lovelacesForRedemptionWithReimbursement: lovelacesForRedemption,
   };
 }
 
@@ -265,19 +297,22 @@ export function summarizeActualLeverageRedemptions(
   lovelacesForRedemptionWithReimbursement: bigint,
   redemptionReimbursementPercentage: OnChainDecimal,
   iassetPrice: OnChainDecimal,
+  lrpParams: LrpParamsSP,
   // Picking from the beginning until the iasset redemption amount is satisfied.
   redemptionLrps: [UTxO, LRPDatum][],
 ): {
   redemptions: LRPRedemptionDetails[];
   // The actual amount received from redemptions (i.e. without the reimbursement fee).
   totalRedeemedLovelaces: bigint;
+  // Total lovelaces amt that has been reimbursted
+  totalReimbursementLovelaces: bigint;
   totalRedemptionIAssets: bigint;
 } {
   const priceDecimal = Decimal(iassetPrice.getOnChainInt).div(OCD_DECIMAL_UNIT);
 
   type Accumulator = {
     /// This is including the redemption reimbursement
-    remainingRedemptionLovelaces: bigint;
+    remainingRedemptionLovelacesInclReim: bigint;
     redemptions: LRPRedemptionDetails[];
   };
 
@@ -285,21 +320,33 @@ export function summarizeActualLeverageRedemptions(
     redemptionLrps,
     A.reduce<[UTxO, LRPDatum], Accumulator>(
       {
-        remainingRedemptionLovelaces: lovelacesForRedemptionWithReimbursement,
+        remainingRedemptionLovelacesInclReim:
+          lovelacesForRedemptionWithReimbursement,
         redemptions: [],
       },
-      (acc, [utxo, datum]) => {
-        // TODO: improve/fix this check
-        if (acc.remainingRedemptionLovelaces === 0n) {
+      (acc, lrp) => {
+        if (
+          acc.remainingRedemptionLovelacesInclReim <
+          lrpParams.minRedemptionLovelacesAmt
+        ) {
+          return acc;
+        }
+
+        const lovelacesToSpend = lrpRedeemableLovelacesInclReimb(
+          lrp,
+          lrpParams,
+        );
+
+        if (lovelacesToSpend === 0n) {
           return acc;
         }
 
         const newRemainingLovelaces = bigintMax(
-          acc.remainingRedemptionLovelaces - datum.lovelacesToSpend,
+          acc.remainingRedemptionLovelacesInclReim - lovelacesToSpend,
           0n,
         );
         const redemptionLovelacesInitial =
-          acc.remainingRedemptionLovelaces - newRemainingLovelaces;
+          acc.remainingRedemptionLovelacesInclReim - newRemainingLovelaces;
 
         const finalRedemptionIAssets = fromDecimal(
           Decimal(redemptionLovelacesInitial).div(priceDecimal).floor(),
@@ -318,12 +365,12 @@ export function summarizeActualLeverageRedemptions(
         );
 
         return {
-          remainingRedemptionLovelaces:
-            acc.remainingRedemptionLovelaces - finalRedemptionLovelaces,
+          remainingRedemptionLovelacesInclReim:
+            acc.remainingRedemptionLovelacesInclReim - finalRedemptionLovelaces,
           redemptions: [
             ...acc.redemptions,
             {
-              utxo: utxo,
+              utxo: lrp[0],
               iassetsForRedemptionAmt: finalRedemptionIAssets,
               redemptionLovelacesAmtInclReimbursement: finalRedemptionLovelaces,
               reimbursementLovelacesAmt: reimbursementLovelaces,
@@ -338,22 +385,36 @@ export function summarizeActualLeverageRedemptions(
     redemptionDetails.redemptions,
     A.reduce<
       LRPRedemptionDetails,
-      { redeemedLovelaces: bigint; redemptionIAssets: bigint }
-    >({ redeemedLovelaces: 0n, redemptionIAssets: 0n }, (acc, details) => {
-      return {
-        redeemedLovelaces:
-          acc.redeemedLovelaces +
-          details.redemptionLovelacesAmtInclReimbursement -
-          details.reimbursementLovelacesAmt,
-        redemptionIAssets:
-          acc.redemptionIAssets + details.iassetsForRedemptionAmt,
-      };
-    }),
+      {
+        redeemedLovelaces: bigint;
+        redemptionIAssets: bigint;
+        reimbursementLovelaces: bigint;
+      }
+    >(
+      {
+        redeemedLovelaces: 0n,
+        redemptionIAssets: 0n,
+        reimbursementLovelaces: 0n,
+      },
+      (acc, details) => {
+        return {
+          redeemedLovelaces:
+            acc.redeemedLovelaces +
+            details.redemptionLovelacesAmtInclReimbursement -
+            details.reimbursementLovelacesAmt,
+          reimbursementLovelaces:
+            acc.reimbursementLovelaces + details.reimbursementLovelacesAmt,
+          redemptionIAssets:
+            acc.redemptionIAssets + details.iassetsForRedemptionAmt,
+        };
+      },
+    ),
   );
 
   return {
     redemptions: redemptionDetails.redemptions,
     totalRedeemedLovelaces: res.redeemedLovelaces,
+    totalReimbursementLovelaces: res.reimbursementLovelaces,
     totalRedemptionIAssets: res.redemptionIAssets,
   };
 }
@@ -363,18 +424,20 @@ export function summarizeActualLeverageRedemptions(
  * `r` = collateral ratio
  * `p` = price
  * `f` = debt minting fee
+ * `k` = reimbursement fee
  * `m` = minted amount
  *
- * `m = ((c - fpm) / rp)`
+ * `m = ((c - fpm - kpm) / rp)`
  *
  * After modifications:
- * `m = c / (p * (r + f))`
+ * `m = c / (p * (r + f + k))`
  * */
-export function mintedAmtFromCollateralWithMintingFee(
-  collateralWithMintingFee: bigint,
+export function mintedAmtFromCollateralWithMintingFeeInclReimb(
+  collateralWithMintingFeeInclReimb: bigint,
   iassetPrice: OnChainDecimal,
   debtMintingFeePercentage: OnChainDecimal,
   targetCollateralRatioPercentage: OnChainDecimal,
+  redemptionReimbursementPercentage: OnChainDecimal,
 ): bigint {
   const debtMintingFeeRatioDecimal = Decimal(
     debtMintingFeePercentage.getOnChainInt,
@@ -389,11 +452,19 @@ export function mintedAmtFromCollateralWithMintingFee(
     .div(OCD_DECIMAL_UNIT)
     .div(100);
 
+  const redemptionReimbursementRatioDecimal = Decimal(
+    redemptionReimbursementPercentage.getOnChainInt,
+  )
+    .div(OCD_DECIMAL_UNIT)
+    .div(100);
+
   return fromDecimal(
-    Decimal(collateralWithMintingFee)
+    Decimal(collateralWithMintingFeeInclReimb)
       .div(
         priceDecimal.mul(
-          debtMintingFeeRatioDecimal.add(collateralRatioDecimal),
+          debtMintingFeeRatioDecimal
+            .add(collateralRatioDecimal)
+            .add(redemptionReimbursementRatioDecimal),
         ),
       )
       // Prefer slight higher CR by flooring.
@@ -402,167 +473,100 @@ export function mintedAmtFromCollateralWithMintingFee(
 }
 
 export function calculateMaxLeverage(
+  iasset: string,
   baseCollateral: bigint,
   targetCollateralRatioPercentage: OnChainDecimal,
   iassetPrice: OnChainDecimal,
   debtMintingFeePercentage: OnChainDecimal,
   redemptionReimbursementPercentage: OnChainDecimal,
+  lrpParams: LrpParamsSP,
   allLrps: [UTxO, LRPDatum][],
 ): number {
-  // TODO: check that all the LRPs correspond to the iasset.
-
   const collateralRatioDecimal = Decimal(
     targetCollateralRatioPercentage.getOnChainInt,
   )
     .div(OCD_DECIMAL_UNIT)
     .div(100);
 
-  const maxAvailableAdaForRedemption = calculateTotalAdaForRedemption(
+  const maxAvailableAdaForRedemptionInclReimb = calculateTotalAdaForRedemption(
+    iasset,
     redemptionReimbursementPercentage,
+    iassetPrice,
+    lrpParams,
     allLrps,
+    true,
   );
 
-  // TODO: Handle wrong situations here.
+  if (
+    collateralRatioDecimal.toNumber() <= 1 ||
+    baseCollateral <= 0n ||
+    maxAvailableAdaForRedemptionInclReimb <= 0n
+  ) {
+    // The fallback leverage multiplier is 1x which is essentially no leverage.
+    return 1;
+  }
+
   // Total leverage is + 1
   // Total leverage = 1 + (1 / (collateral_ratio - 1))
   const partialLeverage = Decimal(1).div(
     collateralRatioDecimal.sub(Decimal(1)),
   );
 
-  const lovelacesForRedemption = fromDecimal(
-    Decimal(baseCollateral).mul(partialLeverage).floor(),
+  const lovelacesForRedemption = bigintMin(
+    maxAvailableAdaForRedemptionInclReimb,
+    fromDecimal(Decimal(baseCollateral).mul(partialLeverage).floor()),
+  );
+
+  const collateralWithMintingFeeInclReimb =
+    baseCollateral + lovelacesForRedemption;
+
+  const mintedAmt = mintedAmtFromCollateralWithMintingFeeInclReimb(
+    collateralWithMintingFeeInclReimb,
+    iassetPrice,
+    debtMintingFeePercentage,
+    targetCollateralRatioPercentage,
+    redemptionReimbursementPercentage,
   );
 
   const reimbursementFee = calculateFeeFromPercentage(
     redemptionReimbursementPercentage,
-    lovelacesForRedemption,
+    ocdMul({ getOnChainInt: mintedAmt }, iassetPrice).getOnChainInt,
   );
 
-  const collateralWithMintingFee =
-    baseCollateral +
-    bigintMin(
-      lovelacesForRedemption - reimbursementFee,
-      maxAvailableAdaForRedemption,
-    );
-
-  const mintedAmt = mintedAmtFromCollateralWithMintingFee(
-    collateralWithMintingFee,
-    iassetPrice,
+  const debtMintingFee = calculateFeeFromPercentage(
     debtMintingFeePercentage,
-    targetCollateralRatioPercentage,
+    ocdMul({ getOnChainInt: mintedAmt }, iassetPrice).getOnChainInt,
   );
 
   const finalCollateral =
-    collateralWithMintingFee -
-    calculateFeeFromPercentage(
-      debtMintingFeePercentage,
-      ocdMul({ getOnChainInt: mintedAmt }, iassetPrice).getOnChainInt,
-    );
+    collateralWithMintingFeeInclReimb - debtMintingFee - reimbursementFee;
 
   return Decimal(finalCollateral).div(baseCollateral).toNumber();
-  // console.log('Leverage:', partialLeverage.add(1), 'x');
-  // console.log(
-  //   'Corrected leverage:',
-  //   Decimal(totalCollateral).div(baseCollateral),
-  //   'x',
-  // );
-  // console.log('Deposit:', totalCollateral);
-  // console.log('Minted amt:', mintedAmt);
-
-  // console.log(
-  //   'Collateral ratio:',
-  //   Decimal(totalCollateral).div(Decimal(mintedAmt).mul(priceDecimal)).mul(100),
-  //   '%',
-  // );
-
-  // -----------------------
-  // const collateralPerIteration = [Decimal(baseCollateral)];
-  // const mintedAmtPerIteration: Decimal[] = [];
-
-  // // TODO: when not converging percentages, throw.
-
-  // while (true) {
-  //   const lastDeposit =
-  //     collateralPerIteration[collateralPerIteration.length - 1];
-
-  //   const newMintedAmt = lastDeposit.div(
-  //     collateralRatioDecimal.mul(priceDecimal),
-  //   );
-
-  //   const swappedAda = newMintedAmt
-  //     .mul(priceDecimal)
-  //     .mul(excludeReimburstmentRatio);
-
-  //   if (newMintedAmt < Decimal(1) || swappedAda < Decimal(1)) {
-  //     // Remove last since there's no need to swap it, because we can't mint anything more.
-  //     collateralPerIteration.pop();
-  //     break;
-  //   }
-
-  //   mintedAmtPerIteration.push(newMintedAmt);
-  //   collateralPerIteration.push(swappedAda);
-
-  //   // if (i === 5) {
-  //   //   break;
-  //   // }
-  // }
-
-  // console.log('Collaterals per iteration:', collateralPerIteration);
-  // console.log('Minted per iteration:', mintedAmtPerIteration);
-
-  // const totalCollateral = A.reduce<Decimal, Decimal>(Decimal(0), (acc, val) =>
-  //   acc.add(val),
-  // )(collateralPerIteration);
-
-  // const totalMint = A.reduce<Decimal, Decimal>(Decimal(0), (acc, val) =>
-  //   acc.add(val),
-  // )(mintedAmtPerIteration);
-
-  // const totalCollateralCorrected = fromDecimal(totalCollateral.ceil());
-  // const totalMintCorrected = fromDecimal(totalMint.floor());
-
-  // console.log('Collateral:', totalCollateral);
-  // console.log('Collateral corrected:', totalCollateralCorrected);
-  // console.log('Minted amt:', totalMint);
-  // console.log('Minted amt corrected:', totalMintCorrected);
-
-  // console.log(
-  //   'Collateral ratio:',
-  //   totalCollateral.div(totalMint.mul(priceDecimal)).mul(100),
-  //   '%',
-  // );
-  // console.log(
-  //   'Collateral ratio corrected:',
-  //   Decimal(totalCollateralCorrected)
-  //     .div(Decimal(totalMintCorrected).mul(priceDecimal))
-  //     .mul(100),
-  //   '%',
-  // );
-
-  // console.log('Max leverage:', totalCollateral.div(baseCollateral), 'x');
-  // console.log(
-  //   'Max leverage corrected:',
-  //   Decimal(totalCollateralCorrected).div(baseCollateral),
-  //   'x',
-  // );
-
-  // BigInt(
-  //     // We floor so the resulting collateral ratio not below the target collateral ratio.
-  //     .floor()
-  //     .toString(),
-  // );
-
-  // const swappedAda = baseMintedAmt
-  //   .mul(priceDecimal)
-  //   .mul(excludeReimburstmentRatio);
 }
 
 export function randomLrpsSubsetSatisfyingLeverage(
+  iasset: string,
   // Including the reimbursement percentage
   targetLovelacesToSpend: bigint,
+  iassetPrice: OnChainDecimal,
   allLrps: [UTxO, LRPDatum][],
+  lrpParams: LrpParamsSP,
+  randomiseFn: (arr: [UTxO, LRPDatum][]) => [UTxO, LRPDatum][] = shuffle,
 ): [UTxO, LRPDatum][] {
-  const shuffled = shuffle(allLrps);
+  if (targetLovelacesToSpend < lrpParams.minRedemptionLovelacesAmt) {
+    throw new Error("Can't redeem less than the minimum.");
+  }
+
+  const shuffled = randomiseFn(
+    F.pipe(
+      allLrps,
+      A.filter(
+        ([_, datum]) =>
+          datum.iasset === iasset &&
+          datum.maxPrice.getOnChainInt >= iassetPrice.getOnChainInt,
+      ),
+    ),
+  );
 
   // Sorted from highest to lowest by lovelaces to spend
   let result: [UTxO, LRPDatum][] = [];
@@ -570,6 +574,35 @@ export function randomLrpsSubsetSatisfyingLeverage(
 
   for (let i = 0; i < shuffled.length; i++) {
     const element = shuffled[i];
+
+    const lovelacesToSpend = lrpRedeemableLovelacesInclReimb(
+      element,
+      lrpParams,
+    );
+
+    // Do not add LRPs with smaller lovelacesToSpend than the minRedemption
+    // to the random subset.
+    if (lovelacesToSpend < lrpParams.minRedemptionLovelacesAmt) {
+      continue;
+    }
+
+    // When we can't add a new redemption because otherwise the min redemption
+    // wouldn't be satisfied.
+    // Try to replace the smallest collected with a following larger one when available.
+    if (
+      result.length > 0 &&
+      targetLovelacesToSpend - runningSum < lrpParams.minRedemptionLovelacesAmt
+    ) {
+      const last = result[result.length - 1];
+
+      // Pop the smallest collected when the current is larger.
+      if (lrpRedeemableLovelacesInclReimb(last, lrpParams) < lovelacesToSpend) {
+        const popped = result.pop()!;
+        runningSum -= lrpRedeemableLovelacesInclReimb(popped, lrpParams);
+      } else {
+        continue;
+      }
+    }
 
     result = insertSorted(
       result,
@@ -579,19 +612,25 @@ export function randomLrpsSubsetSatisfyingLeverage(
         // From highest to lowest
       )(Ord.reverse(BigIntOrd)),
     );
-    runningSum += element[1].lovelacesToSpend;
+    runningSum += lovelacesToSpend;
 
     // When more items than max allowed, pop the one with smallest value
     if (result.length > MAX_REDEMPTIONS_WITH_CDP_OPEN) {
       const popped = result.pop()!;
-      runningSum -= popped[1].lovelacesToSpend;
+      runningSum -= lrpRedeemableLovelacesInclReimb(popped, lrpParams);
     }
 
     if (runningSum >= targetLovelacesToSpend) {
-      // TODO: Check whether the minimum redemption is satisfied.
       return result;
     }
   }
 
-  throw new Error("Couldn't achieve target lovelaces");
+  if (
+    targetLovelacesToSpend - runningSum >=
+    lrpParams.minRedemptionLovelacesAmt
+  ) {
+    throw new Error("Couldn't achieve target lovelaces");
+  }
+
+  return result;
 }
