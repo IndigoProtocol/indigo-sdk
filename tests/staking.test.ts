@@ -1,6 +1,6 @@
 import { beforeEach, expect, test } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
-import { EmulatorAccount, fromText, Lucid } from '@lucid-evolution/lucid';
+import { EmulatorAccount, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
 import { init } from './endpoints/initialize';
@@ -13,7 +13,7 @@ import {
   distributeAda,
   openStakingPosition,
 } from '../src/contracts/staking/transactions';
-import { collectorFeeTx } from '../src';
+import { collectorFeeTx, fromSystemParamsAsset } from '../src';
 import {
   findAllCollectors,
   findRandomCollector,
@@ -67,13 +67,7 @@ test<MyContext>('Staking - Adjust Position', async ({
   const myStakingPosition = await findStakingPosition(
     lucid,
     systemParams.validatorHashes.stakingHash,
-    {
-      currencySymbol:
-        systemParams.stakingParams.stakingToken[0].unCurrencySymbol,
-      tokenName: fromText(
-        systemParams.stakingParams.stakingToken[1].unTokenName,
-      ),
-    },
+    fromSystemParamsAsset(systemParams.stakingParams.stakingToken),
     pkh.hash,
   );
 
@@ -104,13 +98,7 @@ test<MyContext>('Staking - Close Position', async ({
   const myStakingPosition = await findStakingPosition(
     lucid,
     systemParams.validatorHashes.stakingHash,
-    {
-      currencySymbol:
-        systemParams.stakingParams.stakingToken[0].unCurrencySymbol,
-      tokenName: fromText(
-        systemParams.stakingParams.stakingToken[1].unTokenName,
-      ),
-    },
+    fromSystemParamsAsset(systemParams.stakingParams.stakingToken),
     pkh.hash,
   );
 
@@ -161,13 +149,7 @@ test<MyContext>('Staking - Distribute ADA to Stakers', async ({
   const myStakingPosition = await findStakingPosition(
     lucid,
     systemParams.validatorHashes.stakingHash,
-    {
-      currencySymbol:
-        systemParams.stakingParams.stakingToken[0].unCurrencySymbol,
-      tokenName: fromText(
-        systemParams.stakingParams.stakingToken[1].unTokenName,
-      ),
-    },
+    fromSystemParamsAsset(systemParams.stakingParams.stakingToken),
     pkh.hash,
   );
 
