@@ -114,3 +114,13 @@ export function findStakingPositionByOutRef(
       return result;
     });
 }
+
+export const rewardSnapshotPrecision = 100_0000_000_000n;
+
+export function distributeReward(
+  snapshotAda: bigint,
+  adaReward: bigint,
+  totalStake: bigint,
+): bigint {
+  return snapshotAda + (adaReward * rewardSnapshotPrecision) / totalStake;
+}

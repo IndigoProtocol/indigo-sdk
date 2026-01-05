@@ -1,4 +1,4 @@
-import { beforeEach, test } from 'vitest';
+import { beforeEach, expect, test } from 'vitest';
 import { LucidContext, runAndAwaitTx } from './test-helpers';
 import { EmulatorAccount, fromText, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
@@ -10,8 +10,17 @@ import { iusdInitialAssetCfg } from './mock/assets-mock';
 import {
   adjustStakingPosition,
   closeStakingPosition,
+  distributeAda,
   openStakingPosition,
 } from '../src/contracts/staking/transactions';
+import { collectorFeeTx } from '../src';
+import {
+  findAllCollectors,
+  findRandomCollector,
+} from './queries/collector-queries';
+import { findStakingManager } from '../src/contracts/staking/helpers';
+import { getValueChangeAtAddressAfterAction } from './utils';
+import { lovelaceOf } from '@evolution-sdk/evolution/core/Assets';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -109,4 +118,68 @@ test<MyContext>('Staking - Close Position', async ({
     lucid,
     closeStakingPosition(myStakingPosition.utxo, systemParams, lucid),
   );
+});
+
+test<MyContext>('Staking - Distribute ADA to Stakers', async ({
+  lucid,
+  users,
+}: MyContext) => {
+  lucid.selectWallet.fromSeed(users.admin.seedPhrase);
+  const [systemParams, _] = await init(lucid, [iusdInitialAssetCfg]);
+
+  await runAndAwaitTx(
+    lucid,
+    openStakingPosition(1_000_000n, systemParams, lucid),
+  );
+
+  const collectorOref = await findRandomCollector(
+    lucid,
+    systemParams.validatorHashes.collectorHash,
+  );
+  const tx = lucid.newTx();
+  await collectorFeeTx(100_000_000n, lucid, systemParams, tx, collectorOref);
+  await runAndAwaitTx(lucid, Promise.resolve(tx));
+
+  const collectorUtxo = (
+    await findAllCollectors(lucid, systemParams.validatorHashes.collectorHash)
+  ).find((utxo) => utxo.assets.lovelace > 100_000_000n);
+  if (!collectorUtxo) {
+    throw new Error('Expected a collector UTXO');
+  }
+
+  await runAndAwaitTx(
+    lucid,
+    distributeAda(
+      (await findStakingManager(systemParams, lucid)).utxo,
+      [collectorUtxo],
+      systemParams,
+      lucid,
+    ),
+  );
+
+  const [pkh, __] = await addrDetails(lucid);
+  const myStakingPosition = await findStakingPosition(
+    lucid,
+    systemParams.validatorHashes.stakingHash,
+    {
+      currencySymbol:
+        systemParams.stakingParams.stakingToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stakingParams.stakingToken[1].unTokenName,
+      ),
+    },
+    pkh.hash,
+  );
+
+  const [____, userValChange] = await getValueChangeAtAddressAfterAction(
+    lucid,
+    users.admin.address,
+    () =>
+      runAndAwaitTx(
+        lucid,
+        closeStakingPosition(myStakingPosition.utxo, systemParams, lucid),
+      ),
+  );
+
+  expect(lovelaceOf(userValChange)).toBeGreaterThan(95_000_000n); // There is some loss due to tx fees.
 });
