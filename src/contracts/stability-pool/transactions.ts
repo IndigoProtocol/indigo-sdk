@@ -27,7 +27,10 @@ import {
 import { calculateFeeFromPercentage } from '../../utils/indigo-helpers';
 import { GovDatum, parseGovDatumOrThrow } from '../gov/types';
 import { IAssetContent, parseIAssetDatumOrThrow } from '../cdp/types';
-import { EvoCommon } from '@3rd-eye-labs/cardano-offchain-common';
+import {
+  addressFromBech32,
+  addressToBech32,
+} from '@3rd-eye-labs/cardano-offchain-common';
 import {
   AccountAction,
   AccountContent,
@@ -116,7 +119,7 @@ export async function adjustSpAccount(
     request: {
       Adjust: {
         amount: amount,
-        outputAddress: EvoCommon.addressFromBech32(myAddress),
+        outputAddress: addressFromBech32(myAddress),
       },
     },
   };
@@ -145,7 +148,7 @@ export async function adjustSpAccount(
         RequestAction: {
           Adjust: {
             amount: amount,
-            outputAddress: EvoCommon.addressFromBech32(myAddress),
+            outputAddress: addressFromBech32(myAddress),
           },
         },
       }),
@@ -182,7 +185,7 @@ export async function closeSpAccount(
 
   const request: AccountAction = {
     Close: {
-      outputAddress: EvoCommon.addressFromBech32(myAddress),
+      outputAddress: addressFromBech32(myAddress),
     },
   };
   const oldAccountDatum: AccountContent = parseAccountDatum(
@@ -368,7 +371,7 @@ export async function processSpRequest(
     );
   } else if ('Adjust' in accountDatum.request) {
     const amount = accountDatum.request.Adjust.amount;
-    const outputAddress = EvoCommon.addressToBech32(
+    const outputAddress = addressToBech32(
       accountDatum.request.Adjust.outputAddress,
       lucid.config().network!,
     );
@@ -457,7 +460,16 @@ export async function processSpRequest(
       stabilityPoolDatum.poolSnapshot.scale,
       newPoolSum,
     );
-    await collectorFeeTx(rewardLovelacesFee, lucid, params, tx, collectorOref);
+
+    if (rewardLovelacesFee > 0n) {
+      await collectorFeeTx(
+        rewardLovelacesFee,
+        lucid,
+        params,
+        tx,
+        collectorOref,
+      );
+    }
     tx.readFrom([govUtxo, iAssetUtxo, ...refInputs]);
     tx.pay.ToContract(
       stabilityPoolUtxo.address,
@@ -529,10 +541,10 @@ export async function processSpRequest(
         },
         {
           lovelace: reward - rewardLovelacesFee + 2_000_000n,
-          ...(amount < 0n
+          ...(!isDepositOrRewardWithdrawal
             ? {
                 [params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
-                fromText(asset)]: -(amount - withdrawalFee),
+                fromText(asset)]: -balanceChange - withdrawalFee,
               }
             : {}),
         },
@@ -541,7 +553,7 @@ export async function processSpRequest(
       // TODO: User is self-handling the process request, so we will need to handle the change datum
     }
   } else if ('Close' in accountDatum.request) {
-    const outputAddress = EvoCommon.addressToBech32(
+    const outputAddress = addressToBech32(
       accountDatum.request.Close.outputAddress,
       lucid.config().network!,
     );

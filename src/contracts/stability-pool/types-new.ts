@@ -1,6 +1,6 @@
 import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { match, P } from 'ts-pattern';
-import { EvoCommon } from '@3rd-eye-labs/cardano-offchain-common';
+import { AddressSchema } from '@3rd-eye-labs/cardano-offchain-common';
 import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
 
 export const SPIntegerSchema = EvoCore.TSchema.Struct({
@@ -16,7 +16,7 @@ const AccountActionSchema = EvoCore.TSchema.Union(
       Adjust: EvoCore.TSchema.Struct(
         {
           amount: EvoCore.TSchema.Integer,
-          outputAddress: EvoCommon.AddressSchema,
+          outputAddress: AddressSchema,
         },
         { flatFields: true },
       ),
@@ -26,7 +26,7 @@ const AccountActionSchema = EvoCore.TSchema.Union(
   EvoCore.TSchema.Struct(
     {
       Close: EvoCore.TSchema.Struct(
-        { outputAddress: EvoCommon.AddressSchema },
+        { outputAddress: AddressSchema },
         { flatFields: true },
       ),
     },
