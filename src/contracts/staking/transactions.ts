@@ -1,4 +1,5 @@
 import {
+  addAssets,
   Constr,
   Data,
   fromHex,
@@ -12,19 +13,25 @@ import {
   fromSystemParamsScriptRef,
   SystemParams,
 } from '../../types/system-params';
-import { addrDetails } from '../../utils/lucid-utils';
+import { addrDetails, getInlineDatumOrThrow } from '../../utils/lucid-utils';
 import {
+  distributeReward,
   findStakingManager,
   findStakingManagerByOutRef,
   findStakingPositionByOutRef,
+  rewardSnapshotPrecision,
   updateStakingLockedAmount,
 } from './helpers';
 import {
+  parseStakingManagerDatum,
   serialiseStakingDatum,
   StakingManager,
   StakingPosition,
 } from './types-new';
 import { matchSingle } from '../../utils/utils';
+import { serialiseStakingRedeemer } from './types';
+import { serialiseCollectorRedeemer } from '../collector/types';
+import { mkLovelacesOf } from '../../utils/value-helpers';
 
 export async function openStakingPosition(
   amount: bigint,
@@ -147,7 +154,7 @@ export async function adjustStakingPosition(
   const oldSnapshotAda = stakingPositionOut.datum.positionSnapshot.snapshotAda;
   const adaReward =
     ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
-    (1000000n * 1000000n);
+    rewardSnapshotPrecision;
 
   const newLockedAmount = updateStakingLockedAmount(
     stakingPositionOut.datum.lockedAmount,
@@ -158,8 +165,16 @@ export async function adjustStakingPosition(
     .newTx()
     .validFrom(Date.now())
     .readFrom([stakingRefScriptUtxo])
-    .collectFrom([stakingPositionOut.utxo], Data.to(new Constr(3, [amount])))
-    .collectFrom([stakingManagerOut.utxo], Data.to(new Constr(1, [])))
+    .collectFrom(
+      [stakingPositionOut.utxo],
+      serialiseStakingRedeemer({
+        AdjustStakedAmount: { adjustAmount: amount },
+      }),
+    )
+    .collectFrom(
+      [stakingManagerOut.utxo],
+      serialiseStakingRedeemer('UpdateTotalStake'),
+    )
     .pay.ToContract(
       stakingManagerOut.utxo.address,
       {
@@ -265,4 +280,79 @@ export async function closeStakingPosition(
       Data.void(),
     )
     .addSignerKey(toHex(stakingPositionOut.datum.owner));
+}
+
+const MIN_UTXO_AMOUNT = 2_000_000n;
+
+export async function distributeAda(
+  stakingManagerRef: OutRef,
+  collectorRefs: OutRef[],
+  params: SystemParams,
+  lucid: LucidEvolution,
+): Promise<TxBuilder> {
+  const [stakingManagerUtxo] = await lucid.utxosByOutRef([stakingManagerRef]);
+  const stakingManagerDatum = parseStakingManagerDatum(
+    getInlineDatumOrThrow(stakingManagerUtxo),
+  );
+  const collectorUtxos = (await lucid.utxosByOutRef(collectorRefs))
+    .filter((utxo) => utxo.datum && utxo.datum === Data.void())
+    .filter((utxo) => utxo.assets.lovelace > MIN_UTXO_AMOUNT);
+
+  if (collectorUtxos.length === 0) {
+    throw new Error('No available collectors found');
+  }
+
+  const adaRewardCollected = collectorUtxos.reduce(
+    (acc, utxo) => acc + utxo.assets.lovelace - MIN_UTXO_AMOUNT,
+    0n,
+  );
+  const newSnapshot = distributeReward(
+    stakingManagerDatum.managerSnapshot.snapshotAda,
+    adaRewardCollected,
+    stakingManagerDatum.totalStake,
+  );
+
+  const stakingRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(params.scriptReferences.stakingValidatorRef),
+    ]),
+    (_) => new Error('Expected a single staking Ref Script UTXO'),
+  );
+
+  const collectorRefScriptUtxo = matchSingle(
+    await lucid.utxosByOutRef([
+      fromSystemParamsScriptRef(params.scriptReferences.collectorValidatorRef),
+    ]),
+    (_) => new Error('Expected a single staking Ref Script UTXO'),
+  );
+
+  const tx = lucid
+    .newTx()
+    .readFrom([stakingRefScriptUtxo, collectorRefScriptUtxo])
+    .collectFrom([stakingManagerUtxo], serialiseStakingRedeemer('Distribute'))
+    .collectFrom(
+      collectorUtxos,
+      serialiseCollectorRedeemer('DistributeToStakers'),
+    )
+    .pay.ToContract(
+      stakingManagerUtxo.address,
+      {
+        kind: 'inline',
+        value: serialiseStakingDatum({
+          ...stakingManagerDatum,
+          managerSnapshot: { snapshotAda: newSnapshot },
+        }),
+      },
+      addAssets(stakingManagerUtxo.assets, mkLovelacesOf(adaRewardCollected)),
+    );
+
+  for (const collectorUtxo of collectorUtxos) {
+    tx.pay.ToContract(
+      collectorUtxo.address,
+      { kind: 'inline', value: Data.void() },
+      mkLovelacesOf(MIN_UTXO_AMOUNT),
+    );
+  }
+
+  return tx;
 }

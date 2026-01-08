@@ -1,5 +1,4 @@
 import {
-  Constr,
   Data,
   LucidEvolution,
   OutRef,
@@ -11,6 +10,7 @@ import {
   SystemParams,
 } from '../../types/system-params';
 import { matchSingle } from '../../utils/utils';
+import { serialiseCollectorRedeemer } from './types';
 
 export async function collectorFeeTx(
   fee: bigint,
@@ -31,10 +31,10 @@ export async function collectorFeeTx(
     (_) => new Error('Expected a single collector Ref Script UTXO'),
   );
 
-  tx.collectFrom([collectorUtxo], Data.to(new Constr(0, [])))
+  tx.collectFrom([collectorUtxo], serialiseCollectorRedeemer('Collect'))
     .pay.ToContract(
       collectorUtxo.address,
-      { kind: 'inline', value: Data.to(new Constr(0, [])) },
+      { kind: 'inline', value: Data.void() },
       {
         ...collectorUtxo.assets,
         lovelace: collectorUtxo.assets.lovelace + fee,
