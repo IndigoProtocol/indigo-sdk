@@ -876,8 +876,8 @@ describe('LRP leverage', () => {
           ...iusdInitialAssetCfg.priceOracle,
           startPrice: 1_104_093n,
         },
-        initerestOracle: {
-          ...iusdInitialAssetCfg.initerestOracle,
+        interestOracle: {
+          ...iusdInitialAssetCfg.interestOracle,
           initialInterestRate: 0n,
         },
         maintenanceRatioPercentage: 150_000_000n,
@@ -967,8 +967,8 @@ describe('LRP leverage', () => {
           ...iusdInitialAssetCfg.priceOracle,
           startPrice: 904_093n,
         },
-        initerestOracle: {
-          ...iusdInitialAssetCfg.initerestOracle,
+        interestOracle: {
+          ...iusdInitialAssetCfg.interestOracle,
           initialInterestRate: 0n,
         },
         maintenanceRatioPercentage: 150_000_000n,
@@ -1071,8 +1071,8 @@ describe('LRP leverage', () => {
           ...iusdInitialAssetCfg.priceOracle,
           startPrice: 1_037_093n,
         },
-        initerestOracle: {
-          ...iusdInitialAssetCfg.initerestOracle,
+        interestOracle: {
+          ...iusdInitialAssetCfg.interestOracle,
           initialInterestRate: 0n,
         },
         maintenanceRatioPercentage: 150_000_000n,
@@ -1175,8 +1175,8 @@ describe('LRP leverage', () => {
           ...iusdInitialAssetCfg.priceOracle,
           startPrice: 1_461_093n,
         },
-        initerestOracle: {
-          ...iusdInitialAssetCfg.initerestOracle,
+        interestOracle: {
+          ...iusdInitialAssetCfg.interestOracle,
           initialInterestRate: 0n,
         },
         maintenanceRatioPercentage: 150_000_000n,
@@ -1279,8 +1279,8 @@ describe('LRP leverage', () => {
           ...iusdInitialAssetCfg.priceOracle,
           startPrice: 1_000_000n,
         },
-        initerestOracle: {
-          ...iusdInitialAssetCfg.initerestOracle,
+        interestOracle: {
+          ...iusdInitialAssetCfg.interestOracle,
           initialInterestRate: 0n,
         },
         maintenanceRatioPercentage: 150_000_000n,
@@ -1394,8 +1394,8 @@ describe('LRP leverage', () => {
           ...iusdInitialAssetCfg.priceOracle,
           startPrice: 2_500_000n,
         },
-        initerestOracle: {
-          ...iusdInitialAssetCfg.initerestOracle,
+        interestOracle: {
+          ...iusdInitialAssetCfg.interestOracle,
           initialInterestRate: 0n,
         },
         maintenanceRatioPercentage: 130_000_000n,

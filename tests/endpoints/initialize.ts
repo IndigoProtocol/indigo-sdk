@@ -285,7 +285,7 @@ async function initializeAsset(
   const interestOracleTokenName = asset.name + '_ORACLE';
   const [startInterestOracleTx, interestOracleNft] = await startInterestOracle(
     0n,
-    asset.initerestOracle.initialInterestRate,
+    asset.interestOracle.initialInterestRate,
     0n,
     {
       owner: pkh.hash,

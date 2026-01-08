@@ -199,7 +199,7 @@ export async function leverageCdpWithLrp(
     network,
   );
 
-  let tx = lucid
+  const tx = lucid
     .newTx()
     .validFrom(txValidity.validFrom)
     .validTo(txValidity.validTo)
@@ -254,7 +254,7 @@ export async function leverageCdpWithLrp(
     )
     .addSignerKey(pkh.hash);
 
-  tx = buildRedemptionsTx(
+  buildRedemptionsTx(
     redemptionDetails.redemptions.map((r) => [
       r.utxo,
       r.iassetsForRedemptionAmt,
