@@ -20,7 +20,7 @@ import {
 } from './queries/collector-queries';
 import { findStakingManager } from '../src/contracts/staking/helpers';
 import { getValueChangeAtAddressAfterAction } from './utils';
-import { lovelaceOf } from '@evolution-sdk/evolution/core/Assets';
+import { lovelacesAmt } from '@3rd-eye-labs/cardano-offchain-common';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -163,5 +163,5 @@ test<MyContext>('Staking - Distribute ADA to Stakers', async ({
       ),
   );
 
-  expect(lovelaceOf(userValChange)).toBeGreaterThan(95_000_000n); // There is some loss due to tx fees.
+  expect(lovelacesAmt(userValChange)).toBeGreaterThan(95_000_000n); // There is some loss due to tx fees.
 });
