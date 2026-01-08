@@ -13,6 +13,10 @@ export function ocdCeil(a: OnChainDecimal): bigint {
   return a.getOnChainInt > whole * OCD_DECIMAL_UNIT ? whole + 1n : whole;
 }
 
+export function ocdFloor(a: OnChainDecimal): bigint {
+  return a.getOnChainInt / OCD_DECIMAL_UNIT;
+}
+
 export function ocdNegate(a: OnChainDecimal): OnChainDecimal {
   return { getOnChainInt: -a.getOnChainInt };
 }

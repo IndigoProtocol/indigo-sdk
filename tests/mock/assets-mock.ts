@@ -8,7 +8,7 @@ export type InitialAsset = {
       expirationTime: bigint;
     };
   };
-  initerestOracle: {
+  interestOracle: {
     tokenName: string;
     initialInterestRate: bigint;
     params: {
@@ -38,7 +38,7 @@ export const iusdInitialAssetCfg: InitialAsset = {
       expirationTime: 1_800_000n,
     },
   },
-  initerestOracle: {
+  interestOracle: {
     tokenName: 'iUSD_ORACLE',
     initialInterestRate: 1_000_000n,
     params: {
