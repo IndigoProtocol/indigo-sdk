@@ -1,3 +1,56 @@
+/**
+ * The following is the math related to the leverage calculations.
+ *
+ * Leverage is the multiplier you apply to the base deposit and you get the amount of final collateral
+ * the CDP should have. Additionally, the minted amount is used to pay for fees. The leverage a user picks, is
+ * already taking into account the fees, i.e. the fees are paid from the borrowed assets.
+ *
+ * There's a direct relationship between collateral ratio and leverage multiplier. Each leverage multiplier
+ * results in a single collateral ratio and vice versa. Maximum potential leverage is the leverage that
+ * results in collateral ratio being the maintenance collateral ratio of the corresponding iAsset.
+ *
+ * `d` = base deposit
+ * `b` = total borrowed value (including the fees)
+ * `L` = leverage
+ * `f_m` = debt minting fee
+ * `f_r` = reimbursement fee
+ * `c` = collateral ratio
+ *
+ * The following is a detailed derivation of the math:
+ *
+ *  1.  Since the redemption fee is proportional to the borrowed amount,
+ *      we can express the ADA we get from the order book as `b'=b*(1-f_r)`,
+ *      since some of the borrowed amount goes back to the order book.
+ *
+ *  2.  Since all the minted iAsset are used to get borrowed ADA,
+ *      the value of the minted asset will be `b`.
+ *
+ *  3.  The minting fee is a percentage of the value of the minted iAsset.
+ *      Therefore the available ADA to add as collateral is `b''=b' - b*f_m = b*(1 - f_r - f_m)`.
+ *
+ *  4.  The collateral ratio can now be expressed as `c = (d + b * (1 - f_r - f_m)) / b`.
+ *
+ *  5.  Working out the expression, we can express `b` in terms of everything else: `b = d / (c - 1 + f_r + f_m)`.
+ *
+ *  6.  The minted amount will be `b / asset_price`.
+ *
+ *  7.  Collateral amount of the CDP is `d + b * (1 - f_r - f_m)`
+ *
+ *  8.  Leverage calculation: `L = (d + b * (1 - f_r - f_m)) / d`.
+ *
+ *      Plugging in the `b` formula we get: `L = (d + (d / (c - 1 + f_r + f_m)) * (1 - f_r - f_m)) / d`.
+ *
+ *      Simplified, yields the following:
+ *      `L = 1 + ((1 - f_r - f_m) / (c - 1 + f_r + f_m))`
+ *
+ *  9.  `b'' = b * (1 - f_r - f_m)`
+ *      Solved for `b` yields the following:
+ *      `b = b'' / (1 - f_r - f_m)`
+ *
+ *  10. Having leverage and base deposit, we can find `b''`:
+ *      `b’’ = d(L - 1)`
+ */
+
 import { UTxO } from '@lucid-evolution/lucid';
 import {
   OCD_DECIMAL_UNIT,
@@ -39,6 +92,8 @@ type ApproximateLeverageRedemptionsResult = {
  * We assume exact precision. However, actual redemptions include rounding and
  * the rounding behaviour changes based on the number of redemptions.
  * This may slightly tweak the numbers and the result can be different.
+ *
+ * The math is described at the top of this code file.
  */
 export function approximateLeverageRedemptions(
   baseCollateral: bigint,
@@ -217,6 +272,9 @@ export function summarizeActualLeverageRedemptions(
   };
 }
 
+/**
+ * The math is described at the top of this code file.
+ */
 export function calculateCollateralRatioFromLeverage(
   iasset: string,
   leverage: number,
@@ -289,27 +347,7 @@ export function calculateCollateralRatioFromLeverage(
 }
 
 /**
- * `d` = base deposit
- * `b` = total borrowed value (including the fees)
- * `L` = leverage
- * `f_m` = debt minting fee
- * `f_r` = reimbursement fee
- * `c` = collateral ratio
- *
- * CDP final collateral:
- * `d + b * (1 - f_r - f_m)`
- *
- * Calculating `b`:
- * `b = d / (c - 1 + f_r + f_m)`
- *
- * Then the calculation for leverage is the following:
- * `L = (d + b * (1 - f_r - f_m)) / d`
- *
- * Plugging in the `b` formula we get:
- * `L = (d + (d / (c - 1 + f_r + f_m)) * (1 - f_r - f_m)) / d`
- *
- * Simplified, yields the following:
- * `L = 1 + ((1 - f_r - f_m) / (c - 1 + f_r + f_m))`
+ * The math is described at the top of this code file.
  */
 export function calculateLeverageFromCollateralRatio(
   iasset: string,
