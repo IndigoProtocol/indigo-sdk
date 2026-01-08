@@ -330,7 +330,10 @@ export async function distributeAda(
     .newTx()
     .readFrom([stakingRefScriptUtxo, collectorRefScriptUtxo])
     .collectFrom([stakingManagerUtxo], serialiseStakingRedeemer('Distribute'))
-    .collectFrom(collectorUtxos, serialiseCollectorRedeemer('Distribute'))
+    .collectFrom(
+      collectorUtxos,
+      serialiseCollectorRedeemer('DistributeToStakers'),
+    )
     .pay.ToContract(
       stakingManagerUtxo.address,
       {

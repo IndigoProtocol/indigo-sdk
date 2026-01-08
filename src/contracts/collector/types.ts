@@ -2,7 +2,7 @@ import { Data, Redeemer } from '@lucid-evolution/lucid';
 
 const CollectorRedeemerSchema = Data.Enum([
   Data.Literal('Collect'),
-  Data.Literal('Distribute'),
+  Data.Literal('DistributeToStakers'),
   Data.Literal('UpgradeVersion'),
 ]);
 export type CollectorRedeemer = Data.Static<typeof CollectorRedeemerSchema>;

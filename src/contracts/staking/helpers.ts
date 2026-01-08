@@ -15,6 +15,7 @@ import {
 } from './types-new';
 import { createScriptAddress } from '../../utils/lucid-utils';
 import { mkStakingValidatorFromSP } from './scripts';
+import { OCD_DECIMAL_UNIT } from '../../types/on-chain-decimal';
 
 export type StakingPositionOutput = {
   utxo: UTxO;
@@ -115,7 +116,7 @@ export function findStakingPositionByOutRef(
     });
 }
 
-export const rewardSnapshotPrecision = 100_0000_000_000n;
+export const rewardSnapshotPrecision = OCD_DECIMAL_UNIT * OCD_DECIMAL_UNIT;
 
 export function distributeReward(
   snapshotAda: bigint,
