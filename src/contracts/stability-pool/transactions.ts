@@ -12,7 +12,7 @@ import {
   toHex,
 } from '@lucid-evolution/lucid';
 import { ActionReturnDatum } from './types';
-import { SystemParams } from '../../types/system-params';
+import { fromSystemParamsAsset, SystemParams } from '../../types/system-params';
 import {
   addrDetails,
   getInlineDatumOrThrow,
@@ -49,6 +49,7 @@ import {
   StabilityPoolSnapshot,
 } from './types-new';
 import { collectorFeeTx } from '../collector/transactions';
+import { mkAssetsOf } from '../../utils/value-helpers';
 
 export async function createSpAccount(
   asset: string,
@@ -666,6 +667,53 @@ export async function processSpRequest(
         },
       );
     }
+  }
+
+  return tx;
+}
+
+export async function annulRequest(
+  accountUtxo: UTxO,
+  params: SystemParams,
+  lucid: LucidEvolution,
+): Promise<TxBuilder> {
+  const stabilityPoolScriptRef = await scriptRef(
+    params.scriptReferences.stabilityPoolValidatorRef,
+    lucid,
+  );
+
+  const oldAccountDatum: AccountContent = parseAccountDatum(
+    getInlineDatumOrThrow(accountUtxo),
+  );
+
+  const tx = lucid
+    .newTx()
+    .readFrom([stabilityPoolScriptRef])
+    .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer('AnnulRequest'))
+    .addSignerKey(toHex(oldAccountDatum.owner));
+
+  if (oldAccountDatum.request !== 'Create') {
+    tx.pay.ToContract(
+      credentialToAddress(lucid.config().network!, {
+        hash: validatorToScriptHash(
+          mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
+        ),
+        type: 'Script',
+      }),
+      {
+        kind: 'inline',
+        value: serialiseStabilityPoolDatum({
+          Account: {
+            ...oldAccountDatum,
+            request: null,
+          },
+        }),
+      },
+      mkAssetsOf(
+        fromSystemParamsAsset(params.stabilityPoolParams.accountToken),
+        1n,
+      ),
+    );
   }
 
   return tx;

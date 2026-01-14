@@ -125,3 +125,14 @@ export function distributeReward(
 ): bigint {
   return snapshotAda + (adaReward * rewardSnapshotPrecision) / totalStake;
 }
+
+export function calculateAdaReward(
+  currentSnapshotAda: bigint,
+  oldSnapshotAda: bigint,
+  existingIndyAmount: bigint,
+): bigint {
+  return (
+    ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
+    rewardSnapshotPrecision
+  );
+}

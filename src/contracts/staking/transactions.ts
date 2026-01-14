@@ -6,6 +6,7 @@ import {
   fromText,
   LucidEvolution,
   OutRef,
+  slotToUnixTime,
   toHex,
   TxBuilder,
 } from '@lucid-evolution/lucid';
@@ -32,6 +33,7 @@ import { matchSingle } from '../../utils/utils';
 import { serialiseStakingRedeemer } from './types';
 import { serialiseCollectorRedeemer } from '../collector/types';
 import { mkLovelacesOf } from '../../utils/value-helpers';
+import { ONE_SECOND } from '../../utils/time-helpers';
 
 export async function openStakingPosition(
   amount: bigint,
@@ -119,9 +121,11 @@ export async function adjustStakingPosition(
   amount: bigint,
   params: SystemParams,
   lucid: LucidEvolution,
+  currentSlot: number,
   stakingManagerRef?: OutRef,
 ): Promise<TxBuilder> {
-  const now = Date.now();
+  const network = lucid.config().network!;
+  const currentTime = slotToUnixTime(network, currentSlot) - ONE_SECOND;
 
   const stakingPositionOut = await findStakingPositionByOutRef(
     stakingPositionRef,
@@ -158,12 +162,12 @@ export async function adjustStakingPosition(
 
   const newLockedAmount = updateStakingLockedAmount(
     stakingPositionOut.datum.lockedAmount,
-    BigInt(now),
+    BigInt(currentTime),
   );
 
   return lucid
     .newTx()
-    .validFrom(Date.now())
+    .validFrom(currentTime)
     .readFrom([stakingRefScriptUtxo])
     .collectFrom(
       [stakingPositionOut.utxo],
@@ -210,8 +214,12 @@ export async function closeStakingPosition(
   stakingPositionRef: OutRef,
   params: SystemParams,
   lucid: LucidEvolution,
+  currentSlot: number,
   stakingManagerRef?: OutRef,
 ): Promise<TxBuilder> {
+  const network = lucid.config().network!;
+  const currentTime = slotToUnixTime(network, currentSlot) - ONE_SECOND;
+
   const stakingPositionOut = await findStakingPositionByOutRef(
     stakingPositionRef,
     lucid,
@@ -255,7 +263,7 @@ export async function closeStakingPosition(
 
   return lucid
     .newTx()
-    .validFrom(Date.now())
+    .validFrom(currentTime)
     .readFrom([stakingRefScriptUtxo, stakingTokenPolicyRefScriptUtxo])
     .collectFrom([stakingPositionOut.utxo], Data.to(new Constr(4, [])))
     .collectFrom([stakingManagerOut.utxo], Data.to(new Constr(1, [])))

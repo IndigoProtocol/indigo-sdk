@@ -1,6 +1,6 @@
 {
   "name": "@indigo-labs/indigo-sdk",
-  "version": "0.2.4",
+  "version": "0.2.11",
   "description": "Indigo SDK for interacting with Indigo endpoints via lucid-evolution",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -40,7 +40,7 @@
   "author": "3rd Eye Labs",
   "license": "MIT",
   "dependencies": {
-    "@3rd-eye-labs/cardano-offchain-common": "^1.1.7",
+    "@3rd-eye-labs/cardano-offchain-common": "^1.1.8",
     "@evolution-sdk/evolution": "^0.2.5",
     "@harmoniclabs/crypto": "^0.3.0",
     "@lucid-evolution/lucid": "^0.4.29",

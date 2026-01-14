@@ -39,7 +39,13 @@ export async function addrDetails(
   lucid: LucidEvolution,
 ): Promise<[Credential, Credential | undefined]> {
   const addr = await lucid.wallet().address();
-  return [paymentCredentialOf(addr), stakeCredentialOf(addr)];
+  let stakeCredential = undefined;
+  try {
+    stakeCredential = stakeCredentialOf(addr);
+  } catch (_) {
+    // No stake credential
+  }
+  return [paymentCredentialOf(addr), stakeCredential];
 }
 
 export function createScriptAddress(

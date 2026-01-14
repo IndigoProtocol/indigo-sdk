@@ -10,6 +10,7 @@ export * from './contracts/gov/transactions';
 export * from './contracts/gov/types';
 export * from './contracts/stability-pool/transactions';
 export * from './contracts/stability-pool/types-new';
+export * from './contracts/staking/helpers';
 export * from './contracts/staking/transactions';
 export * from './contracts/staking/types';
 export * from './contracts/staking/types-new';

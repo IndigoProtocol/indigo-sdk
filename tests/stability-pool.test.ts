@@ -7,6 +7,7 @@ import { init } from './endpoints/initialize';
 import {
   addrDetails,
   adjustSpAccount,
+  annulRequest,
   closeSpAccount,
   createSpAccount,
   fromSystemParamsAsset,
@@ -394,6 +395,159 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
       ),
     ),
   );
+});
+
+test<MyContext>('Stability Pool - Annul Request', async ({
+  lucid,
+  users,
+  emulator,
+}: MyContext) => {
+  lucid.selectWallet.fromSeed(users.admin.seedPhrase);
+  const [systemParams, [iusdInfo]] = await init(lucid, [iusdInitialAssetCfg]);
+  lucid.selectWallet.fromSeed(users.user.seedPhrase);
+  const [pkh, _] = await addrDetails(lucid);
+
+  const iasset = await findIAsset(
+    lucid,
+    systemParams.validatorHashes.cdpHash,
+    fromSystemParamsAsset(systemParams.cdpParams.iAssetAuthToken),
+    iusdInfo.iassetTokenNameAscii,
+  );
+
+  await runAndAwaitTx(
+    lucid,
+    openCdp(
+      1_000_000_000n,
+      20n,
+      systemParams,
+      await findRandomCdpCreator(
+        lucid,
+        systemParams.validatorHashes.cdpCreatorHash,
+        fromSystemParamsAsset(systemParams.cdpCreatorParams.cdpCreatorNft),
+      ),
+      iasset.utxo,
+      await findPriceOracle(
+        lucid,
+        match(iasset.datum.price)
+          .with({ Oracle: { content: P.select() } }, (oracleNft) => oracleNft)
+          .otherwise(() => {
+            throw new Error('Expected active oracle');
+          }),
+      ),
+      await findInterestOracle(lucid, iasset.datum.interestOracleNft),
+      await findRandomCollector(
+        lucid,
+        systemParams.validatorHashes.collectorHash,
+      ),
+      lucid,
+      emulator.slot,
+    ),
+  );
+
+  await runAndAwaitTx(
+    lucid,
+    createSpAccount(iusdInfo.iassetTokenNameAscii, 10n, systemParams, lucid),
+  );
+
+  lucid.selectWallet.fromSeed(users.admin.seedPhrase);
+
+  let stabilityPoolUtxo = await findStabilityPool(
+    lucid,
+    systemParams.validatorHashes.stabilityPoolHash,
+    {
+      currencySymbol:
+        systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
+      ),
+    },
+    iusdInfo.iassetTokenNameAscii,
+  );
+
+  let accountUtxo = await findStabilityPoolAccount(
+    lucid,
+    systemParams.validatorHashes.stabilityPoolHash,
+    pkh.hash,
+    iusdInfo.iassetTokenNameAscii,
+  );
+
+  const assetUtxo = await findIAsset(
+    lucid,
+    systemParams.validatorHashes.cdpHash,
+    {
+      currencySymbol:
+        systemParams.cdpParams.iAssetAuthToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.cdpParams.iAssetAuthToken[1].unTokenName,
+      ),
+    },
+    iusdInfo.iassetTokenNameAscii,
+  );
+
+  const govUtxo = await findGov(lucid, systemParams.validatorHashes.govHash, {
+    currencySymbol: systemParams.govParams.govNFT[0].unCurrencySymbol,
+    tokenName: fromText(systemParams.govParams.govNFT[1].unTokenName),
+  });
+
+  await runAndAwaitTx(
+    lucid,
+    processSpRequest(
+      iusdInfo.iassetTokenNameAscii,
+      stabilityPoolUtxo,
+      accountUtxo,
+      govUtxo.utxo,
+      assetUtxo.utxo,
+      undefined,
+      systemParams,
+      lucid,
+      await findRandomCollector(
+        lucid,
+        systemParams.validatorHashes.collectorHash,
+      ),
+    ),
+  );
+
+  lucid.selectWallet.fromSeed(users.user.seedPhrase);
+
+  stabilityPoolUtxo = await findStabilityPool(
+    lucid,
+    systemParams.validatorHashes.stabilityPoolHash,
+    {
+      currencySymbol:
+        systemParams.stabilityPoolParams.stabilityPoolToken[0].unCurrencySymbol,
+      tokenName: fromText(
+        systemParams.stabilityPoolParams.stabilityPoolToken[1].unTokenName,
+      ),
+    },
+    iusdInfo.iassetTokenNameAscii,
+  );
+
+  accountUtxo = await findStabilityPoolAccount(
+    lucid,
+    systemParams.validatorHashes.stabilityPoolHash,
+    pkh.hash,
+    iusdInfo.iassetTokenNameAscii,
+  );
+
+  await runAndAwaitTx(
+    lucid,
+    adjustSpAccount(
+      iusdInfo.iassetTokenNameAscii,
+      10n,
+      accountUtxo,
+      systemParams,
+      lucid,
+    ),
+  );
+
+  accountUtxo = await findStabilityPoolAccount(
+    lucid,
+    systemParams.validatorHashes.stabilityPoolHash,
+    pkh.hash,
+    iusdInfo.iassetTokenNameAscii,
+  );
+
+  await runAndAwaitTx(lucid, annulRequest(accountUtxo, systemParams, lucid));
 });
 
 test<MyContext>('Stability Pool - Close Account', async ({
