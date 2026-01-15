@@ -17,6 +17,7 @@ export * from './contracts/staking/types-new';
 export * from './contracts/interest-oracle/transactions';
 export * from './contracts/interest-oracle/types';
 export * from './contracts/interest-oracle/scripts';
+export * from './contracts/interest-oracle/helpers';
 export * from './contracts/version-registry/types';
 export * from './contracts/version-registry/scripts';
 export * from './contracts/treasury/transactions';
