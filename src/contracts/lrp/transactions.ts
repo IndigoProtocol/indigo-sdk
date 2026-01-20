@@ -213,6 +213,10 @@ export async function adjustLrp(
     );
   }
 
+  if (newMaxPrice && newMaxPrice.getOnChainInt < 0n) {
+    throw new Error('Max price cannot be negative');
+  }
+
   return lucid
     .newTx()
     .readFrom([lrpScriptRefUtxo])
