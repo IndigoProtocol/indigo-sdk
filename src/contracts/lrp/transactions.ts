@@ -173,6 +173,7 @@ export async function adjustLrp(
    * and a negative amount takes lovelaces from the LRP.
    */
   lovelacesAdjustAmt: bigint,
+  newMaxPrice: OnChainDecimal | undefined,
   sysParams: SystemParams,
 ): Promise<TxBuilder> {
   const lrpScriptRefUtxo = matchSingle(
@@ -212,6 +213,10 @@ export async function adjustLrp(
     );
   }
 
+  if (newMaxPrice && newMaxPrice.getOnChainInt < 0n) {
+    throw new Error('Max price cannot be negative');
+  }
+
   return lucid
     .newTx()
     .readFrom([lrpScriptRefUtxo])
@@ -223,6 +228,7 @@ export async function adjustLrp(
         value: serialiseLrpDatum({
           ...lrpDatum,
           lovelacesToSpend: lrpDatum.lovelacesToSpend + lovelacesAdjustAmt,
+          maxPrice: newMaxPrice ? newMaxPrice : lrpDatum.maxPrice,
         }),
       },
       addAssets(
@@ -242,5 +248,5 @@ export async function claimLrp(
   lrpOutRef: OutRef,
   sysParams: SystemParams,
 ): Promise<TxBuilder> {
-  return adjustLrp(lucid, lrpOutRef, 0n, sysParams);
+  return adjustLrp(lucid, lrpOutRef, 0n, undefined, sysParams);
 }

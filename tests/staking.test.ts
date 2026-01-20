@@ -54,6 +54,7 @@ test<MyContext>('Staking - Create Position', async ({
 test<MyContext>('Staking - Adjust Position', async ({
   lucid,
   users,
+  emulator,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const [systemParams, _] = await init(lucid, [iusdInitialAssetCfg]);
@@ -78,6 +79,7 @@ test<MyContext>('Staking - Adjust Position', async ({
       1_000_000n,
       systemParams,
       lucid,
+      emulator.slot,
     ),
   );
 });
@@ -85,6 +87,7 @@ test<MyContext>('Staking - Adjust Position', async ({
 test<MyContext>('Staking - Close Position', async ({
   lucid,
   users,
+  emulator,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const [systemParams, _] = await init(lucid, [iusdInitialAssetCfg]);
@@ -104,13 +107,19 @@ test<MyContext>('Staking - Close Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    closeStakingPosition(myStakingPosition.utxo, systemParams, lucid),
+    closeStakingPosition(
+      myStakingPosition.utxo,
+      systemParams,
+      lucid,
+      emulator.slot,
+    ),
   );
 });
 
 test<MyContext>('Staking - Distribute ADA to Stakers', async ({
   lucid,
   users,
+  emulator,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const [systemParams, _] = await init(lucid, [iusdInitialAssetCfg]);
@@ -159,7 +168,12 @@ test<MyContext>('Staking - Distribute ADA to Stakers', async ({
     () =>
       runAndAwaitTx(
         lucid,
-        closeStakingPosition(myStakingPosition.utxo, systemParams, lucid),
+        closeStakingPosition(
+          myStakingPosition.utxo,
+          systemParams,
+          lucid,
+          emulator.slot,
+        ),
       ),
   );
 
