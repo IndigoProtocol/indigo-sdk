@@ -92,7 +92,7 @@ describe('LRP', () => {
     await runAndAwaitTx(
       context.lucid,
       findSingleLrp(context, sysParams, iasset, ownPkh).then((lrp) =>
-        adjustLrp(context.lucid, lrp, -1_000_000n, sysParams),
+        adjustLrp(context.lucid, lrp, -1_000_000n, undefined, sysParams),
       ),
     );
 
@@ -118,7 +118,7 @@ describe('LRP', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      adjustLrp(context.lucid, adjustedUtxo1, 5_000_000n, sysParams),
+      adjustLrp(context.lucid, adjustedUtxo1, 5_000_000n, undefined, sysParams),
     );
 
     const adjustedUtxo2 = await findSingleLrp(
@@ -327,7 +327,7 @@ describe('LRP', () => {
 
     await runAndAwaitTx(
       context.lucid,
-      adjustLrp(context.lucid, redeemedLrp, -1_000_000n, sysParams),
+      adjustLrp(context.lucid, redeemedLrp, -1_000_000n, undefined, sysParams),
     );
 
     const adjustedLrp = await findSingleLrp(context, sysParams, iasset, ownPkh);
