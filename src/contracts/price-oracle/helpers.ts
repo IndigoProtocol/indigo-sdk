@@ -3,6 +3,7 @@ import {
   slotToUnixTime,
   unixTimeToSlot,
 } from '@lucid-evolution/lucid';
+import { ONE_SECOND } from '../../utils/time-helpers';
 
 /**
  * Calculates the validity range based on the oracle expiration,
@@ -17,7 +18,9 @@ export function oracleExpirationAwareValidity(
   validFrom: number;
   validTo: number;
 } {
-  const validateFrom = slotToUnixTime(network, currentSlot - 1);
+  const validateFrom =
+    slotToUnixTime(network, currentSlot - 1) -
+    Math.min(120 * ONE_SECOND, biasTime);
   const defaultValidateTo = validateFrom + biasTime;
   /// Take the oracle expiration time - 1 slot which is the last acceptable non-expired valid_to time
   /// for the current oracle.
