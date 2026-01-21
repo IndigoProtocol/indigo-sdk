@@ -20,7 +20,7 @@ export function oracleExpirationAwareValidity(
 } {
   const validateFrom =
     slotToUnixTime(network, currentSlot - 1) -
-    Math.min(120 * ONE_SECOND, biasTime);
+    Math.min(120 * ONE_SECOND, biasTime - ONE_SECOND);
   const defaultValidateTo = validateFrom + biasTime;
   /// Take the oracle expiration time - 1 slot which is the last acceptable non-expired valid_to time
   /// for the current oracle.

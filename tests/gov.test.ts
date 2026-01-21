@@ -21,6 +21,7 @@ import { findGov } from './queries/governance-queries';
 import {
   addrDetails,
   addressFromBech32,
+  adjustStakingPosition,
   createProposal,
   createScriptAddress,
   createShardsChunks,
@@ -528,6 +529,60 @@ describe('Gov', () => {
     );
 
     await runVote(pollId, 'Yes', sysParams, context);
+  });
+
+  test<MyContext>('Vote on proposal, then deposit more INDY', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const [sysParams, _] = await init(context.lucid, [iusdInitialAssetCfg]);
+
+    const govUtxo = await findGov(
+      context.lucid,
+      sysParams.validatorHashes.govHash,
+      fromSystemParamsAsset(sysParams.govParams.govNFT),
+    );
+
+    const [tx, pollId] = await createProposal(
+      { TextProposal: { bytes: fromText('smth') } },
+      null,
+      sysParams,
+      context.lucid,
+      context.emulator.slot,
+      govUtxo.utxo,
+      [],
+    );
+
+    await runAndAwaitTxBuilder(context.lucid, tx);
+
+    await runCreateAllShards(pollId, sysParams, context);
+
+    await runAndAwaitTx(
+      context.lucid,
+      openStakingPosition(1_000_000n, sysParams, context.lucid),
+    );
+
+    await runVote(pollId, 'Yes', sysParams, context);
+
+    const [pkh, _skh] = await addrDetails(context.lucid);
+    const stakingPosUtxo = await findStakingPosition(
+      context.lucid,
+      sysParams.validatorHashes.stakingHash,
+      fromSystemParamsAsset(sysParams.stakingParams.stakingToken),
+      pkh.hash,
+    );
+
+    context.emulator.awaitSlot(60);
+
+    await runAndAwaitTx(
+      context.lucid,
+      adjustStakingPosition(
+        stakingPosUtxo.utxo,
+        500_000_000n,
+        sysParams,
+        context.lucid,
+        context.emulator.slot,
+      ),
+    );
   });
 
   test<MyContext>('Vote on 2 proposals sequentially (lower pollID first)', async (context: MyContext) => {

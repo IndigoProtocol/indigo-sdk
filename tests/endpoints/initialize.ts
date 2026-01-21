@@ -666,7 +666,7 @@ export async function init(
     govNFT: toSystemParamsAsset(govNftAsset),
     minCollateralInLovelace: 10_000_000,
     partialRedemptionExtraFeeLovelace: 10_000_000,
-    biasTime: 120_000,
+    biasTime: 180_000,
     treasuryValHash: treasuryValHash,
   };
   const cdpValHash = validatorToScriptHash(mkCdpValidatorFromSP(cdpParams));
@@ -680,7 +680,7 @@ export async function init(
     cdpScriptHash: cdpValHash,
     collectorValHash: collectorValHash,
     minCollateralInLovelace: 10_000_000,
-    biasTime: 8_000n,
+    biasTime: 180_000n,
   };
   const cdpCreatorValidator = mkCDPCreatorValidatorFromSP(cdpCreatorParams);
   const cdpCreatorValHash = validatorToScriptHash(cdpCreatorValidator);

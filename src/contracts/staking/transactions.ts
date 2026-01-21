@@ -1,6 +1,5 @@
 import {
   addAssets,
-  Constr,
   Data,
   fromHex,
   fromText,
@@ -32,7 +31,7 @@ import {
 import { matchSingle } from '../../utils/utils';
 import { serialiseStakingRedeemer } from './types';
 import { serialiseCollectorRedeemer } from '../collector/types';
-import { mkLovelacesOf } from '../../utils/value-helpers';
+import { mkAssetsOf, mkLovelacesOf } from '../../utils/value-helpers';
 import { ONE_SECOND } from '../../utils/time-helpers';
 
 export async function openStakingPosition(
@@ -85,7 +84,12 @@ export async function openStakingPosition(
     fromText(params.stakingParams.indyToken[1].unTokenName);
   return lucid
     .newTx()
-    .collectFrom([stakingManagerOut.utxo], Data.to(new Constr(0, [pkh.hash])))
+    .collectFrom(
+      [stakingManagerOut.utxo],
+      serialiseStakingRedeemer({
+        CreateStakingPosition: { creatorPkh: pkh.hash },
+      }),
+    )
     .readFrom([stakingRefScriptUtxo])
     .pay.ToContract(
       stakingManagerOut.utxo.address,
@@ -125,7 +129,7 @@ export async function adjustStakingPosition(
   stakingManagerRef?: OutRef,
 ): Promise<TxBuilder> {
   const network = lucid.config().network!;
-  const currentTime = slotToUnixTime(network, currentSlot) - ONE_SECOND;
+  const currentTime = slotToUnixTime(network, currentSlot) - 120 * ONE_SECOND;
 
   const stakingPositionOut = await findStakingPositionByOutRef(
     stakingPositionRef,
@@ -142,12 +146,6 @@ export async function adjustStakingPosition(
     (_) => new Error('Expected a single staking Ref Script UTXO'),
   );
 
-  const stakingToken =
-    params.stakingParams.stakingToken[0].unCurrencySymbol +
-    fromText(params.stakingParams.stakingToken[1].unTokenName);
-  const stakingManagerToken =
-    params.stakingParams.stakingManagerNFT[0].unCurrencySymbol +
-    fromText(params.stakingParams.stakingManagerNFT[1].unTokenName);
   const indyToken =
     params.stakingParams.indyToken[0].unCurrencySymbol +
     fromText(params.stakingParams.indyToken[1].unTokenName);
@@ -188,10 +186,7 @@ export async function adjustStakingPosition(
           totalStake: stakingManagerOut.datum.totalStake + amount,
         }),
       },
-      {
-        lovelace: stakingManagerOut.utxo.assets.lovelace - adaReward,
-        [stakingManagerToken]: 1n,
-      },
+      addAssets(stakingManagerOut.utxo.assets, mkLovelacesOf(-adaReward)),
     )
     .pay.ToContract(
       stakingPositionOut.utxo.address,
@@ -202,10 +197,16 @@ export async function adjustStakingPosition(
           lockedAmount: newLockedAmount,
         }),
       },
-      {
-        [stakingToken]: 1n,
-        [indyToken]: stakingPositionOut.utxo.assets[indyToken] + amount,
-      },
+      addAssets(
+        stakingPositionOut.utxo.assets,
+        mkAssetsOf(
+          {
+            currencySymbol: params.stakingParams.indyToken[0].unCurrencySymbol,
+            tokenName: fromText(params.stakingParams.indyToken[1].unTokenName),
+          },
+          amount,
+        ),
+      ),
     )
     .addSignerKey(toHex(stakingPositionOut.datum.owner));
 }
@@ -246,9 +247,6 @@ export async function closeStakingPosition(
   const stakingToken =
     params.stakingParams.stakingToken[0].unCurrencySymbol +
     fromText(params.stakingParams.stakingToken[1].unTokenName);
-  const stakingManagerToken =
-    params.stakingParams.stakingManagerNFT[0].unCurrencySymbol +
-    fromText(params.stakingParams.stakingManagerNFT[1].unTokenName);
   const indyToken =
     params.stakingParams.indyToken[0].unCurrencySymbol +
     fromText(params.stakingParams.indyToken[1].unTokenName);
@@ -265,8 +263,11 @@ export async function closeStakingPosition(
     .newTx()
     .validFrom(currentTime)
     .readFrom([stakingRefScriptUtxo, stakingTokenPolicyRefScriptUtxo])
-    .collectFrom([stakingPositionOut.utxo], Data.to(new Constr(4, [])))
-    .collectFrom([stakingManagerOut.utxo], Data.to(new Constr(1, [])))
+    .collectFrom([stakingPositionOut.utxo], serialiseStakingRedeemer('Unstake'))
+    .collectFrom(
+      [stakingManagerOut.utxo],
+      serialiseStakingRedeemer('UpdateTotalStake'),
+    )
     .pay.ToContract(
       stakingManagerOut.utxo.address,
       {
@@ -276,10 +277,7 @@ export async function closeStakingPosition(
           totalStake: stakingManagerOut.datum.totalStake - existingIndyAmount,
         }),
       },
-      {
-        lovelace: stakingManagerOut.utxo.assets.lovelace - adaReward,
-        [stakingManagerToken]: 1n,
-      },
+      addAssets(stakingManagerOut.utxo.assets, mkLovelacesOf(-adaReward)),
     )
     .mintAssets(
       {

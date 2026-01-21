@@ -446,7 +446,9 @@ export async function vote(
     fromSystemParamsAsset(sysParams.govParams.indyAsset),
   );
 
-  const validityFrom = Number(currentTime) - ONE_SECOND;
+  const validityFrom =
+    Number(currentTime) -
+    Math.min(120 * ONE_SECOND, Number(sysParams.govParams.gBiasTime));
 
   if (stakingPosDatum.lockedAmount.has(pollShardDatum.pollId)) {
     throw new Error('Already voted for that proposal.');
