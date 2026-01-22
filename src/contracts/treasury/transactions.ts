@@ -6,12 +6,14 @@ import {
   TxBuilder,
 } from '@lucid-evolution/lucid';
 import {
+  fromSysParamsScriptCredential,
   fromSystemParamsScriptRef,
   SystemParams,
 } from '../../types/system-params';
 import { matchSingle } from '../../utils/utils';
 import { mkLovelacesOf } from '../../utils/value-helpers';
 import { serialiseTreasuryRedeemer } from './types';
+import { createScriptAddress } from '../../utils/lucid-utils';
 
 export async function treasuryFeeTx(
   fee: bigint,
@@ -20,6 +22,8 @@ export async function treasuryFeeTx(
   tx: TxBuilder,
   treasuryOref: OutRef,
 ): Promise<void> {
+  if (fee <= 0n) return;
+
   const treasuryUtxo = matchSingle(
     await lucid.utxosByOutRef([treasuryOref]),
     (_) => new Error('Expected a single treasury UTXO'),
@@ -34,10 +38,20 @@ export async function treasuryFeeTx(
     (_) => new Error('Expected a single treasury Ref Script UTXO'),
   );
 
+  const stakeCredential = sysParams.treasuryParams.treasuryUtxosStakeCredential
+    ? fromSysParamsScriptCredential(
+        sysParams.treasuryParams.treasuryUtxosStakeCredential,
+      )
+    : undefined;
+
   tx.readFrom([treasuryRefScriptUtxo])
     .collectFrom([treasuryUtxo], serialiseTreasuryRedeemer('CollectAda'))
     .pay.ToContract(
-      treasuryUtxo.address,
+      createScriptAddress(
+        lucid.config().network!,
+        sysParams.validatorHashes.treasuryHash,
+        stakeCredential,
+      ),
       { kind: 'inline', value: Data.void() },
       addAssets(treasuryUtxo.assets, mkLovelacesOf(fee)),
     );
