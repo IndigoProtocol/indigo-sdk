@@ -195,6 +195,7 @@ export async function adjustStakingPosition(
         value: serialiseStakingDatum({
           ...stakingPositionOut.datum,
           lockedAmount: newLockedAmount,
+          positionSnapshot: stakingManagerOut.datum.managerSnapshot,
         }),
       },
       addAssets(
