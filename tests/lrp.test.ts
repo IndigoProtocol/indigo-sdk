@@ -11,7 +11,7 @@ import {
   toText,
   UTxO,
 } from '@lucid-evolution/lucid';
-import { parseLrpDatumOrThrow } from '../src/contracts/lrp/types';
+import { parseLrpDatumOrThrow } from '../src/contracts/lrp/types-new';
 import {
   adjustLrp,
   cancelLrp,

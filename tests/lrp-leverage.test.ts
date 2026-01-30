@@ -15,9 +15,11 @@ import {
   addAssets,
   Emulator,
   EmulatorAccount,
+  fromHex,
   fromText,
   generateEmulatorAccount,
   Lucid,
+  toHex,
   toText,
   UTxO,
 } from '@lucid-evolution/lucid';
@@ -74,7 +76,7 @@ function hadLrpRedemption(
   return (
     assetClassValueOf(lrp.utxo.assets, {
       currencySymbol: lrpParams.iassetPolicyId.unCurrencySymbol,
-      tokenName: lrp.datum.iasset,
+      tokenName: toHex(lrp.datum.iasset),
     }) > 0
   );
 }
@@ -99,26 +101,26 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         120n,
         { getOnChainInt: 1_000_000n },
         lrps,
@@ -133,17 +135,17 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         100n,
         { getOnChainInt: 1_000_000n },
         lrps,
@@ -158,35 +160,35 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iBTC',
+          iasset: fromHex(fromText('iBTC')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         110n,
         { getOnChainInt: 1_000_000n },
         lrps,
@@ -201,26 +203,26 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iBTC',
+          iasset: fromHex(fromText('iBTC')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(() =>
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         110n,
         { getOnChainInt: 1_000_000n },
         lrps,
@@ -235,26 +237,26 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_500_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(() =>
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         120n,
         { getOnChainInt: 1_100_000n },
         lrps,
@@ -269,35 +271,35 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 50n,
           maxPrice: { getOnChainInt: 1_500_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_300_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         120n,
         { getOnChainInt: 1_100_000n },
         lrps,
@@ -312,19 +314,19 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
@@ -333,7 +335,7 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
 
     expect(
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         105n,
         { getOnChainInt: 1_000_000n },
         lrps,
@@ -349,28 +351,28 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(5n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 5n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
@@ -379,7 +381,7 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
 
     expect(
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         120n,
         { getOnChainInt: 1_000_000n },
         lrps,
@@ -395,28 +397,28 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(15n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 15n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
@@ -425,7 +427,7 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
 
     expect(
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         120n,
         { getOnChainInt: 1_000_000n },
         lrps,
@@ -441,46 +443,46 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(90n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 90n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(80n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 80n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(70n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 70n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
@@ -491,7 +493,7 @@ describe('randomLrpsSubsetSatisfyingTargetLovelaces', () => {
 
     expect(
       randomLrpsSubsetSatisfyingTargetLovelaces(
-        'iUSD',
+        fromText('iUSD'),
         360n,
         { getOnChainInt: 1_000_000n },
         lrps,
@@ -524,10 +526,10 @@ describe('lrpRedeemableLovelacesInclReimb', () => {
         [
           mockUtxo(110n),
           {
-            iasset: 'iUSD',
+            iasset: fromHex(fromText('iUSD')),
             lovelacesToSpend: 100n,
             maxPrice: { getOnChainInt: 1_000_000n },
-            owner: '',
+            owner: fromHex(''),
           },
         ],
         mockLrpParams,
@@ -541,10 +543,10 @@ describe('lrpRedeemableLovelacesInclReimb', () => {
         [
           mockUtxo(20_000_000n),
           {
-            iasset: 'iUSD',
+            iasset: fromHex(fromText('iUSD')),
             lovelacesToSpend: 100_000_000n,
             maxPrice: { getOnChainInt: 1_000_000n },
-            owner: '',
+            owner: fromHex(''),
           },
         ],
         mockLrpParams,
@@ -558,10 +560,10 @@ describe('lrpRedeemableLovelacesInclReimb', () => {
         [
           mockUtxo(20n),
           {
-            iasset: 'iUSD',
+            iasset: fromHex(fromText('iUSD')),
             lovelacesToSpend: 5n,
             maxPrice: { getOnChainInt: 1_000_000n },
-            owner: '',
+            owner: fromHex(''),
           },
         ],
         mockLrpParams,
@@ -590,26 +592,26 @@ describe('calculateTotalAdaForRedemption', () => {
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(100n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       calculateTotalAdaForRedemption(
-        'iUSD',
+        fromText('iUSD'),
         { getOnChainInt: 1_000_000n },
         mockLrpParams,
         lrps,
@@ -624,26 +626,26 @@ describe('calculateTotalAdaForRedemption', () => {
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       calculateTotalAdaForRedemption(
-        'iUSD',
+        fromText('iUSD'),
         { getOnChainInt: 1_000_000n },
         mockLrpParams,
         lrps,
@@ -657,35 +659,35 @@ describe('calculateTotalAdaForRedemption', () => {
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1000n),
         {
-          iasset: 'iBTC',
+          iasset: fromHex(fromText('iBTC')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1000n),
         {
-          iasset: 'iETH',
+          iasset: fromHex(fromText('iETH')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       calculateTotalAdaForRedemption(
-        'iUSD',
+        fromText('iUSD'),
         { getOnChainInt: 1_000_000n },
         mockLrpParams,
         lrps,
@@ -699,35 +701,35 @@ describe('calculateTotalAdaForRedemption', () => {
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_500_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 800_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       calculateTotalAdaForRedemption(
-        'iUSD',
+        fromText('iUSD'),
         { getOnChainInt: 1_100_000n },
         mockLrpParams,
         lrps,
@@ -741,46 +743,46 @@ describe('calculateTotalAdaForRedemption', () => {
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1400n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1400n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1600n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1600n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1800n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1800n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(2000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 2000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
@@ -789,7 +791,7 @@ describe('calculateTotalAdaForRedemption', () => {
 
     expect(
       calculateTotalAdaForRedemption(
-        'iUSD',
+        fromText('iUSD'),
         { getOnChainInt: 1_000_000n },
         mockLrpParams,
         lrps,
@@ -805,45 +807,45 @@ describe('calculateTotalAdaForRedemption', () => {
       [
         mockUtxo(20_000_000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 100_000_000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 1000n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
       // This one shold get dropped since less than min
       [
         mockUtxo(1000n),
         {
-          iasset: 'iUSD',
+          iasset: fromHex(fromText('iUSD')),
           lovelacesToSpend: 5n,
           maxPrice: { getOnChainInt: 1_000_000n },
-          owner: '',
+          owner: fromHex(''),
         },
       ],
     ];
 
     expect(
       calculateTotalAdaForRedemption(
-        'iUSD',
+        fromText('iUSD'),
         { getOnChainInt: 1_000_000n },
         mockLrpParams,
         lrps,

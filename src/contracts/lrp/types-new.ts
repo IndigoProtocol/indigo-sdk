@@ -1,7 +1,25 @@
 import { Core } from '@evolution-sdk/evolution';
 import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
+import { option as O, function as F } from 'fp-ts';
+import { AIKEN_DEFAULT_OPTIONS } from '@evolution-sdk/evolution/core/CBOR';
 
 const TSchema = Core.TSchema;
+
+const LRPDatumSchema = TSchema.Struct({
+  owner: TSchema.ByteArray,
+  iasset: TSchema.ByteArray,
+  maxPrice: Core.TSchema.Struct({
+    getOnChainInt: Core.TSchema.Integer,
+  }),
+  /**
+   * The amount of lovelaces that is available to be spent.
+   * This doesn't correspond to the lovelaces in UTXO's value,
+   * since that can contain fees, too.
+   */
+  lovelacesToSpend: TSchema.Integer,
+});
+
+export type LRPDatum = typeof LRPDatumSchema.Type;
 
 const LRPRedeemerSchema = TSchema.Union(
   TSchema.Struct(
@@ -41,9 +59,39 @@ const LRPRedeemerSchema = TSchema.Union(
 
 export type LRPRedeemer = typeof LRPRedeemerSchema.Type;
 
+export function parseLrpDatum(datum: string): O.Option<LRPDatum> {
+  try {
+    return O.some(
+      Core.Data.withSchema(LRPDatumSchema, DEFAULT_SCHEMA_OPTIONS).fromCBORHex(
+        datum,
+      ),
+    );
+  } catch (_) {
+    return O.none;
+  }
+}
+
+export function parseLrpDatumOrThrow(datum: string): LRPDatum {
+  return F.pipe(
+    parseLrpDatum(datum),
+    O.match(() => {
+      throw new Error('Expected an LRP datum.');
+    }, F.identity),
+  );
+}
+
+export function serialiseLrpDatum(d: LRPDatum): string {
+  return Core.Data.withSchema(LRPDatumSchema, DEFAULT_SCHEMA_OPTIONS).toCBORHex(
+    d,
+  );
+}
+
 export function serialiseLrpRedeemer(r: LRPRedeemer): string {
-  return Core.Data.withSchema(
+  const redeemer =  Core.Data.withSchema(
     LRPRedeemerSchema,
     DEFAULT_SCHEMA_OPTIONS,
   ).toCBORHex(r);
+
+  console.log(redeemer);
+  return redeemer;
 }
