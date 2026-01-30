@@ -1,10 +1,5 @@
-import { addAssets, TxBuilder, UTxO } from '@lucid-evolution/lucid';
-import {
-  LRPDatum,
-  parseLrpDatumOrThrow,
-  serialiseLrpDatum,
-  serialiseLrpRedeemer,
-} from './types';
+import { addAssets, fromHex, TxBuilder, UTxO } from '@lucid-evolution/lucid';
+import { LRPDatum, parseLrpDatumOrThrow, serialiseLrpDatum } from './types';
 import { ocdMul, OnChainDecimal } from '../../types/on-chain-decimal';
 import {
   lovelacesAmt,
@@ -18,6 +13,7 @@ import { insertSorted, shuffle } from '../../utils/array-utils';
 import { LrpParamsSP, SystemParams } from '../../types/system-params';
 import { match, P } from 'ts-pattern';
 import { getInlineDatumOrThrow } from '../../utils/lucid-utils';
+import { serialiseLrpRedeemer } from './types-new';
 
 export const MIN_LRP_COLLATERAL_AMT = 2_000_000n;
 
@@ -122,10 +118,10 @@ export function buildRedemptionsTx(
                     RedeemAuxiliary: {
                       continuingOutputIdx: txOutputsBeforeCount + BigInt(idx),
                       mainRedeemOutRef: {
-                        txHash: { hash: mainLrpUtxo.txHash },
+                        txHash: { hash: fromHex(mainLrpUtxo.txHash) },
                         outputIndex: BigInt(mainLrpUtxo.outputIndex),
                       },
-                      asset: mainLrpDatum.iasset,
+                      asset: fromHex(mainLrpDatum.iasset),
                       assetPrice: price,
                       redemptionReimbursementPercentage:
                         redemptionReimbursementPercentage,

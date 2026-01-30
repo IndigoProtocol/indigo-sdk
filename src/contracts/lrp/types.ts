@@ -1,5 +1,5 @@
-import { Data, Datum, Redeemer, UTxO } from '@lucid-evolution/lucid';
-import { AssetClassSchema, OutputReferenceSchema } from '../../types/generic';
+import { Data, Datum, UTxO } from '@lucid-evolution/lucid';
+import { AssetClassSchema } from '../../types/generic';
 import { OnChainDecimalSchema } from '../../types/on-chain-decimal';
 import { option as O, function as F } from 'fp-ts';
 
@@ -26,23 +26,6 @@ export const LRPDatumSchema = Data.Object({
 export type LRPDatum = Data.Static<typeof LRPDatumSchema>;
 const LRPDatum = LRPDatumSchema as unknown as LRPDatum;
 
-export const LRPRedeemerSchema = Data.Enum([
-  Data.Object({ Redeem: Data.Object({ continuingOutputIdx: Data.Integer() }) }),
-  Data.Object({
-    RedeemAuxiliary: Data.Object({
-      continuingOutputIdx: Data.Integer(),
-      mainRedeemOutRef: OutputReferenceSchema,
-      asset: Data.Bytes(),
-      assetPrice: OnChainDecimalSchema,
-      redemptionReimbursementPercentage: OnChainDecimalSchema,
-    }),
-  }),
-  Data.Literal('Cancel'),
-  Data.Literal('UpgradeVersion'),
-]);
-export type LRPRedeemer = Data.Static<typeof LRPRedeemerSchema>;
-const LRPRedeemer = LRPRedeemerSchema as unknown as LRPRedeemer;
-
 export function parseLrpDatum(datum: Datum): O.Option<LRPDatum> {
   try {
     return O.some(Data.from<LRPDatum>(datum, LRPDatum));
@@ -62,10 +45,6 @@ export function parseLrpDatumOrThrow(datum: Datum): LRPDatum {
 
 export function serialiseLrpDatum(datum: LRPDatum): Datum {
   return Data.to<LRPDatum>(datum, LRPDatum);
-}
-
-export function serialiseLrpRedeemer(redeemer: LRPRedeemer): Redeemer {
-  return Data.to<LRPRedeemer>(redeemer, LRPRedeemer);
 }
 
 export function castLrpParams(params: LRPParams): Data {

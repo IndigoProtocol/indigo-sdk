@@ -13,12 +13,7 @@ import {
   getInlineDatumOrThrow,
 } from '../../utils/lucid-utils';
 import { unzip, zip } from 'fp-ts/lib/Array';
-import {
-  LRPDatum,
-  parseLrpDatumOrThrow,
-  serialiseLrpDatum,
-  serialiseLrpRedeemer,
-} from './types';
+import { LRPDatum, parseLrpDatumOrThrow, serialiseLrpDatum } from './types';
 import { parsePriceOracleDatum } from '../price-oracle/types';
 import { OnChainDecimal } from '../../types/on-chain-decimal';
 import { parseIAssetDatumOrThrow } from '../cdp/types';
@@ -34,6 +29,7 @@ import {
   SystemParams,
 } from '../../types/system-params';
 import { buildRedemptionsTx, MIN_LRP_COLLATERAL_AMT } from './helpers';
+import { serialiseLrpRedeemer } from './types-new';
 
 export async function openLrp(
   assetTokenName: string,
