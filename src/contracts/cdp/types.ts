@@ -109,7 +109,7 @@ export type CDPRedeemer = Data.Static<typeof CDPRedeemerSchema>;
 const CDPRedeemer = CDPRedeemerSchema as unknown as CDPRedeemer;
 
 export function serialiseCdpRedeemer(r: CDPRedeemer): Redeemer {
-  return Data.to<CDPRedeemer>(r, CDPRedeemer);
+  return Data.to<CDPRedeemer>(r, CDPRedeemer, { canonical: true });
 }
 
 export function parseCdpDatum(datum: Datum): O.Option<CDPContent> {
