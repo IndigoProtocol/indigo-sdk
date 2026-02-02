@@ -14,3 +14,14 @@ export const DEFAULT_SCHEMA_OPTIONS = {
   mapsAsObjects: false,
   encodeMapAsPairs: false,
 } as const satisfies CodecOptions;
+
+export const STABILITY_POOL_SCHEMA_OPTIONS = {
+  mode: 'custom',
+  useIndefiniteArrays: true,
+  useIndefiniteMaps: true,
+  useDefiniteForEmpty: false,
+  sortMapKeys: false,
+  useMinimalEncoding: true,
+  mapsAsObjects: false,
+  encodeMapAsPairs: true,
+} as const satisfies CodecOptions;

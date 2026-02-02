@@ -12,5 +12,7 @@ const CollectorRedeemer =
 export function serialiseCollectorRedeemer(
   redeemer: CollectorRedeemer,
 ): Redeemer {
-  return Data.to<CollectorRedeemer>(redeemer, CollectorRedeemer);
+  return Data.to<CollectorRedeemer>(redeemer, CollectorRedeemer, {
+    canonical: true,
+  });
 }

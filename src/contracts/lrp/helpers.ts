@@ -1,10 +1,11 @@
-import { addAssets, TxBuilder, UTxO } from '@lucid-evolution/lucid';
 import {
-  LRPDatum,
-  parseLrpDatumOrThrow,
-  serialiseLrpDatum,
-  serialiseLrpRedeemer,
-} from './types';
+  addAssets,
+  fromHex,
+  toHex,
+  TxBuilder,
+  UTxO,
+} from '@lucid-evolution/lucid';
+import { LRPDatum, parseLrpDatumOrThrow, serialiseLrpDatum } from './types-new';
 import { ocdMul, OnChainDecimal } from '../../types/on-chain-decimal';
 import {
   lovelacesAmt,
@@ -18,6 +19,7 @@ import { insertSorted, shuffle } from '../../utils/array-utils';
 import { LrpParamsSP, SystemParams } from '../../types/system-params';
 import { match, P } from 'ts-pattern';
 import { getInlineDatumOrThrow } from '../../utils/lucid-utils';
+import { serialiseLrpRedeemer } from './types-new';
 
 export const MIN_LRP_COLLATERAL_AMT = 2_000_000n;
 
@@ -102,7 +104,7 @@ export function buildRedemptionsTx(
             {
               currencySymbol:
                 sysParams.lrpParams.iassetPolicyId.unCurrencySymbol,
-              tokenName: mainLrpDatum.iasset,
+              tokenName: toHex(mainLrpDatum.iasset),
             },
             redeemIAssetAmt,
           ),
@@ -122,7 +124,7 @@ export function buildRedemptionsTx(
                     RedeemAuxiliary: {
                       continuingOutputIdx: txOutputsBeforeCount + BigInt(idx),
                       mainRedeemOutRef: {
-                        txHash: { hash: mainLrpUtxo.txHash },
+                        txHash: { hash: fromHex(mainLrpUtxo.txHash) },
                         outputIndex: BigInt(mainLrpUtxo.outputIndex),
                       },
                       asset: mainLrpDatum.iasset,
@@ -168,7 +170,7 @@ export function calculateTotalAdaForRedemption(
     allLrps,
     A.filterMap(([utxo, datum]) => {
       if (
-        datum.iasset !== iasset ||
+        toHex(datum.iasset) !== iasset ||
         datum.maxPrice.getOnChainInt < iassetPrice.getOnChainInt
       ) {
         return O.none;
@@ -216,7 +218,7 @@ export function randomLrpsSubsetSatisfyingTargetLovelaces(
       allLrps,
       A.filter(
         ([_, datum]) =>
-          datum.iasset === iasset &&
+          toHex(datum.iasset) === iasset &&
           datum.maxPrice.getOnChainInt >= iassetPrice.getOnChainInt,
       ),
     ),

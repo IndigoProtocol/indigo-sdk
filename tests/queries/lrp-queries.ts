@@ -2,6 +2,7 @@ import {
   Credential,
   LucidEvolution,
   ScriptHash,
+  toHex,
   UTxO,
 } from '@lucid-evolution/lucid';
 import { createScriptAddress } from '../../src/utils/lucid-utils';
@@ -9,7 +10,7 @@ import {
   LRPDatum,
   parseLrpDatum,
   parseLrpDatumOrThrow,
-} from '../../src/contracts/lrp/types';
+} from '../../src/contracts/lrp/types-new';
 import { SystemParams } from '../../src';
 import { option as O, array as A, function as F } from 'fp-ts';
 
@@ -35,7 +36,10 @@ export async function findLrp(
       try {
         const lrpDatum = parseLrpDatumOrThrow(utxo.datum);
 
-        return lrpDatum.owner == owner && lrpDatum.iasset == assetTokenName;
+        return (
+          toHex(lrpDatum.owner) == owner &&
+          toHex(lrpDatum.iasset) == assetTokenName
+        );
       } catch (_) {
         // when incompatible datum
         return false;
@@ -63,7 +67,7 @@ export async function findAllLrps(
         O.fromNullable(utxo.datum),
         O.flatMap(parseLrpDatum),
         O.flatMap((datum) => {
-          if (datum.iasset === iasset) {
+          if (toHex(datum.iasset) === iasset) {
             return O.some({ utxo, datum: datum });
           } else {
             return O.none;

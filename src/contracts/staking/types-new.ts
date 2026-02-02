@@ -1,7 +1,10 @@
 import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { option as O, function as F } from 'fp-ts';
 import { match, P } from 'ts-pattern';
-import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
+import {
+  DEFAULT_SCHEMA_OPTIONS,
+  STABILITY_POOL_SCHEMA_OPTIONS,
+} from '../../types/evolution-schema-options';
 
 const StakingPosLockedAmtSchema = EvoCore.TSchema.Map(
   EvoCore.TSchema.Integer,
@@ -76,6 +79,6 @@ export function parseStakingManagerDatum(datum: string): StakingManager {
 export function serialiseStakingDatum(d: StakingDatum): string {
   return EvoCore.Data.withSchema(
     StakingDatumSchema,
-    DEFAULT_SCHEMA_OPTIONS,
+    STABILITY_POOL_SCHEMA_OPTIONS,
   ).toCBORHex(d);
 }

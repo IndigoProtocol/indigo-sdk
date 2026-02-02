@@ -14,9 +14,10 @@ export type LucidContext<T extends Record<string, EmulatorAccount>> = {
 export async function runAndAwaitTx(
   lucid: LucidEvolution,
   transaction: Promise<TxBuilder>,
+  canonical: boolean = false,
 ): Promise<string> {
   const txHash = await transaction
-    .then((tx) => tx.complete())
+    .then((tx) => tx.complete(canonical ? { canonical: true } : undefined))
     .then((tx) => tx.sign.withWallet().complete())
     .then((tx) => tx.submit());
 

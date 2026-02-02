@@ -39,6 +39,7 @@ export * from './contracts/lrp/helpers';
 export * from './contracts/lrp/transactions';
 export * from './contracts/lrp/scripts';
 export * from './contracts/lrp/types';
+export * from './contracts/lrp/types-new';
 export * from './utils/helper-txs';
 export * from './contracts/one-shot/transactions';
 export * from './utils/utils';

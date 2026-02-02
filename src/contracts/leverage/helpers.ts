@@ -66,7 +66,7 @@ import {
   calculateTotalAdaForRedemption,
   lrpRedeemableLovelacesInclReimb,
 } from '../lrp/helpers';
-import { LRPDatum } from '../lrp/types';
+import { LRPDatum } from '../lrp/types-new';
 
 /**
  * How many LRP redemptions can we fit into a TX with CDP open.

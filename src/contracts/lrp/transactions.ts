@@ -6,6 +6,10 @@ import {
   addAssets,
   unixTimeToSlot,
   slotToUnixTime,
+  fromHex,
+  fromText,
+  toHex,
+  toText,
 } from '@lucid-evolution/lucid';
 import {
   addrDetails,
@@ -13,12 +17,7 @@ import {
   getInlineDatumOrThrow,
 } from '../../utils/lucid-utils';
 import { unzip, zip } from 'fp-ts/lib/Array';
-import {
-  LRPDatum,
-  parseLrpDatumOrThrow,
-  serialiseLrpDatum,
-  serialiseLrpRedeemer,
-} from './types';
+import { LRPDatum, parseLrpDatumOrThrow, serialiseLrpDatum } from './types-new';
 import { parsePriceOracleDatum } from '../price-oracle/types';
 import { OnChainDecimal } from '../../types/on-chain-decimal';
 import { parseIAssetDatumOrThrow } from '../cdp/types';
@@ -34,6 +33,7 @@ import {
   SystemParams,
 } from '../../types/system-params';
 import { buildRedemptionsTx, MIN_LRP_COLLATERAL_AMT } from './helpers';
+import { serialiseLrpRedeemer } from './types-new';
 
 export async function openLrp(
   assetTokenName: string,
@@ -48,8 +48,8 @@ export async function openLrp(
   const [ownPkh, _] = await addrDetails(lucid);
 
   const newDatum: LRPDatum = {
-    owner: ownPkh.hash,
-    iasset: assetTokenName,
+    owner: fromHex(ownPkh.hash),
+    iasset: fromHex(assetTokenName),
     maxPrice: maxPrice,
     lovelacesToSpend: lovelacesAmt,
   };
@@ -91,7 +91,7 @@ export async function cancelLrp(
     .newTx()
     .readFrom([lrpScriptRefUtxo])
     .collectFrom([lrpUtxo], serialiseLrpRedeemer('Cancel'))
-    .addSignerKey(lrpDatum.owner);
+    .addSignerKey(toHex(lrpDatum.owner));
 }
 
 export async function redeemLrp(
@@ -192,7 +192,7 @@ export async function adjustLrp(
 
   const rewardAssetClass: AssetClass = {
     currencySymbol: sysParams.lrpParams.iassetPolicyId.unCurrencySymbol,
-    tokenName: lrpDatum.iasset,
+    tokenName: toHex(lrpDatum.iasset),
   };
   const rewardAssetsAmt = assetClassValueOf(lrpUtxo.assets, rewardAssetClass);
 
@@ -237,7 +237,7 @@ export async function adjustLrp(
         mkLovelacesOf(lovelacesAdjustAmt),
       ),
     )
-    .addSignerKey(lrpDatum.owner);
+    .addSignerKey(toHex(lrpDatum.owner));
 }
 
 /**

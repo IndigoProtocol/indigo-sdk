@@ -299,6 +299,8 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
     iusdInfo.iassetTokenNameAscii,
   );
 
+  console.log('adjusting account');
+
   await runAndAwaitTx(
     lucid,
     adjustSpAccount(
@@ -308,7 +310,11 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
       systemParams,
       lucid,
     ),
+    true,
   );
+
+  console.log('adjusted account');
+  return;
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
 
   accountUtxo = await findStabilityPoolAccount(

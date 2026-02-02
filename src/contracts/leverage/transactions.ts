@@ -34,7 +34,7 @@ import {
   calculateLeverageFromCollateralRatio,
   MAX_REDEMPTIONS_WITH_CDP_OPEN,
 } from './helpers';
-import { LRPDatum } from '../lrp/types';
+import { LRPDatum } from '../lrp/types-new';
 import {
   buildRedemptionsTx,
   randomLrpsSubsetSatisfyingTargetLovelaces,
