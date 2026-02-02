@@ -81,17 +81,20 @@ export function parseLrpDatumOrThrow(datum: string): LRPDatum {
 }
 
 export function serialiseLrpDatum(d: LRPDatum): string {
-  return Core.Data.withSchema(LRPDatumSchema, DEFAULT_SCHEMA_OPTIONS).toCBORHex(
-    d,
-  );
+  let datum = Core.Data.withSchema(LRPDatumSchema, {
+    mode: 'canonical',
+  }).toCBORHex(d);
+
+  datum = datum.replace('d87984', 'd8799f');
+  datum = datum + 'ff';
+
+  return datum;
 }
 
 export function serialiseLrpRedeemer(r: LRPRedeemer): string {
-  const redeemer =  Core.Data.withSchema(
-    LRPRedeemerSchema,
-    DEFAULT_SCHEMA_OPTIONS,
-  ).toCBORHex(r);
+  const redeemer = Core.Data.withSchema(LRPRedeemerSchema, {
+    mode: 'canonical',
+  }).toCBORHex(r);
 
-  console.log(redeemer);
   return redeemer;
 }

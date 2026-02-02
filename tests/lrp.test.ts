@@ -347,7 +347,17 @@ describe('LRP', () => {
   test<MyContext>('single redemption and cancel', async (context: MyContext) => {
     context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
 
-    const [sysParams, __] = await init(context.lucid, [iusdInitialAssetCfg]);
+    const [sysParams, __] = await init(context.lucid, [
+      {
+        ...iusdInitialAssetCfg,
+        ...{
+          priceOracle: {
+            ...iusdInitialAssetCfg.priceOracle,
+            startPrice: 3038206n,
+          },
+        },
+      },
+    ]);
 
     const iasset = fromText(iusdInitialAssetCfg.name);
 
@@ -363,8 +373,8 @@ describe('LRP', () => {
       await runAndAwaitTx(
         context.lucid,
         openCdp(
-          100_000_000n,
-          30_000_000n,
+          3000_000_000n,
+          300_000_000n,
           sysParams,
           orefs.cdpCreatorUtxo,
           orefs.iasset.utxo,
@@ -381,8 +391,8 @@ describe('LRP', () => {
       context.lucid,
       openLrp(
         iasset,
-        20_000_000n,
-        { getOnChainInt: 1_000_000n },
+        620760339n,
+        { getOnChainInt: 3323757n },
         context.lucid,
         sysParams,
       ),
@@ -400,7 +410,7 @@ describe('LRP', () => {
       'LRP should have no iassets before redemption',
     ).toBe(0n);
 
-    const redemptionIAssetAmt = 11_000_000n;
+    const redemptionIAssetAmt = 200_000_000n;
 
     {
       const orefs = await findAllNecessaryOrefs(

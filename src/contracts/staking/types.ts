@@ -33,9 +33,7 @@ export type StakingRedeemer = Data.Static<typeof StakingRedeemerSchema>;
 const StakingRedeemer = StakingRedeemerSchema as unknown as StakingRedeemer;
 
 export function serialiseStakingRedeemer(redeemer: StakingRedeemer): Redeemer {
-  return Data.to<StakingRedeemer>(redeemer, StakingRedeemer, {
-    canonical: true,
-  });
+  return Data.to<StakingRedeemer>(redeemer, StakingRedeemer);
 }
 
 export function castStakingParams(params: StakingParams): Data {

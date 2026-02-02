@@ -15,4 +15,3 @@ const LRPParams = LRPParamsSchema as unknown as LRPParams;
 export function castLrpParams(params: LRPParams): Data {
   return Data.castTo(params, LRPParams);
 }
-

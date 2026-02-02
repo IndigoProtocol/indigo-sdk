@@ -36,7 +36,10 @@ export async function findLrp(
       try {
         const lrpDatum = parseLrpDatumOrThrow(utxo.datum);
 
-        return toHex(lrpDatum.owner) == owner && toHex(lrpDatum.iasset) == assetTokenName;
+        return (
+          toHex(lrpDatum.owner) == owner &&
+          toHex(lrpDatum.iasset) == assetTokenName
+        );
       } catch (_) {
         // when incompatible datum
         return false;

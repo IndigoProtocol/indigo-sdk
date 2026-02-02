@@ -1,7 +1,10 @@
 import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { match, P } from 'ts-pattern';
 import { AddressSchema } from '@3rd-eye-labs/cardano-offchain-common';
-import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
+import {
+  DEFAULT_SCHEMA_OPTIONS,
+  STABILITY_POOL_SCHEMA_OPTIONS,
+} from '../../types/evolution-schema-options';
 
 export const SPIntegerSchema = EvoCore.TSchema.Struct({
   value: EvoCore.TSchema.Integer,
@@ -123,7 +126,7 @@ export function serialiseStabilityPoolRedeemer(
 ): string {
   return EvoCore.Data.withSchema(
     StabilityPoolRedeemerSchema,
-    DEFAULT_SCHEMA_OPTIONS,
+    STABILITY_POOL_SCHEMA_OPTIONS,
   ).toCBORHex(r);
 }
 
@@ -135,7 +138,7 @@ export function serialiseStabilityPoolDatum(
   useIndefiniteMaps: boolean = false,
 ): string {
   return EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
-    ...DEFAULT_SCHEMA_OPTIONS,
+    ...STABILITY_POOL_SCHEMA_OPTIONS,
     useIndefiniteMaps: useIndefiniteMaps,
   }).toCBORHex(d);
 }
