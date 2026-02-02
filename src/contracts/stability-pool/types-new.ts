@@ -2,6 +2,7 @@ import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { match, P } from 'ts-pattern';
 import { AddressSchema } from '@3rd-eye-labs/cardano-offchain-common';
 import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
+import { Data } from '@lucid-evolution/lucid';
 
 export const SPIntegerSchema = EvoCore.TSchema.Struct({
   value: EvoCore.TSchema.Integer,
@@ -121,10 +122,14 @@ export type StabilityPoolRedeemer = typeof StabilityPoolRedeemerSchema.Type;
 export function serialiseStabilityPoolRedeemer(
   r: StabilityPoolRedeemer,
 ): string {
-  return EvoCore.Data.withSchema(
+  const rdmr = EvoCore.Data.withSchema(
     StabilityPoolRedeemerSchema,
     DEFAULT_SCHEMA_OPTIONS,
   ).toCBORHex(r);
+
+  return Data.to(Data.from(rdmr, typeof Data), typeof Data, {
+    canonical: false,
+  });
 }
 
 export function serialiseStabilityPoolDatum(
@@ -134,10 +139,14 @@ export function serialiseStabilityPoolDatum(
    */
   useIndefiniteMaps: boolean = false,
 ): string {
-  return EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
+  const datum = EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
     ...DEFAULT_SCHEMA_OPTIONS,
     useIndefiniteMaps: useIndefiniteMaps,
   }).toCBORHex(d);
+
+  return Data.to(Data.from(datum, typeof Data), typeof Data, {
+    canonical: false,
+  });
 }
 
 export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
