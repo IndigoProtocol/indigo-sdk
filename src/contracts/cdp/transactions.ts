@@ -291,6 +291,28 @@ async function adjustCdp(
     network,
   );
 
+  const interestAdaAmt = match(cdpDatum.cdpFees)
+    .with({ FrozenCDPAccumulatedFees: P.any }, () => {
+      throw new Error('CDP fees wrong');
+    })
+    .with({ ActiveCDPInterestTracking: P.select() }, (interest) => {
+      const interestPaymentIAssetAmt = calculateAccruedInterest(
+        currentTime,
+        interest.unitaryInterestSnapshot,
+        cdpDatum.mintedAmt,
+        interest.lastSettled,
+        interestOracleDatum,
+      );
+
+      return (
+        (interestPaymentIAssetAmt * priceOracleDatum.price.getOnChainInt) /
+        1_000_000n
+      );
+    })
+    .exhaustive();
+
+  const newCollateralAmount = collateralAmount - interestAdaAmt;
+
   const tx = lucid
     .newTx()
     .validFrom(txValidity.validFrom)
@@ -326,7 +348,7 @@ async function adjustCdp(
           },
         }),
       },
-      addAssets(cdpUtxo.assets, mkLovelacesOf(collateralAmount)),
+      addAssets(cdpUtxo.assets, mkLovelacesOf(newCollateralAmount)),
     );
 
   if (!cdpDatum.cdpOwner) {
@@ -358,26 +380,6 @@ async function adjustCdp(
       Data.void(),
     );
   }
-
-  const interestAdaAmt = match(cdpDatum.cdpFees)
-    .with({ FrozenCDPAccumulatedFees: P.any }, () => {
-      throw new Error('CDP fees wrong');
-    })
-    .with({ ActiveCDPInterestTracking: P.select() }, (interest) => {
-      const interestPaymentIAssetAmt = calculateAccruedInterest(
-        currentTime,
-        interest.unitaryInterestSnapshot,
-        cdpDatum.mintedAmt,
-        interest.lastSettled,
-        interestOracleDatum,
-      );
-
-      return (
-        (interestPaymentIAssetAmt * priceOracleDatum.price.getOnChainInt) /
-        1_000_000n
-      );
-    })
-    .exhaustive();
 
   const interestCollectorAdaAmt = calculateFeeFromPercentage(
     iassetDatum.interestCollectorPortionPercentage,
