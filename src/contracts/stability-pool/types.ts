@@ -124,6 +124,11 @@ export type StabilityPoolRedeemer = Data.Static<
 export const StabilityPoolRedeemer =
   StabilityPoolRedeemerSchema as unknown as StabilityPoolRedeemer;
 
+export function parseStabilityPoolRedeemer(
+  redeemer: Datum,
+): StabilityPoolRedeemer {
+  return Data.from<StabilityPoolRedeemer>(redeemer, StabilityPoolRedeemer);
+}
 export function serialiseStabilityPoolRedeemer(
   params: StabilityPoolRedeemer,
 ): string {
