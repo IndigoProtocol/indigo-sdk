@@ -313,7 +313,6 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
       accountUtxo,
       systemParams,
       lucid,
-      true,
     ),
   );
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);

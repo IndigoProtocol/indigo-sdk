@@ -13,7 +13,7 @@ import {
   spSub,
   StabilityPoolContent,
   StabilityPoolSnapshot,
-} from './types-new';
+} from './types';
 import { match } from 'ts-pattern';
 
 const newScaleMultiplier = 1_000_000_000n;
@@ -232,25 +232,25 @@ export function liquidationHelper(
 ): { newSpContent: StabilityPoolContent } {
   const lossPerUnitStaked = spDiv(
     mkSPInteger(iassetBurnAmt),
-    spContent.poolSnapshot.depositVal,
+    spContent.snapshot.depositVal,
   );
   const productFactor = spSub(mkSPInteger(1n), lossPerUnitStaked);
 
   const isScaleIncrease =
-    spMul(spContent.poolSnapshot.productVal, productFactor).value <
+    spMul(spContent.snapshot.productVal, productFactor).value <
     newScaleMultiplier;
 
   const newSumSnapshot = spAdd(
-    spContent.poolSnapshot.sumVal,
+    spContent.snapshot.sumVal,
     spDiv(
-      spMul(mkSPInteger(reward), spContent.poolSnapshot.productVal),
-      spContent.poolSnapshot.depositVal,
+      spMul(mkSPInteger(reward), spContent.snapshot.productVal),
+      spContent.snapshot.depositVal,
     ),
   );
   const newProductSnapshot = spMul(
     {
       value:
-        spContent.poolSnapshot.productVal.value *
+        spContent.snapshot.productVal.value *
         (isScaleIncrease ? newScaleMultiplier : 1n),
     },
     productFactor,
@@ -259,22 +259,22 @@ export function liquidationHelper(
   const isEpochIncrease = newProductSnapshot.value <= 0n;
 
   const newSnapshot: StabilityPoolSnapshot = isEpochIncrease
-    ? { ...initSpSnapshot, epoch: spContent.poolSnapshot.epoch + 1n }
+    ? { ...initSpSnapshot, epoch: spContent.snapshot.epoch + 1n }
     : {
         productVal: newProductSnapshot,
         depositVal: spSub(
-          spContent.poolSnapshot.depositVal,
+          spContent.snapshot.depositVal,
           mkSPInteger(iassetBurnAmt),
         ),
         sumVal: newSumSnapshot,
-        epoch: spContent.poolSnapshot.epoch,
-        scale: spContent.poolSnapshot.scale + (isScaleIncrease ? 1n : 0n),
+        epoch: spContent.snapshot.epoch,
+        scale: spContent.snapshot.scale + (isScaleIncrease ? 1n : 0n),
       };
 
   const newMap = setSumInEpochToScaleToSum(
     spContent.epochToScaleToSum,
-    spContent.poolSnapshot.epoch,
-    spContent.poolSnapshot.scale,
+    spContent.snapshot.epoch,
+    spContent.snapshot.scale,
     newSumSnapshot,
   );
 
@@ -284,8 +284,8 @@ export function liquidationHelper(
       () =>
         setSumInEpochToScaleToSum(
           newMap,
-          spContent.poolSnapshot.epoch + 1n,
-          spContent.poolSnapshot.scale,
+          spContent.snapshot.epoch + 1n,
+          spContent.snapshot.scale,
           { value: 0n },
         ),
     )
@@ -294,8 +294,8 @@ export function liquidationHelper(
       () =>
         setSumInEpochToScaleToSum(
           newMap,
-          spContent.poolSnapshot.epoch,
-          spContent.poolSnapshot.scale + 1n,
+          spContent.snapshot.epoch,
+          spContent.snapshot.scale + 1n,
           newSumSnapshot,
         ),
     )
@@ -305,7 +305,7 @@ export function liquidationHelper(
     newSpContent: {
       asset: spContent.asset,
       epochToScaleToSum: newEpochToScaleToSum,
-      poolSnapshot: newSnapshot,
+      snapshot: newSnapshot,
     },
   };
 }

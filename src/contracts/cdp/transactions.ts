@@ -50,7 +50,7 @@ import {
   parseStabilityPoolDatum,
   serialiseStabilityPoolDatum,
   serialiseStabilityPoolRedeemer,
-} from '../stability-pool/types-new';
+} from '../stability-pool/types';
 import { liquidationHelper } from '../stability-pool/helpers';
 import { array as A, function as F } from 'fp-ts';
 import { calculateFeeFromPercentage } from '../../utils/indigo-helpers';
@@ -1148,7 +1148,7 @@ export async function liquidateCdp(
       iAssetTokenPolicyRefScriptUtxo,
       cdpAuthTokenPolicyRefScriptUtxo,
     ])
-    .collectFrom([spUtxo], serialiseStabilityPoolRedeemer('LiquidateCDP'))
+    .collectFrom([spUtxo], serialiseStabilityPoolRedeemer({ LiquidateCDP: {} }))
     .collectFrom([cdpUtxo], serialiseCdpRedeemer('Liquidate'))
     .mintAssets(mkAssetsOf(iassetsAc, -iassetBurnAmt), Data.void())
     .pay.ToContract(
@@ -1156,11 +1156,13 @@ export async function liquidateCdp(
       {
         kind: 'inline',
         value: serialiseStabilityPoolDatum({
-          StabilityPool: liquidationHelper(
-            spDatum,
-            iassetBurnAmt,
-            collateralAbsorbed,
-          ).newSpContent,
+          StabilityPool: {
+            content: liquidationHelper(
+              spDatum,
+              iassetBurnAmt,
+              collateralAbsorbed,
+            ).newSpContent,
+          },
         }),
       },
       addAssets(

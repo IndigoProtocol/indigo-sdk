@@ -7,12 +7,16 @@ import {
   Data,
   UTxO,
   credentialToAddress,
-  fromHex,
   OutRef,
-  toHex,
   addAssets,
 } from '@lucid-evolution/lucid';
-import { ActionReturnDatum } from './types';
+import {
+  ActionReturnDatum,
+  serialiseStabilityPoolRedeemer,
+  spAddressFromBech32,
+  spAddressToBech32,
+  StabilityPoolRedeemer,
+} from './types';
 import { fromSystemParamsAsset, SystemParams } from '../../types/system-params';
 import {
   addrDetails,
@@ -29,10 +33,6 @@ import { calculateFeeFromPercentage } from '../../utils/indigo-helpers';
 import { GovDatum, parseGovDatumOrThrow } from '../gov/types';
 import { IAssetContent, parseIAssetDatumOrThrow } from '../cdp/types';
 import {
-  addressFromBech32,
-  addressToBech32,
-} from '@3rd-eye-labs/cardano-offchain-common';
-import {
   AccountAction,
   AccountContent,
   EpochToScaleToSum,
@@ -41,14 +41,12 @@ import {
   parseAccountDatum,
   parseStabilityPoolDatum,
   serialiseStabilityPoolDatum,
-  serialiseStabilityPoolRedeemer,
   spAdd,
   spDiv,
   spMul,
   spSub,
-  StabilityPoolRedeemer,
   StabilityPoolSnapshot,
-} from './types-new';
+} from './types';
 import { collectorFeeTx } from '../collector/transactions';
 import { mkAssetsOf, mkLovelacesOf } from '../../utils/value-helpers';
 
@@ -64,9 +62,9 @@ export async function createSpAccount(
       params.stabilityPoolParams.requestCollateralLovelaces,
   );
   const datum: AccountContent = {
-    owner: fromHex(pkh.hash),
-    asset: fromHex(fromText(asset)),
-    accountSnapshot: {
+    owner: pkh.hash,
+    asset: fromText(asset),
+    snapshot: {
       productVal: { value: 0n },
       depositVal: { value: 0n },
       sumVal: { value: 0n },
@@ -87,7 +85,7 @@ export async function createSpAccount(
       }),
       {
         kind: 'inline',
-        value: serialiseStabilityPoolDatum({ Account: datum }),
+        value: serialiseStabilityPoolDatum({ Account: { content: datum } }),
       },
       {
         lovelace: minLovelaces,
@@ -104,7 +102,6 @@ export async function adjustSpAccount(
   accountUtxo: UTxO,
   params: SystemParams,
   lucid: LucidEvolution,
-  canonical: boolean = false,
 ): Promise<TxBuilder> {
   const myAddress = await lucid.wallet().address();
 
@@ -122,7 +119,7 @@ export async function adjustSpAccount(
     request: {
       Adjust: {
         amount: amount,
-        outputAddress: addressFromBech32(myAddress),
+        outputAddress: spAddressFromBech32(myAddress),
       },
     },
   };
@@ -155,32 +152,28 @@ export async function adjustSpAccount(
     .readFrom([stabilityPoolScriptRef])
     .collectFrom(
       [accountUtxo],
-      serialiseStabilityPoolRedeemer(
-        {
-          RequestAction: {
+      serialiseStabilityPoolRedeemer({
+        RequestAction: {
+          action: {
             Adjust: {
               amount: amount,
-              outputAddress: addressFromBech32(myAddress),
+              outputAddress: spAddressFromBech32(myAddress),
             },
           },
         },
-        canonical,
-      ),
+      }),
     )
     .pay.ToContract(
       accountUtxo.address,
       {
         kind: 'inline',
-        value: serialiseStabilityPoolDatum(
-          {
-            Account: newAccountDatum,
-          },
-          canonical,
-        ),
+        value: serialiseStabilityPoolDatum({
+          Account: { content: newAccountDatum },
+        }),
       },
       value,
     )
-    .addSignerKey(toHex(oldAccountDatum.owner));
+    .addSignerKey(oldAccountDatum.owner);
 }
 
 export async function closeSpAccount(
@@ -197,7 +190,7 @@ export async function closeSpAccount(
 
   const request: AccountAction = {
     Close: {
-      outputAddress: addressFromBech32(myAddress),
+      outputAddress: spAddressFromBech32(myAddress),
     },
   };
   const oldAccountDatum: AccountContent = parseAccountDatum(
@@ -213,7 +206,15 @@ export async function closeSpAccount(
     .readFrom([stabilityPoolScriptRef])
     .collectFrom(
       [accountUtxo],
-      serialiseStabilityPoolRedeemer({ RequestAction: request }),
+      serialiseStabilityPoolRedeemer({
+        RequestAction: {
+          action: {
+            Close: {
+              outputAddress: spAddressFromBech32(myAddress),
+            },
+          },
+        },
+      }),
     )
     .pay.ToContract(
       credentialToAddress(lucid.config().network!, {
@@ -224,7 +225,9 @@ export async function closeSpAccount(
       }),
       {
         kind: 'inline',
-        value: serialiseStabilityPoolDatum({ Account: newAccountDatum }),
+        value: serialiseStabilityPoolDatum({
+          Account: { content: newAccountDatum },
+        }),
       },
       {
         lovelace: BigInt(
@@ -235,7 +238,7 @@ export async function closeSpAccount(
         fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
       },
     )
-    .addSignerKey(toHex(oldAccountDatum.owner));
+    .addSignerKey(oldAccountDatum.owner);
 }
 
 export async function processSpRequest(
@@ -251,8 +254,10 @@ export async function processSpRequest(
 ): Promise<TxBuilder> {
   const redeemer: StabilityPoolRedeemer = {
     ProcessRequest: {
-      txHash: { hash: fromHex(accountUtxo.txHash) },
-      outputIndex: BigInt(accountUtxo.outputIndex),
+      requestRef: {
+        txHash: { hash: accountUtxo.txHash },
+        outputIndex: BigInt(accountUtxo.outputIndex),
+      },
     },
   };
   const stabilityPoolScriptRef = await scriptRef(
@@ -286,43 +291,41 @@ export async function processSpRequest(
     const reqAmount = accountUtxo.assets[iassetUnit] ?? 0n;
 
     const newAccountSnapshot: StabilityPoolSnapshot = {
-      ...stabilityPoolDatum.poolSnapshot,
+      ...stabilityPoolDatum.snapshot,
       depositVal: {
-        value: spAdd(
-          accountDatum.accountSnapshot.depositVal,
-          mkSPInteger(reqAmount),
-        ).value,
+        value: spAdd(accountDatum.snapshot.depositVal, mkSPInteger(reqAmount))
+          .value,
       },
     };
 
     const newDeposit = spAdd(
-      stabilityPoolDatum.poolSnapshot.depositVal,
+      stabilityPoolDatum.snapshot.depositVal,
       mkSPInteger(reqAmount),
     );
 
     const newSum = spAdd(
-      stabilityPoolDatum.poolSnapshot.sumVal,
+      stabilityPoolDatum.snapshot.sumVal,
       spDiv(
         spMul(
           mkSPInteger(
             BigInt(params.stabilityPoolParams.accountCreateFeeLovelaces),
           ),
-          stabilityPoolDatum.poolSnapshot.productVal,
+          stabilityPoolDatum.snapshot.productVal,
         ),
         newDeposit,
       ),
     );
 
     const newStabilityPoolSnapshot: StabilityPoolSnapshot = {
-      ...stabilityPoolDatum.poolSnapshot,
+      ...stabilityPoolDatum.snapshot,
       depositVal: newDeposit,
       sumVal: newSum,
     };
 
     const newEpochToScaleToSum: EpochToScaleToSum = setSumInEpochToScaleToSum(
       stabilityPoolDatum.epochToScaleToSum,
-      stabilityPoolDatum.poolSnapshot.epoch,
-      stabilityPoolDatum.poolSnapshot.scale,
+      stabilityPoolDatum.snapshot.epoch,
+      stabilityPoolDatum.snapshot.scale,
       newSum,
     );
 
@@ -352,9 +355,11 @@ export async function processSpRequest(
         kind: 'inline',
         value: serialiseStabilityPoolDatum({
           StabilityPool: {
-            ...stabilityPoolDatum,
-            poolSnapshot: newStabilityPoolSnapshot,
-            epochToScaleToSum: newEpochToScaleToSum,
+            content: {
+              ...stabilityPoolDatum,
+              snapshot: newStabilityPoolSnapshot,
+              epochToScaleToSum: newEpochToScaleToSum,
+            },
           },
         }),
       },
@@ -367,9 +372,11 @@ export async function processSpRequest(
         kind: 'inline',
         value: serialiseStabilityPoolDatum({
           Account: {
-            ...accountDatum,
-            accountSnapshot: newAccountSnapshot,
-            request: null,
+            content: {
+              ...accountDatum,
+              snapshot: newAccountSnapshot,
+              request: null,
+            },
           },
         }),
       },
@@ -383,17 +390,17 @@ export async function processSpRequest(
     );
   } else if ('Adjust' in accountDatum.request) {
     const amount = accountDatum.request.Adjust.amount;
-    const outputAddress = addressToBech32(
+    const outputAddress = spAddressToBech32(
+      lucid,
       accountDatum.request.Adjust.outputAddress,
-      lucid.config().network!,
     );
     const myAddress = await lucid.wallet().address();
     const [updatedAccountSnapshot, reward, refInputs] = adjustmentHelper(
       stabilityPoolUtxo,
       newSnapshotUtxo,
-      stabilityPoolDatum.poolSnapshot,
+      stabilityPoolDatum.snapshot,
       stabilityPoolDatum.epochToScaleToSum,
-      accountDatum.accountSnapshot,
+      accountDatum.snapshot,
     );
     const govDatum: GovDatum = parseGovDatumOrThrow(
       getInlineDatumOrThrow(govUtxo),
@@ -420,7 +427,7 @@ export async function processSpRequest(
       ),
     };
     const _newPoolDepositExcludingFee = spAdd(
-      stabilityPoolDatum.poolSnapshot.depositVal,
+      stabilityPoolDatum.snapshot.depositVal,
       mkSPInteger(balanceChange),
     );
     const newPoolDepositExcludingFee =
@@ -440,16 +447,16 @@ export async function processSpRequest(
     );
     const newPoolProduct =
       withdrawalFee === 0n
-        ? stabilityPoolDatum.poolSnapshot.productVal
+        ? stabilityPoolDatum.snapshot.productVal
         : spMul(
-            stabilityPoolDatum.poolSnapshot.productVal,
+            stabilityPoolDatum.snapshot.productVal,
             spAdd(
               mkSPInteger(1n),
               spDiv(mkSPInteger(withdrawalFee), newPoolDepositExcludingFee),
             ),
           );
     const newPoolSum = spAdd(
-      stabilityPoolDatum.poolSnapshot.sumVal,
+      stabilityPoolDatum.snapshot.sumVal,
       spDiv(
         spMul(
           mkSPInteger(
@@ -461,15 +468,15 @@ export async function processSpRequest(
       ),
     );
     const newPoolSnapshot: StabilityPoolSnapshot = {
-      ...stabilityPoolDatum.poolSnapshot,
+      ...stabilityPoolDatum.snapshot,
       depositVal: newPoolDeposit,
       sumVal: newPoolSum,
       productVal: newPoolProduct,
     };
     const newEpochToScaleToSum: EpochToScaleToSum = setSumInEpochToScaleToSum(
       stabilityPoolDatum.epochToScaleToSum,
-      stabilityPoolDatum.poolSnapshot.epoch,
-      stabilityPoolDatum.poolSnapshot.scale,
+      stabilityPoolDatum.snapshot.epoch,
+      stabilityPoolDatum.snapshot.scale,
       newPoolSum,
     );
 
@@ -489,9 +496,11 @@ export async function processSpRequest(
         kind: 'inline',
         value: serialiseStabilityPoolDatum({
           StabilityPool: {
-            ...stabilityPoolDatum,
-            poolSnapshot: newPoolSnapshot,
-            epochToScaleToSum: newEpochToScaleToSum,
+            content: {
+              ...stabilityPoolDatum,
+              snapshot: newPoolSnapshot,
+              epochToScaleToSum: newEpochToScaleToSum,
+            },
           },
         }),
       },
@@ -519,9 +528,11 @@ export async function processSpRequest(
         kind: 'inline',
         value: serialiseStabilityPoolDatum({
           Account: {
-            ...accountDatum,
-            accountSnapshot: newAccountSnapshot,
-            request: null,
+            content: {
+              ...accountDatum,
+              snapshot: newAccountSnapshot,
+              request: null,
+            },
           },
         }),
       },
@@ -565,17 +576,17 @@ export async function processSpRequest(
       // TODO: User is self-handling the process request, so we will need to handle the change datum
     }
   } else if ('Close' in accountDatum.request) {
-    const outputAddress = addressToBech32(
+    const outputAddress = spAddressToBech32(
+      lucid,
       accountDatum.request.Close.outputAddress,
-      lucid.config().network!,
     );
     const myAddress = await lucid.wallet().address();
     const [updatedAccountSnapshot, reward, refInputs] = adjustmentHelper(
       stabilityPoolUtxo,
       newSnapshotUtxo,
-      stabilityPoolDatum.poolSnapshot,
+      stabilityPoolDatum.snapshot,
       stabilityPoolDatum.epochToScaleToSum,
-      accountDatum.accountSnapshot,
+      accountDatum.snapshot,
     );
     const govDatum: GovDatum = parseGovDatumOrThrow(
       getInlineDatumOrThrow(govUtxo),
@@ -589,7 +600,7 @@ export async function processSpRequest(
     );
     const fund = updatedAccountSnapshot.depositVal;
     const newPoolDepositExcludingFee = spSub(
-      stabilityPoolDatum.poolSnapshot.depositVal,
+      stabilityPoolDatum.snapshot.depositVal,
       fund,
     );
     const withdrawnAmt = fund.value < 0n ? mkSPInteger(0n) : fund;
@@ -603,10 +614,10 @@ export async function processSpRequest(
     const [newPoolDeposit, newPoolProduct] = updatePoolSnapshotWithdrawalFee(
       mkSPInteger(withdrawalFeeAmount),
       newPoolDepositExcludingFee,
-      stabilityPoolDatum.poolSnapshot,
+      stabilityPoolDatum.snapshot,
     );
     const newPoolSnapshot: StabilityPoolSnapshot = {
-      ...stabilityPoolDatum.poolSnapshot,
+      ...stabilityPoolDatum.snapshot,
       depositVal: newPoolDeposit,
       productVal: newPoolProduct,
     };
@@ -636,8 +647,10 @@ export async function processSpRequest(
         kind: 'inline',
         value: serialiseStabilityPoolDatum({
           StabilityPool: {
-            ...stabilityPoolDatum,
-            poolSnapshot: newPoolSnapshot,
+            content: {
+              ...stabilityPoolDatum,
+              snapshot: newPoolSnapshot,
+            },
           },
         }),
       },
@@ -700,8 +713,11 @@ export async function annulRequest(
   const tx = lucid
     .newTx()
     .readFrom([stabilityPoolScriptRef])
-    .collectFrom([accountUtxo], serialiseStabilityPoolRedeemer('AnnulRequest'))
-    .addSignerKey(toHex(oldAccountDatum.owner));
+    .collectFrom(
+      [accountUtxo],
+      serialiseStabilityPoolRedeemer({ AnnulRequest: {} }),
+    )
+    .addSignerKey(oldAccountDatum.owner);
 
   if (oldAccountDatum.request !== 'Create') {
     tx.pay.ToContract(
@@ -715,8 +731,10 @@ export async function annulRequest(
         kind: 'inline',
         value: serialiseStabilityPoolDatum({
           Account: {
-            ...oldAccountDatum,
-            request: null,
+            content: {
+              ...oldAccountDatum,
+              request: null,
+            },
           },
         }),
       },

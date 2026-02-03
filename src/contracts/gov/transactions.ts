@@ -2,7 +2,6 @@
 import {
   addAssets,
   Assets,
-  fromHex,
   fromText,
   LucidEvolution,
   OutRef,
@@ -90,7 +89,7 @@ import {
 } from '../stability-pool/helpers';
 import { serialiseVersionRecordDatum } from '../version-registry/types-new';
 import { parseUpgradePaths, ProposalContent } from './types-new';
-import { serialiseStabilityPoolDatum } from '../stability-pool/types-new';
+import { serialiseStabilityPoolDatum } from '../stability-pool/types';
 
 /**
  * Returns the new PollId.
@@ -1002,16 +1001,15 @@ export async function executeProposal(
           ),
           {
             kind: 'inline',
-            value: serialiseStabilityPoolDatum(
-              {
-                StabilityPool: {
-                  asset: fromHex(proposeContent.asset),
-                  poolSnapshot: initSpSnapshot,
+            value: serialiseStabilityPoolDatum({
+              StabilityPool: {
+                content: {
+                  asset: proposeContent.asset,
+                  snapshot: initSpSnapshot,
                   epochToScaleToSum: initEpochToScaleToSumMap(),
                 },
               },
-              true,
-            ),
+            }),
           },
           spAuthVal,
         );

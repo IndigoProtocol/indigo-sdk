@@ -2,7 +2,6 @@ import {
   Constr,
   credentialToAddress,
   Data,
-  fromHex,
   fromText,
   LucidEvolution,
   mintingPolicyToId,
@@ -63,7 +62,7 @@ import {
 import {
   serialiseStabilityPoolDatum,
   StabilityPoolContent,
-} from '../../src/contracts/stability-pool/types-new';
+} from '../../src/contracts/stability-pool/types';
 import { InitialAsset } from '../mock/assets-mock';
 import { mkStakingValidatorFromSP } from '../../src/contracts/staking/scripts';
 
@@ -346,8 +345,8 @@ async function initializeAsset(
   await lucid.awaitTx(assetTxHash);
 
   const stabilityPoolDatum: StabilityPoolContent = {
-    asset: fromHex(fromText(asset.name)),
-    poolSnapshot: initSpSnapshot,
+    asset: fromText(asset.name),
+    snapshot: initSpSnapshot,
     epochToScaleToSum: initEpochToScaleToSumMap(),
   };
 
@@ -360,7 +359,9 @@ async function initializeAsset(
     }),
     {
       kind: 'inline',
-      value: serialiseStabilityPoolDatum({ StabilityPool: stabilityPoolDatum }),
+      value: serialiseStabilityPoolDatum({
+        StabilityPool: { content: stabilityPoolDatum },
+      }),
     },
     {
       [stabilityPoolToken.currencySymbol + stabilityPoolToken.tokenName]: 1n,

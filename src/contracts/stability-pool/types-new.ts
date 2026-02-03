@@ -1,214 +1,214 @@
-import { Core as EvoCore } from '@evolution-sdk/evolution';
-import { match, P } from 'ts-pattern';
-import { AddressSchema } from '@3rd-eye-labs/cardano-offchain-common';
-import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
-import { Data } from '@lucid-evolution/lucid';
+// import { Core as EvoCore } from '@evolution-sdk/evolution';
+// import { match, P } from 'ts-pattern';
+// import { AddressSchema } from '@3rd-eye-labs/cardano-offchain-common';
+// import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
+// // import { Data } from '@lucid-evolution/lucid';
 
-export const SPIntegerSchema = EvoCore.TSchema.Struct({
-  value: EvoCore.TSchema.Integer,
-});
+// // export const SPIntegerSchema = EvoCore.TSchema.Struct({
+// //   value: EvoCore.TSchema.Integer,
+// // });
 
-export type SPInteger = typeof SPIntegerSchema.Type;
+// // export type SPInteger = typeof SPIntegerSchema.Type;
 
-const AccountActionSchema = EvoCore.TSchema.Union(
-  EvoCore.TSchema.Literal('Create', { flatInUnion: true }),
-  EvoCore.TSchema.Struct(
-    {
-      Adjust: EvoCore.TSchema.Struct(
-        {
-          amount: EvoCore.TSchema.Integer,
-          outputAddress: AddressSchema,
-        },
-        { flatFields: true },
-      ),
-    },
-    { flatInUnion: true },
-  ),
-  EvoCore.TSchema.Struct(
-    {
-      Close: EvoCore.TSchema.Struct(
-        { outputAddress: AddressSchema },
-        { flatFields: true },
-      ),
-    },
-    { flatInUnion: true },
-  ),
-);
+// // const AccountActionSchema = EvoCore.TSchema.Union(
+// //   EvoCore.TSchema.Literal('Create', { flatInUnion: true }),
+// //   EvoCore.TSchema.Struct(
+// //     {
+// //       Adjust: EvoCore.TSchema.Struct(
+// //         {
+// //           amount: EvoCore.TSchema.Integer,
+// //           outputAddress: AddressSchema,
+// //         },
+// //         { flatFields: true },
+// //       ),
+// //     },
+// //     { flatInUnion: true },
+// //   ),
+// //   EvoCore.TSchema.Struct(
+// //     {
+// //       Close: EvoCore.TSchema.Struct(
+// //         { outputAddress: AddressSchema },
+// //         { flatFields: true },
+// //       ),
+// //     },
+// //     { flatInUnion: true },
+// //   ),
+// // );
 
-export type AccountAction = typeof AccountActionSchema.Type;
+// // export type AccountAction = typeof AccountActionSchema.Type;
 
-export const EpochToScaleToSumSchema = EvoCore.TSchema.Map(
-  EvoCore.TSchema.Struct({
-    epoch: EvoCore.TSchema.Integer,
-    scale: EvoCore.TSchema.Integer,
-  }),
-  SPIntegerSchema,
-);
+// // export const EpochToScaleToSumSchema = EvoCore.TSchema.Map(
+// //   EvoCore.TSchema.Struct({
+// //     epoch: EvoCore.TSchema.Integer,
+// //     scale: EvoCore.TSchema.Integer,
+// //   }),
+// //   SPIntegerSchema,
+// // );
 
-export type EpochToScaleToSum = typeof EpochToScaleToSumSchema.Type;
+// // export type EpochToScaleToSum = typeof EpochToScaleToSumSchema.Type;
 
-const StabilityPoolSnapshotSchema = EvoCore.TSchema.Struct({
-  productVal: SPIntegerSchema,
-  depositVal: SPIntegerSchema,
-  sumVal: SPIntegerSchema,
-  epoch: EvoCore.TSchema.Integer,
-  scale: EvoCore.TSchema.Integer,
-});
+// // const StabilityPoolSnapshotSchema = EvoCore.TSchema.Struct({
+// //   productVal: SPIntegerSchema,
+// //   depositVal: SPIntegerSchema,
+// //   sumVal: SPIntegerSchema,
+// //   epoch: EvoCore.TSchema.Integer,
+// //   scale: EvoCore.TSchema.Integer,
+// // });
 
-export type StabilityPoolSnapshot = typeof StabilityPoolSnapshotSchema.Type;
+// // export type StabilityPoolSnapshot = typeof StabilityPoolSnapshotSchema.Type;
 
-export const StabilityPoolContentSchema = EvoCore.TSchema.Struct({
-  asset: EvoCore.TSchema.ByteArray,
-  poolSnapshot: StabilityPoolSnapshotSchema,
-  epochToScaleToSum: EpochToScaleToSumSchema,
-});
+// // export const StabilityPoolContentSchema = EvoCore.TSchema.Struct({
+// //   asset: EvoCore.TSchema.ByteArray,
+// //   poolSnapshot: StabilityPoolSnapshotSchema,
+// //   epochToScaleToSum: EpochToScaleToSumSchema,
+// // });
 
-export type StabilityPoolContent = typeof StabilityPoolContentSchema.Type;
+// // export type StabilityPoolContent = typeof StabilityPoolContentSchema.Type;
 
-export const AccountContentSchema = EvoCore.TSchema.Struct({
-  owner: EvoCore.TSchema.ByteArray,
-  asset: EvoCore.TSchema.ByteArray,
-  accountSnapshot: StabilityPoolSnapshotSchema,
-  request: EvoCore.TSchema.NullOr(AccountActionSchema),
-});
+// // export const AccountContentSchema = EvoCore.TSchema.Struct({
+// //   owner: EvoCore.TSchema.ByteArray,
+// //   asset: EvoCore.TSchema.ByteArray,
+// //   accountSnapshot: StabilityPoolSnapshotSchema,
+// //   request: EvoCore.TSchema.NullOr(AccountActionSchema),
+// // });
 
-export type AccountContent = typeof AccountContentSchema.Type;
+// // export type AccountContent = typeof AccountContentSchema.Type;
 
-export const SnapshotEpochToScaleToSumContentSchema = EvoCore.TSchema.Struct({
-  snapshot: EpochToScaleToSumSchema,
-  asset: EvoCore.TSchema.ByteArray,
-});
+// // export const SnapshotEpochToScaleToSumContentSchema = EvoCore.TSchema.Struct({
+// //   snapshot: EpochToScaleToSumSchema,
+// //   asset: EvoCore.TSchema.ByteArray,
+// // });
 
-export type SnapshotEpochToScaleToSumContent =
-  typeof SnapshotEpochToScaleToSumContentSchema.Type;
+// // export type SnapshotEpochToScaleToSumContent =
+// //   typeof SnapshotEpochToScaleToSumContentSchema.Type;
 
-export const StabilityPoolDatumSchema = EvoCore.TSchema.Union(
-  EvoCore.TSchema.Struct(
-    { StabilityPool: StabilityPoolContentSchema },
-    { flatInUnion: true },
-  ),
-  EvoCore.TSchema.Struct(
-    { Account: AccountContentSchema },
-    { flatInUnion: true },
-  ),
-  EvoCore.TSchema.Struct(
-    { SnapshotEpochToScaleToSum: SnapshotEpochToScaleToSumContentSchema },
-    { flatInUnion: true },
-  ),
-);
+// // export const StabilityPoolDatumSchema = EvoCore.TSchema.Union(
+// //   EvoCore.TSchema.Struct(
+// //     { StabilityPool: StabilityPoolContentSchema },
+// //     { flatInUnion: true },
+// //   ),
+// //   EvoCore.TSchema.Struct(
+// //     { Account: AccountContentSchema },
+// //     { flatInUnion: true },
+// //   ),
+// //   EvoCore.TSchema.Struct(
+// //     { SnapshotEpochToScaleToSum: SnapshotEpochToScaleToSumContentSchema },
+// //     { flatInUnion: true },
+// //   ),
+// // );
 
-export const StabilityPoolRedeemerSchema = EvoCore.TSchema.Union(
-  EvoCore.TSchema.Struct(
-    { RequestAction: AccountActionSchema },
-    { flatInUnion: true },
-  ),
-  EvoCore.TSchema.Struct(
-    {
-      ProcessRequest: EvoCore.TSchema.Struct({
-        txHash: EvoCore.TSchema.Struct({ hash: EvoCore.TSchema.ByteArray }),
-        outputIndex: EvoCore.TSchema.Integer,
-      }),
-    },
-    { flatInUnion: true },
-  ),
-  EvoCore.TSchema.Literal('AnnulRequest', { flatInUnion: true }),
-  EvoCore.TSchema.Literal('LiquidateCDP', { flatInUnion: true }),
-  EvoCore.TSchema.Literal('RecordEpochToScaleToSum', { flatInUnion: true }),
-  EvoCore.TSchema.Literal('UpgradeVersion', { flatInUnion: true }),
-);
+// // export const StabilityPoolRedeemerSchema = EvoCore.TSchema.Union(
+// //   EvoCore.TSchema.Struct(
+// //     { RequestAction: AccountActionSchema },
+// //     { flatInUnion: true },
+// //   ),
+// //   EvoCore.TSchema.Struct(
+// //     {
+// //       ProcessRequest: EvoCore.TSchema.Struct({
+// //         txHash: EvoCore.TSchema.Struct({ hash: EvoCore.TSchema.ByteArray }),
+// //         outputIndex: EvoCore.TSchema.Integer,
+// //       }),
+// //     },
+// //     { flatInUnion: true },
+// //   ),
+// //   EvoCore.TSchema.Literal('AnnulRequest', { flatInUnion: true }),
+// //   EvoCore.TSchema.Literal('LiquidateCDP', { flatInUnion: true }),
+// //   EvoCore.TSchema.Literal('RecordEpochToScaleToSum', { flatInUnion: true }),
+// //   EvoCore.TSchema.Literal('UpgradeVersion', { flatInUnion: true }),
+// // );
 
-export type StabilityPoolRedeemer = typeof StabilityPoolRedeemerSchema.Type;
+// // export type StabilityPoolRedeemer = typeof StabilityPoolRedeemerSchema.Type;
 
-export function serialiseStabilityPoolRedeemer(
-  r: StabilityPoolRedeemer,
-  canonical: boolean = false,
-): string {
-  const rdmr = EvoCore.Data.withSchema(
-    StabilityPoolRedeemerSchema,
-    DEFAULT_SCHEMA_OPTIONS,
-  ).toCBORHex(r);
+// // export function serialiseStabilityPoolRedeemer(
+// //   r: StabilityPoolRedeemer,
+// //   canonical: boolean = false,
+// // ): string {
+// //   const rdmr = EvoCore.Data.withSchema(
+// //     StabilityPoolRedeemerSchema,
+// //     DEFAULT_SCHEMA_OPTIONS,
+// //   ).toCBORHex(r);
 
-  return Data.to(Data.from(rdmr, typeof Data), typeof Data, {
-    canonical: canonical,
-  });
-}
+// //   return Data.to(Data.from(rdmr, typeof Data), typeof Data, {
+// //     canonical: canonical,
+// //   });
+// // }
 
-export function serialiseStabilityPoolDatum(
-  d: typeof StabilityPoolDatumSchema.Type,
-  /**
-   * This is necessary to change only in case of execute propose asset.
-   */
-  useIndefiniteMaps: boolean = false,
-): string {
-  return EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
-    ...DEFAULT_SCHEMA_OPTIONS,
-    useIndefiniteMaps: useIndefiniteMaps,
-  }).toCBORHex(d);
-}
+// // export function serialiseStabilityPoolDatum(
+// //   d: typeof StabilityPoolDatumSchema.Type,
+// //   /**
+// //    * This is necessary to change only in case of execute propose asset.
+// //    */
+// //   useIndefiniteMaps: boolean = false,
+// // ): string {
+// //   return EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
+// //     ...DEFAULT_SCHEMA_OPTIONS,
+// //     useIndefiniteMaps: useIndefiniteMaps,
+// //   }).toCBORHex(d);
+// // }
 
-export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
-  return match(
-    EvoCore.Data.withSchema(
-      StabilityPoolDatumSchema,
-      DEFAULT_SCHEMA_OPTIONS,
-    ).fromCBORHex(datum),
-  )
-    .with({ StabilityPool: P.select() }, (res) => res)
-    .otherwise(() => {
-      throw new Error('Expected a Stability Pool datum.');
-    });
-}
+// // export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {
+// //   return match(
+// //     EvoCore.Data.withSchema(
+// //       StabilityPoolDatumSchema,
+// //       DEFAULT_SCHEMA_OPTIONS,
+// //     ).fromCBORHex(datum),
+// //   )
+// //     .with({ StabilityPool: P.select() }, (res) => res)
+// //     .otherwise(() => {
+// //       throw new Error('Expected a Stability Pool datum.');
+// //     });
+// // }
 
-export function parseAccountDatum(datum: string): AccountContent {
-  return match(
-    EvoCore.Data.withSchema(
-      StabilityPoolDatumSchema,
-      DEFAULT_SCHEMA_OPTIONS,
-    ).fromCBORHex(datum),
-  )
-    .with({ Account: P.select() }, (res) => res)
-    .otherwise(() => {
-      throw new Error('Expected a Stability Pool datum.');
-    });
-}
-export function parseSnapshotEpochToScaleToSumDatum(
-  datum: string,
-): SnapshotEpochToScaleToSumContent {
-  return match(
-    EvoCore.Data.withSchema(
-      StabilityPoolDatumSchema,
-      DEFAULT_SCHEMA_OPTIONS,
-    ).fromCBORHex(datum),
-  )
-    .with({ SnapshotEpochToScaleToSum: P.select() }, (res) => res)
-    .otherwise(() => {
-      throw new Error('Expected a Stability Pool datum.');
-    });
-}
+// // export function parseAccountDatum(datum: string): AccountContent {
+// //   return match(
+// //     EvoCore.Data.withSchema(
+// //       StabilityPoolDatumSchema,
+// //       DEFAULT_SCHEMA_OPTIONS,
+// //     ).fromCBORHex(datum),
+// //   )
+// //     .with({ Account: P.select() }, (res) => res)
+// //     .otherwise(() => {
+// //       throw new Error('Expected a Stability Pool datum.');
+// //     });
+// // }
+// // export function parseSnapshotEpochToScaleToSumDatum(
+// //   datum: string,
+// // ): SnapshotEpochToScaleToSumContent {
+// //   return match(
+// //     EvoCore.Data.withSchema(
+// //       StabilityPoolDatumSchema,
+// //       DEFAULT_SCHEMA_OPTIONS,
+// //     ).fromCBORHex(datum),
+// //   )
+// //     .with({ SnapshotEpochToScaleToSum: P.select() }, (res) => res)
+// //     .otherwise(() => {
+// //       throw new Error('Expected a Stability Pool datum.');
+// //     });
+// // }
 
-/** SP Integer */
-const spPrecision: bigint = 1000000000000000000n;
+// /** SP Integer */
+// const spPrecision: bigint = 1000000000000000000n;
 
-export function mkSPInteger(value: bigint): SPInteger {
-  return { value: value * spPrecision };
-}
+// export function mkSPInteger(value: bigint): SPInteger {
+//   return { value: value * spPrecision };
+// }
 
-export function fromSPInteger(value: SPInteger): bigint {
-  return value.value / spPrecision;
-}
+// export function fromSPInteger(value: SPInteger): bigint {
+//   return value.value / spPrecision;
+// }
 
-export function spAdd(a: SPInteger, b: SPInteger): SPInteger {
-  return { value: a.value + b.value };
-}
+// export function spAdd(a: SPInteger, b: SPInteger): SPInteger {
+//   return { value: a.value + b.value };
+// }
 
-export function spSub(a: SPInteger, b: SPInteger): SPInteger {
-  return { value: a.value - b.value };
-}
+// export function spSub(a: SPInteger, b: SPInteger): SPInteger {
+//   return { value: a.value - b.value };
+// }
 
-export function spMul(a: SPInteger, b: SPInteger): SPInteger {
-  return { value: (a.value * b.value) / spPrecision };
-}
+// export function spMul(a: SPInteger, b: SPInteger): SPInteger {
+//   return { value: (a.value * b.value) / spPrecision };
+// }
 
-export function spDiv(a: SPInteger, b: SPInteger): SPInteger {
-  return { value: (a.value * spPrecision) / b.value };
-}
+// export function spDiv(a: SPInteger, b: SPInteger): SPInteger {
+//   return { value: (a.value * spPrecision) / b.value };
+// }

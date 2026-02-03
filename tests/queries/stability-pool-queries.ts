@@ -2,7 +2,6 @@ import {
   fromText,
   LucidEvolution,
   ScriptHash,
-  toHex,
   UTxO,
 } from '@lucid-evolution/lucid';
 import { createScriptAddress } from '../../src/utils/lucid-utils';
@@ -12,7 +11,7 @@ import { matchSingle } from '../../src';
 import {
   parseAccountDatum,
   parseStabilityPoolDatum,
-} from '../../src/contracts/stability-pool/types-new';
+} from '../../src/contracts/stability-pool/types';
 
 export async function findStabilityPool(
   lucid: LucidEvolution,
@@ -31,7 +30,7 @@ export async function findStabilityPool(
         try {
           const stabilityPoolDatum = parseStabilityPoolDatum(utxo.datum);
 
-          return toHex(stabilityPoolDatum.asset) == fromText(asset);
+          return stabilityPoolDatum.asset == fromText(asset);
         } catch (_) {
           // when incompatible datum
           return false;
@@ -62,8 +61,7 @@ export async function findStabilityPoolAccount(
           const accountDatum = parseAccountDatum(utxo.datum);
 
           return (
-            toHex(accountDatum.asset) == fromText(asset) &&
-            toHex(accountDatum.owner) == owner
+            accountDatum.asset == fromText(asset) && accountDatum.owner == owner
           );
         } catch (_) {
           // when incompatible datum
