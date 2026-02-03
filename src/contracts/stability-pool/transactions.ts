@@ -10,6 +10,7 @@ import {
   fromHex,
   OutRef,
   toHex,
+  addAssets,
 } from '@lucid-evolution/lucid';
 import { ActionReturnDatum } from './types';
 import { fromSystemParamsAsset, SystemParams } from '../../types/system-params';
@@ -49,7 +50,7 @@ import {
   StabilityPoolSnapshot,
 } from './types-new';
 import { collectorFeeTx } from '../collector/transactions';
-import { mkAssetsOf } from '../../utils/value-helpers';
+import { mkAssetsOf, mkLovelacesOf } from '../../utils/value-helpers';
 
 export async function createSpAccount(
   asset: string,
@@ -103,6 +104,7 @@ export async function adjustSpAccount(
   accountUtxo: UTxO,
   params: SystemParams,
   lucid: LucidEvolution,
+  canonical: boolean = false,
 ): Promise<TxBuilder> {
   const myAddress = await lucid.wallet().address();
 
@@ -125,47 +127,56 @@ export async function adjustSpAccount(
     },
   };
 
-  const value = {
-    lovelace: BigInt(
-      params.stabilityPoolParams.requestCollateralLovelaces +
-        params.stabilityPoolParams.accountAdjustmentFeeLovelaces,
+  const value = addAssets(
+    mkAssetsOf(
+      fromSystemParamsAsset(params.stabilityPoolParams.accountToken),
+      1n,
     ),
-    [params.stabilityPoolParams.accountToken[0].unCurrencySymbol +
-    fromText(params.stabilityPoolParams.accountToken[1].unTokenName)]: 1n,
-  };
-
-  if (amount > 0n) {
-    value[
-      params.stabilityPoolParams.assetSymbol.unCurrencySymbol + fromText(asset)
-    ] = amount;
-  }
+    mkLovelacesOf(
+      BigInt(
+        params.stabilityPoolParams.requestCollateralLovelaces +
+          params.stabilityPoolParams.accountAdjustmentFeeLovelaces,
+      ),
+    ),
+    amount > 0n
+      ? mkAssetsOf(
+          {
+            currencySymbol:
+              params.stabilityPoolParams.assetSymbol.unCurrencySymbol,
+            tokenName: fromText(asset),
+          },
+          amount,
+        )
+      : mkLovelacesOf(0n),
+  );
 
   return lucid
     .newTx()
     .readFrom([stabilityPoolScriptRef])
     .collectFrom(
       [accountUtxo],
-      serialiseStabilityPoolRedeemer({
-        RequestAction: {
-          Adjust: {
-            amount: amount,
-            outputAddress: addressFromBech32(myAddress),
+      serialiseStabilityPoolRedeemer(
+        {
+          RequestAction: {
+            Adjust: {
+              amount: amount,
+              outputAddress: addressFromBech32(myAddress),
+            },
           },
         },
-      }),
+        canonical,
+      ),
     )
     .pay.ToContract(
-      credentialToAddress(lucid.config().network!, {
-        hash: validatorToScriptHash(
-          mkStabilityPoolValidatorFromSP(params.stabilityPoolParams),
-        ),
-        type: 'Script',
-      }),
+      accountUtxo.address,
       {
         kind: 'inline',
-        value: serialiseStabilityPoolDatum({
-          Account: newAccountDatum,
-        }),
+        value: serialiseStabilityPoolDatum(
+          {
+            Account: newAccountDatum,
+          },
+          canonical,
+        ),
       },
       value,
     )

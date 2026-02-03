@@ -121,6 +121,7 @@ export type StabilityPoolRedeemer = typeof StabilityPoolRedeemerSchema.Type;
 
 export function serialiseStabilityPoolRedeemer(
   r: StabilityPoolRedeemer,
+  canonical: boolean = false,
 ): string {
   const rdmr = EvoCore.Data.withSchema(
     StabilityPoolRedeemerSchema,
@@ -128,7 +129,7 @@ export function serialiseStabilityPoolRedeemer(
   ).toCBORHex(r);
 
   return Data.to(Data.from(rdmr, typeof Data), typeof Data, {
-    canonical: false,
+    canonical: canonical,
   });
 }
 
@@ -139,14 +140,10 @@ export function serialiseStabilityPoolDatum(
    */
   useIndefiniteMaps: boolean = false,
 ): string {
-  const datum = EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
+  return EvoCore.Data.withSchema(StabilityPoolDatumSchema, {
     ...DEFAULT_SCHEMA_OPTIONS,
     useIndefiniteMaps: useIndefiniteMaps,
   }).toCBORHex(d);
-
-  return Data.to(Data.from(datum, typeof Data), typeof Data, {
-    canonical: false,
-  });
 }
 
 export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {

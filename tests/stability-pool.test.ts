@@ -173,7 +173,11 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
   emulator,
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
-  const [systemParams, [iusdInfo]] = await init(lucid, [iusdInitialAssetCfg]);
+  const assetCfg = {
+    ...iusdInitialAssetCfg,
+    stabilityPoolWithdrawalFeePercentage: 500_000n,
+  };
+  const [systemParams, [iusdInfo]] = await init(lucid, [assetCfg]);
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
   const [pkh, _] = await addrDetails(lucid);
 
@@ -277,6 +281,8 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
     ),
   );
 
+  console.log('Was able to process create request');
+
   lucid.selectWallet.fromSeed(users.user.seedPhrase);
 
   stabilityPoolUtxo = await findStabilityPool(
@@ -307,6 +313,7 @@ test<MyContext>('Stability Pool - Adjust Account', async ({
       accountUtxo,
       systemParams,
       lucid,
+      true,
     ),
   );
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
