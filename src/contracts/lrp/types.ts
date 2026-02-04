@@ -5,6 +5,7 @@ import {
   OnChainDecimalSchema,
 } from '../../types/on-chain-decimal';
 import { option as O, function as F } from 'fp-ts';
+import { match, P } from 'ts-pattern';
 
 export const LRPParamsSchema = Data.Object({
   versionRecordToken: AssetClassSchema,
@@ -63,27 +64,60 @@ export function parseLrpDatumOrThrow(datum: Datum): LRPDatum {
   );
 }
 
-export function serialiseLrpDatum(datum: LRPDatum): Datum {
+type LRPSerialisationOptions =
+  // No replacing, just use non-canonical format.
+  | { _tag: 'noReplace' }
+  // Adaptive replace, when the spentDatum is canonical, do the replace,
+  // otherwise use the non canonical.
+  | { _tag: 'adaptiveReplace'; spentLrpDatum: string };
+
+export function serialiseLrpDatum(
+  datum: LRPDatum,
+  // Overall, we don't want to do the replacing. We just use non-canonical format.
+  serialisationOptions: LRPSerialisationOptions = { _tag: 'noReplace' },
+): Datum {
   const d = Data.to<LRPDatum>(datum, LRPDatum);
 
-  // If the lrp was created using a canonical on-chain decimal, we need to serialise it canonically.
-  // This is due to some issue related to how Aiken compares objects.
-  // See "Wrong continuing output" trace, specifically the spread of the previous datum ie. expecting the serialisation to be the same as it was created with
-  // We however do not want to do this for any lrps that are being build canonical.
-  const ocdSerialisedCanonical = Data.to<OnChainDecimal>(
-    datum.maxPrice,
-    OnChainDecimal,
-    { canonical: true },
-  );
-  const ocdSerialisedNonCanonical = Data.to<OnChainDecimal>(
-    datum.maxPrice,
-    OnChainDecimal,
-    { canonical: false },
-  );
+  return match(serialisationOptions)
+    .returnType<Datum>()
+    .with({ _tag: 'noReplace' }, () => d)
+    .with(
+      { _tag: 'adaptiveReplace', spentLrpDatum: P.select() },
+      (spentLrpDatum) => {
+        const isSpentDatumCanonical = spentLrpDatum.includes(
+          Data.to<OnChainDecimal>(
+            parseLrpDatumOrThrow(spentLrpDatum).maxPrice,
+            OnChainDecimal,
+            {
+              canonical: true,
+            },
+          ),
+        );
 
-  return d.replace(ocdSerialisedNonCanonical, ocdSerialisedCanonical);
+        // When spent datum was canonical, replace.
+        if (isSpentDatumCanonical) {
+          // If the lrp was created using a canonical on-chain decimal, we need to serialise it canonically.
+          // This is due to some issue related to how Aiken compares objects.
+          // See "Wrong continuing output" trace, specifically the spread of the previous datum ie. expecting the serialisation to be the same as it was created with
+          // We however do not want to do this for any lrps that are being build canonical.
+          const ocdSerialisedCanonical = Data.to<OnChainDecimal>(
+            datum.maxPrice,
+            OnChainDecimal,
+            { canonical: true },
+          );
+          const ocdSerialisedNonCanonical = Data.to<OnChainDecimal>(
+            datum.maxPrice,
+            OnChainDecimal,
+            { canonical: false },
+          );
 
-  // return d;
+          return d.replace(ocdSerialisedNonCanonical, ocdSerialisedCanonical);
+        }
+
+        return d;
+      },
+    )
+    .exhaustive();
 }
 
 export function serialiseLrpRedeemer(redeemer: LRPRedeemer): Redeemer {

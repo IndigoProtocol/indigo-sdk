@@ -93,7 +93,8 @@ export function buildRedemptionsTx(
           lovelacesForRedemption,
         );
 
-        const lrpDatum = parseLrpDatumOrThrow(getInlineDatumOrThrow(lrpUtxo));
+        const lrpRawInlineDatum = getInlineDatumOrThrow(lrpUtxo);
+        const lrpDatum = parseLrpDatumOrThrow(lrpRawInlineDatum);
 
         const resultVal = addAssets(
           lrpUtxo.assets,
@@ -137,11 +138,14 @@ export function buildRedemptionsTx(
             lrpUtxo.address,
             {
               kind: 'inline',
-              value: serialiseLrpDatum({
-                ...lrpDatum,
-                lovelacesToSpend:
-                  lrpDatum.lovelacesToSpend - lovelacesForRedemption,
-              }),
+              value: serialiseLrpDatum(
+                {
+                  ...lrpDatum,
+                  lovelacesToSpend:
+                    lrpDatum.lovelacesToSpend - lovelacesForRedemption,
+                },
+                { _tag: 'adaptiveReplace', spentLrpDatum: lrpRawInlineDatum },
+              ),
             },
             resultVal,
           );
