@@ -2,7 +2,6 @@ import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { option as O, function as F } from 'fp-ts';
 import { match, P } from 'ts-pattern';
 import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
-import { Data } from '@lucid-evolution/lucid';
 
 const StakingPosLockedAmtSchema = EvoCore.TSchema.Map(
   EvoCore.TSchema.Integer,

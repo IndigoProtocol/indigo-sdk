@@ -2,7 +2,6 @@ import { Core as EvoCore } from '@evolution-sdk/evolution';
 import { match, P } from 'ts-pattern';
 import { AddressSchema } from '@3rd-eye-labs/cardano-offchain-common';
 import { DEFAULT_SCHEMA_OPTIONS } from '../../types/evolution-schema-options';
-import { Data } from '@lucid-evolution/lucid';
 
 export const SPIntegerSchema = EvoCore.TSchema.Struct({
   value: EvoCore.TSchema.Integer,
