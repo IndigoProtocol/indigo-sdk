@@ -1,6 +1,9 @@
 import { Data, Datum, Redeemer, UTxO } from '@lucid-evolution/lucid';
 import { AssetClassSchema, OutputReferenceSchema } from '../../types/generic';
-import { OnChainDecimalSchema } from '../../types/on-chain-decimal';
+import {
+  OnChainDecimal,
+  OnChainDecimalSchema,
+} from '../../types/on-chain-decimal';
 import { option as O, function as F } from 'fp-ts';
 
 export const LRPParamsSchema = Data.Object({
@@ -60,12 +63,31 @@ export function parseLrpDatumOrThrow(datum: Datum): LRPDatum {
   );
 }
 
-export function serialiseLrpDatum(datum: LRPDatum, canonical: boolean = false): Datum {
-  return Data.to<LRPDatum>(datum, LRPDatum, { canonical: true });
+export function serialiseLrpDatum(datum: LRPDatum): Datum {
+  const d = Data.to<LRPDatum>(datum, LRPDatum);
+
+  // If the lrp was created using a canonical on-chain decimal, we need to serialise it canonically.
+  // This is due to some issue related to how Aiken compares objects.
+  // See "Wrong continuing output" trace, specifically the spread of the previous datum ie. expecting the serialisation to be the same as it was created with
+  // We however do not want to do this for any lrps that are being build canonical.
+  const ocdSerialisedCanonical = Data.to<OnChainDecimal>(
+    datum.maxPrice,
+    OnChainDecimal,
+    { canonical: true },
+  );
+  const ocdSerialisedNonCanonical = Data.to<OnChainDecimal>(
+    datum.maxPrice,
+    OnChainDecimal,
+    { canonical: false },
+  );
+
+  return d.replace(ocdSerialisedNonCanonical, ocdSerialisedCanonical);
+
+  // return d;
 }
 
 export function serialiseLrpRedeemer(redeemer: LRPRedeemer): Redeemer {
-  return Data.to<LRPRedeemer>(redeemer, LRPRedeemer, { canonical: true });
+  return Data.to<LRPRedeemer>(redeemer, LRPRedeemer);
 }
 
 export function castLrpParams(params: LRPParams): Data {

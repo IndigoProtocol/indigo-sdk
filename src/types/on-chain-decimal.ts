@@ -6,6 +6,7 @@ export const OnChainDecimalSchema = Data.Object({
   getOnChainInt: Data.Integer(),
 });
 export type OnChainDecimal = Data.Static<typeof OnChainDecimalSchema>;
+export const OnChainDecimal = OnChainDecimalSchema as unknown as OnChainDecimal;
 
 export function ocdCeil(a: OnChainDecimal): bigint {
   const whole = a.getOnChainInt / OCD_DECIMAL_UNIT;
