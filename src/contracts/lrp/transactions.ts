@@ -62,7 +62,7 @@ export async function openLrp(
     ),
     {
       kind: 'inline',
-      value: serialiseLrpDatum(newDatum),
+      value: serialiseLrpDatum(newDatum, true),
     },
     { lovelace: lovelacesAmt + MIN_LRP_COLLATERAL_AMT },
   );

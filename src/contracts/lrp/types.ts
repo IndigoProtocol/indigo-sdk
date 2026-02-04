@@ -60,8 +60,8 @@ export function parseLrpDatumOrThrow(datum: Datum): LRPDatum {
   );
 }
 
-export function serialiseLrpDatum(datum: LRPDatum): Datum {
-  return Data.to<LRPDatum>(datum, LRPDatum);
+export function serialiseLrpDatum(datum: LRPDatum, canonical: boolean = false): Datum {
+  return Data.to<LRPDatum>(datum, LRPDatum, { canonical: true });
 }
 
 export function serialiseLrpRedeemer(redeemer: LRPRedeemer): Redeemer {

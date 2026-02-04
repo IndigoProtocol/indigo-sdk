@@ -127,9 +127,7 @@ export function serialiseStabilityPoolRedeemer(
     DEFAULT_SCHEMA_OPTIONS,
   ).toCBORHex(r);
 
-  return Data.to(Data.from(rdmr, typeof Data), typeof Data, {
-    canonical: false,
-  });
+  return rdmr;
 }
 
 export function serialiseStabilityPoolDatum(
@@ -144,9 +142,7 @@ export function serialiseStabilityPoolDatum(
     useIndefiniteMaps: useIndefiniteMaps,
   }).toCBORHex(d);
 
-  return Data.to(Data.from(datum, typeof Data), typeof Data, {
-    canonical: false,
-  });
+  return datum;
 }
 
 export function parseStabilityPoolDatum(datum: string): StabilityPoolContent {

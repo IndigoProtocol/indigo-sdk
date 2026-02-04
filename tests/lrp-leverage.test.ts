@@ -6,9 +6,11 @@ import {
   getInlineDatumOrThrow,
   LRPDatum,
   LrpParamsSP,
+  openCdp,
   openLrp,
   parseInterestOracleDatum,
   parsePriceOracleDatum,
+  redeemLrp,
   SystemParams,
 } from '../src';
 import {
@@ -864,6 +866,191 @@ describe('LRP leverage', () => {
 
     context.emulator = new Emulator([context.users.admin, context.users.user]);
     context.lucid = await Lucid(context.emulator, 'Custom');
+  });
+
+  test<MyContext>('Mainnet', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const [sysParams, __] = await init(context.lucid, [
+      {
+        ...iusdInitialAssetCfg,
+        priceOracle: {
+          ...iusdInitialAssetCfg.priceOracle,
+          startPrice: 3421620n,
+        },
+        interestOracle: {
+          ...iusdInitialAssetCfg.interestOracle,
+          initialInterestRate: 77423n,
+        },
+        maintenanceRatioPercentage: 130_000_000n,
+        debtMintingFeePercentage: 100_000n,
+        redemptionReimbursementPercentage: 1_000_000n,
+      },
+    ]);
+
+    const iasset = fromText(iusdInitialAssetCfg.name);
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 4_000_000n,
+    });
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        toText(iasset),
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          1000_000_000n,
+          30_000_000n,
+          sysParams,
+          orefs.cdpCreatorUtxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+      const [lrpToRedeem] = await findAllLrps(context.lucid, sysParams, iasset);
+
+      await runAndAwaitTx(
+        context.lucid,
+        redeemLrp([[lrpToRedeem.utxo, 5_000_000n]], orefs.priceOracleUtxo, orefs.iasset.utxo, context.lucid,  sysParams),
+      );
+    }
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 2_500_000n,
+    });
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 2_500_000n,
+    });
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 2_500_000n,
+    });
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 2_500_000n,
+    });
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 3_448_275n,
+    });
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 3_448_275n,
+    });
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 3_448_275n,
+    });
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 4_000_000n,
+    });
+
+    await openLrps(context, sysParams, iasset, [50_000_000_000n], {
+      getOnChainInt: 4_000_000n,
+    });
+
+    await openLrps(context, sysParams, iasset, [1000000n], {
+      getOnChainInt: 333333n,
+    });
+    await openLrps(context, sysParams, iasset, [10010000n], {
+      getOnChainInt: 2525629n,
+    });
+    await openLrps(context, sysParams, iasset, [10000000n], {
+      getOnChainInt: 2535889n,
+    });
+    await openLrps(context, sysParams, iasset, [10000000n], {
+      getOnChainInt: 666666n,
+    });
+    await openLrps(context, sysParams, iasset, [2000000n], {
+      getOnChainInt: 2531248n,
+    });
+    await openLrps(context, sysParams, iasset, [3n], {
+      getOnChainInt: 2702702n,
+    });
+    await openLrps(context, sysParams, iasset, [2000000n], {
+      getOnChainInt: 1600000n,
+    });
+    await openLrps(context, sysParams, iasset, [2000000n], {
+      getOnChainInt: 1700000n,
+    });
+
+    const allLrps = await findAllLrps(context.lucid, sysParams, iasset);
+
+    for (const lrp of allLrps) {
+      console.log('LRP - Max Price', lrp.datum.maxPrice, ' Lovelaces to spend', lrp.datum.lovelacesToSpend, ' Assets:', lrp.utxo.assets)
+    }
+
+    const orefs = await findAllNecessaryOrefs(
+      context.lucid,
+      sysParams,
+      toText(iasset),
+    );
+
+    const baseCollateral = 100_000_000n;
+    await runAndAwaitTx(
+      context.lucid,
+      leverageCdpWithLrp(
+        1.1,
+        baseCollateral,
+        orefs.priceOracleUtxo,
+        orefs.iasset.utxo,
+        orefs.cdpCreatorUtxo,
+        orefs.interestOracleUtxo,
+        orefs.collectorUtxo,
+        sysParams,
+        context.lucid,
+        allLrps.map((lrps) => [lrps.utxo, lrps.datum]),
+        context.emulator.slot,
+      ),
+    );
+
+    // const [pkh, skh] = await addrDetails(context.lucid);
+
+    // const res = await findCdp(
+    //   context.lucid,
+    //   sysParams.validatorHashes.cdpHash,
+    //   fromSystemParamsAsset(sysParams.cdpParams.cdpAuthToken),
+    //   pkh.hash,
+    //   skh,
+    // );
+
+    // // Assert leverage
+    // assertValueInRange(
+    //   Number(lovelacesAmt(res.utxo.assets)) / Number(baseCollateral),
+    //   {
+    //     min: 2,
+    //     max: 2.001,
+    //   },
+    // );
+
+    // // Assert collateral ratio
+    // assertValueInRange(
+    //   cdpCollateralRatioPercentage(
+    //     context.emulator.slot,
+    //     parsePriceOracleDatum(getInlineDatumOrThrow(orefs.priceOracleUtxo))
+    //       .price,
+    //     res.utxo,
+    //     res.datum,
+    //     parseInterestOracleDatum(
+    //       getInlineDatumOrThrow(orefs.interestOracleUtxo),
+    //     ),
+    //     context.lucid.config().network!,
+    //   ),
+    //   {
+    //     min: 197,
+    //     max: 197.001,
+    //   },
+    // );
   });
 
   test<MyContext>('Open 2x leveraged CDP; 1 LRP; price ~1.1; f_r=.01; f_m=.005', async (context: MyContext) => {

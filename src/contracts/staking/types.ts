@@ -34,7 +34,7 @@ const StakingRedeemer = StakingRedeemerSchema as unknown as StakingRedeemer;
 
 export function serialiseStakingRedeemer(redeemer: StakingRedeemer): Redeemer {
   const rdmr = Data.to<StakingRedeemer>(redeemer, StakingRedeemer, {
-    canonical: true,
+    canonical: false,
   });
   return rdmr;
 }

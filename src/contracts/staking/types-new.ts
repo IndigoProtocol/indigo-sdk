@@ -80,7 +80,5 @@ export function serialiseStakingDatum(d: StakingDatum): string {
     DEFAULT_SCHEMA_OPTIONS,
   ).toCBORHex(d);
 
-  return Data.to(Data.from(datum, typeof Data), typeof Data, {
-    canonical: false,
-  });
+  return datum;
 }

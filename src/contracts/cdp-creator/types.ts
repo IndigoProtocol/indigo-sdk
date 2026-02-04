@@ -41,7 +41,7 @@ export function serialiseCDPCreatorRedeemer(
   params: CDPCreatorRedeemer,
 ): Redeemer {
   return Data.to<CDPCreatorRedeemer>(params, CDPCreatorRedeemer, {
-    canonical: true,
+    canonical: false,
   });
 }
 
