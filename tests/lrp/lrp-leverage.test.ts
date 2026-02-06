@@ -10,7 +10,7 @@ import {
   parseInterestOracleDatum,
   parsePriceOracleDatum,
   SystemParams,
-} from '../src';
+} from '../../src';
 import {
   addAssets,
   Emulator,
@@ -21,31 +21,31 @@ import {
   toText,
   UTxO,
 } from '@lucid-evolution/lucid';
-import { findAllNecessaryOrefs, findCdp } from './queries/cdp-queries';
-import { LucidContext, runAndAwaitTx } from './test-helpers';
+import { findAllNecessaryOrefs, findCdp } from '../queries/cdp-queries';
+import { LucidContext, runAndAwaitTx } from '../test-helpers';
 import { describe } from 'vitest';
 import {
   assetClassValueOf,
   lovelacesAmt,
   mkLovelacesOf,
-} from '../src/utils/value-helpers';
-import { init } from './endpoints/initialize';
-import { iusdInitialAssetCfg } from './mock/assets-mock';
-import { findAllLrps } from './queries/lrp-queries';
-import { ocdFloor, OnChainDecimal } from '../src/types/on-chain-decimal';
-import { assertValueInRange } from './utils/asserts';
+} from '../../src/utils/value-helpers';
+import { init } from '../endpoints/initialize';
+import { iusdInitialAssetCfg } from '../mock/assets-mock';
+import { findAllLrps } from './lrp-queries';
+import { ocdFloor, OnChainDecimal } from '../../src/types/on-chain-decimal';
+import { assertValueInRange } from '../utils/asserts';
 
 import {
   calculateLeverageFromCollateralRatio,
   MAX_REDEMPTIONS_WITH_CDP_OPEN,
-} from '../src/contracts/leverage/helpers';
-import { leverageCdpWithLrp } from '../src/contracts/leverage/transactions';
+} from '../../src/contracts/leverage/helpers';
+import { leverageCdpWithLrp } from '../../src/contracts/leverage/transactions';
 import {
   calculateTotalAdaForRedemption,
   lrpRedeemableLovelacesInclReimb,
   MIN_LRP_COLLATERAL_AMT,
   randomLrpsSubsetSatisfyingTargetLovelaces,
-} from '../src/contracts/lrp/helpers';
+} from '../../src/contracts/lrp/helpers';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
