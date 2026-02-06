@@ -11,28 +11,33 @@ import {
   toText,
   UTxO,
 } from '@lucid-evolution/lucid';
-import { parseLrpDatumOrThrow } from '../src/contracts/lrp/types';
+import { parseLrpDatumOrThrow } from '../../src/contracts/lrp/types';
 import {
   adjustLrp,
   cancelLrp,
   claimLrp,
   openLrp,
   redeemLrp,
-} from '../src/contracts/lrp/transactions';
-import { findLrp } from './queries/lrp-queries';
-import { addrDetails, getInlineDatumOrThrow } from '../src/utils/lucid-utils';
-import { LucidContext, runAndAwaitTx } from './test-helpers';
-import { matchSingle } from '../src/utils/utils';
-import { AssetClass, openCdp, SystemParams } from '../src';
+} from '../../src/contracts/lrp/transactions';
+import { findLrp } from './lrp-queries';
+import {
+  addrDetails,
+  getInlineDatumOrThrow,
+} from '../../src/utils/lucid-utils';
+import { LucidContext, runAndAwaitTx } from '../test-helpers';
+import { matchSingle } from '../../src/utils/utils';
+import { AssetClass, openCdp, SystemParams } from '../../src';
 import {
   assetClassValueOf,
   lovelacesAmt,
   mkLovelacesOf,
-} from '../src/utils/value-helpers';
+} from '../../src/utils/value-helpers';
 import { strictEqual } from 'assert';
-import { init } from './endpoints/initialize';
-import { iusdInitialAssetCfg } from './mock/assets-mock';
-import { findAllNecessaryOrefs } from './queries/cdp-queries';
+import { init } from '../endpoints/initialize';
+import { iusdInitialAssetCfg } from '../mock/assets-mock';
+import { findAllNecessaryOrefs } from '../queries/cdp-queries';
+import { redeemLrpMutated } from './transactions-mutated';
+import { expectScriptFailure } from '../utils/asserts';
 
 type MyContext = LucidContext<{
   admin: EmulatorAccount;
@@ -432,6 +437,76 @@ describe('LRP', () => {
       context.lucid,
       cancelLrp(redeemedLrp, sysParams, context.lucid),
     );
+  });
+
+  test<MyContext>('redemption without adaptive OCD replace fails', async (context: MyContext) => {
+    context.lucid.selectWallet.fromSeed(context.users.admin.seedPhrase);
+
+    const [sysParams, __] = await init(context.lucid, [iusdInitialAssetCfg]);
+
+    const iasset = fromText(iusdInitialAssetCfg.name);
+
+    const [ownPkh, _] = await addrDetails(context.lucid);
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        toText(iasset),
+      );
+
+      await runAndAwaitTx(
+        context.lucid,
+        openCdp(
+          100_000_000n,
+          30_000_000n,
+          sysParams,
+          orefs.cdpCreatorUtxo,
+          orefs.iasset.utxo,
+          orefs.priceOracleUtxo,
+          orefs.interestOracleUtxo,
+          orefs.collectorUtxo,
+          context.lucid,
+          context.emulator.slot,
+        ),
+      );
+    }
+
+    await runAndAwaitTx(
+      context.lucid,
+      openLrp(
+        iasset,
+        20_000_000n,
+        { getOnChainInt: 1_000_000n },
+        context.lucid,
+        sysParams,
+      ),
+      true,
+    );
+
+    const lrpUtxo = await findSingleLrp(context, sysParams, iasset, ownPkh);
+
+    const redemptionIAssetAmt = 11_000_000n;
+
+    {
+      const orefs = await findAllNecessaryOrefs(
+        context.lucid,
+        sysParams,
+        toText(iasset),
+      );
+
+      await expectScriptFailure(
+        'Wrong continuing output',
+        redeemLrpMutated(
+          [[lrpUtxo, redemptionIAssetAmt]],
+          orefs.priceOracleUtxo,
+          orefs.iasset.utxo,
+          context.lucid,
+          sysParams,
+          { type: 'ignore-adaptive-replace' },
+        ),
+      );
+    }
   });
 
   test<MyContext>('redeem, redeem again and cancel', async (context: MyContext) => {
