@@ -465,7 +465,14 @@ export async function vote(
   return lucid
     .newTx()
     .validFrom(validityFrom)
-    .validTo(Number(pollShardDatum.votingEndTime) - ONE_SECOND)
+    .validTo(
+      Math.min(
+        Number(pollShardDatum.votingEndTime) - ONE_SECOND,
+        Number(currentTime) +
+          Number(sysParams.govParams.gBiasTime) -
+          ONE_SECOND,
+      ),
+    )
     .readFrom([stakingRefScriptUtxo, pollShardRefScriptUtxo])
     .collectFrom([stakingPosUtxo], serialiseStakingRedeemer('Lock'))
     .collectFrom(
