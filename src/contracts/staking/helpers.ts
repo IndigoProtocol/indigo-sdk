@@ -1,9 +1,4 @@
-import {
-  fromText,
-  OutRef,
-  UTxO,
-  validatorToScriptHash,
-} from '@lucid-evolution/lucid';
+import { fromText, UTxO, validatorToScriptHash } from '@lucid-evolution/lucid';
 import { LucidEvolution } from '@lucid-evolution/lucid';
 import { SystemParams } from '../../types/system-params';
 import {
@@ -13,7 +8,11 @@ import {
   StakingPosition,
   StakingPosLockedAmt,
 } from './types-new';
-import { createScriptAddress } from '../../utils/lucid-utils';
+import {
+  createScriptAddress,
+  resolveUtxo,
+  UTxOOrOutRef,
+} from '../../utils/lucid-utils';
 import { mkStakingValidatorFromSP } from './scripts';
 import { OCD_DECIMAL_UNIT } from '../../types/on-chain-decimal';
 
@@ -37,28 +36,20 @@ export function updateStakingLockedAmount(
   );
 }
 
-export function findStakingManagerByOutRef(
-  stakingManagerRef: OutRef,
+export async function findStakingManagerByOutRef(
+  stakingManager: UTxOOrOutRef,
   lucid: LucidEvolution,
 ): Promise<StakingManagerOutput> {
-  return lucid
-    .utxosByOutRef([stakingManagerRef])
-    .then((utxos) =>
-      utxos
-        .map((utxo) => {
-          if (!utxo.datum) return undefined;
-          const datum = parseStakingManagerDatum(utxo.datum);
-          return { utxo, datum };
-        })
-        .find((utxo) => utxo !== undefined),
-    )
-    .then((result) => {
-      if (!result)
-        throw new Error(
-          'Unable to locate Staking Manager by output reference.',
-        );
-      return result;
-    });
+  const utxo = await resolveUtxo(
+    stakingManager,
+    lucid,
+    'Unable to locate Staking Manager by output reference.',
+  );
+  if (!utxo.datum) {
+    throw new Error('Staking Manager UTxO has no datum.');
+  }
+  const datum = parseStakingManagerDatum(utxo.datum);
+  return { utxo, datum };
 }
 
 export function findStakingManager(
@@ -92,28 +83,20 @@ export function findStakingManager(
     });
 }
 
-export function findStakingPositionByOutRef(
-  stakingPositionRef: OutRef,
+export async function findStakingPositionByOutRef(
+  stakingPosition: UTxOOrOutRef,
   lucid: LucidEvolution,
 ): Promise<StakingPositionOutput> {
-  return lucid
-    .utxosByOutRef([stakingPositionRef])
-    .then((utxos) =>
-      utxos
-        .map((utxo) => {
-          if (!utxo.datum) return undefined;
-          const datum = parseStakingPositionOrThrow(utxo.datum);
-          return { utxo, datum };
-        })
-        .find((utxo) => utxo !== undefined),
-    )
-    .then((result) => {
-      if (!result)
-        throw new Error(
-          'Unable to locate Staking Position by output reference.',
-        );
-      return result;
-    });
+  const utxo = await resolveUtxo(
+    stakingPosition,
+    lucid,
+    'Unable to locate Staking Position by output reference.',
+  );
+  if (!utxo.datum) {
+    throw new Error('Staking Position UTxO has no datum.');
+  }
+  const datum = parseStakingPositionOrThrow(utxo.datum);
+  return { utxo, datum };
 }
 
 export const rewardSnapshotPrecision = OCD_DECIMAL_UNIT * OCD_DECIMAL_UNIT;

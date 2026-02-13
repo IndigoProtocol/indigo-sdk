@@ -13,17 +13,20 @@ import {
   fromSystemParamsScriptRef,
   SystemParams,
 } from '../../types/system-params';
-import { addrDetails, getInlineDatumOrThrow } from '../../utils/lucid-utils';
+import {
+  addrDetails,
+  getInlineDatumOrThrow,
+  resolveUtxo,
+  UTxOOrOutRef,
+} from '../../utils/lucid-utils';
 import {
   distributeReward,
-  findStakingManager,
-  findStakingManagerByOutRef,
-  findStakingPositionByOutRef,
   rewardSnapshotPrecision,
   updateStakingLockedAmount,
 } from './helpers';
 import {
   parseStakingManagerDatum,
+  parseStakingPositionOrThrow,
   serialiseStakingDatum,
   StakingManager,
   StakingPosition,
@@ -38,13 +41,18 @@ export async function openStakingPosition(
   amount: bigint,
   params: SystemParams,
   lucid: LucidEvolution,
-  stakingManagerRef?: OutRef,
+  stakingManager: UTxOOrOutRef,
 ): Promise<TxBuilder> {
   const [pkh, _] = await addrDetails(lucid);
 
-  const stakingManagerOut = stakingManagerRef
-    ? await findStakingManagerByOutRef(stakingManagerRef, lucid)
-    : await findStakingManager(params, lucid);
+  const stakingManagerUtxo = await resolveUtxo(
+    stakingManager,
+    lucid,
+    'Expected a single staking manager UTXO',
+  );
+  const stakingManagerDatum = parseStakingManagerDatum(
+    getInlineDatumOrThrow(stakingManagerUtxo),
+  );
 
   const stakingRefScriptUtxo = matchSingle(
     await lucid.utxosByOutRef([
@@ -62,9 +70,9 @@ export async function openStakingPosition(
   );
 
   const newStakingManagerDatum: StakingManager = {
-    totalStake: stakingManagerOut.datum.totalStake + amount,
+    totalStake: stakingManagerDatum.totalStake + amount,
     managerSnapshot: {
-      snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,
+      snapshotAda: stakingManagerDatum.managerSnapshot.snapshotAda,
     },
   };
 
@@ -72,7 +80,7 @@ export async function openStakingPosition(
     owner: fromHex(pkh.hash),
     lockedAmount: new Map([]),
     positionSnapshot: {
-      snapshotAda: stakingManagerOut.datum.managerSnapshot.snapshotAda,
+      snapshotAda: stakingManagerDatum.managerSnapshot.snapshotAda,
     },
   };
 
@@ -85,19 +93,19 @@ export async function openStakingPosition(
   return lucid
     .newTx()
     .collectFrom(
-      [stakingManagerOut.utxo],
+      [stakingManagerUtxo],
       serialiseStakingRedeemer({
         CreateStakingPosition: { creatorPkh: pkh.hash },
       }),
     )
     .readFrom([stakingRefScriptUtxo])
     .pay.ToContract(
-      stakingManagerOut.utxo.address,
+      stakingManagerUtxo.address,
       {
         kind: 'inline',
         value: serialiseStakingDatum(newStakingManagerDatum),
       },
-      stakingManagerOut.utxo.assets,
+      stakingManagerUtxo.assets,
     )
     .readFrom([stakingTokenPolicyRefScriptUtxo])
     .mintAssets(
@@ -107,7 +115,7 @@ export async function openStakingPosition(
       Data.void(),
     )
     .pay.ToContract(
-      stakingManagerOut.utxo.address,
+      stakingManagerUtxo.address,
       {
         kind: 'inline',
         value: serialiseStakingDatum(stakingPositionDatum),
@@ -121,23 +129,33 @@ export async function openStakingPosition(
 }
 
 export async function adjustStakingPosition(
-  stakingPositionRef: OutRef,
+  stakingPosition: UTxOOrOutRef,
   amount: bigint,
   params: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
-  stakingManagerRef?: OutRef,
+  stakingManager: UTxOOrOutRef,
 ): Promise<TxBuilder> {
   const network = lucid.config().network!;
   const currentTime = slotToUnixTime(network, currentSlot) - 120 * ONE_SECOND;
 
-  const stakingPositionOut = await findStakingPositionByOutRef(
-    stakingPositionRef,
+  const stakingPositionUtxo = await resolveUtxo(
+    stakingPosition,
     lucid,
+    'Expected a single staking position UTXO',
   );
-  const stakingManagerOut = stakingManagerRef
-    ? await findStakingManagerByOutRef(stakingManagerRef, lucid)
-    : await findStakingManager(params, lucid);
+  const stakingPositionDatum = parseStakingPositionOrThrow(
+    getInlineDatumOrThrow(stakingPositionUtxo),
+  );
+
+  const stakingManagerUtxo = await resolveUtxo(
+    stakingManager,
+    lucid,
+    'Expected a single staking manager UTXO',
+  );
+  const stakingManagerDatum = parseStakingManagerDatum(
+    getInlineDatumOrThrow(stakingManagerUtxo),
+  );
 
   const stakingRefScriptUtxo = matchSingle(
     await lucid.utxosByOutRef([
@@ -150,16 +168,15 @@ export async function adjustStakingPosition(
     params.stakingParams.indyToken[0].unCurrencySymbol +
     fromText(params.stakingParams.indyToken[1].unTokenName);
 
-  const existingIndyAmount = stakingPositionOut.utxo.assets[indyToken] ?? 0n;
-  const currentSnapshotAda =
-    stakingManagerOut.datum.managerSnapshot.snapshotAda;
-  const oldSnapshotAda = stakingPositionOut.datum.positionSnapshot.snapshotAda;
+  const existingIndyAmount = stakingPositionUtxo.assets[indyToken] ?? 0n;
+  const currentSnapshotAda = stakingManagerDatum.managerSnapshot.snapshotAda;
+  const oldSnapshotAda = stakingPositionDatum.positionSnapshot.snapshotAda;
   const adaReward =
     ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
     rewardSnapshotPrecision;
 
   const newLockedAmount = updateStakingLockedAmount(
-    stakingPositionOut.datum.lockedAmount,
+    stakingPositionDatum.lockedAmount,
     BigInt(currentTime),
   );
 
@@ -168,38 +185,38 @@ export async function adjustStakingPosition(
     .validFrom(currentTime)
     .readFrom([stakingRefScriptUtxo])
     .collectFrom(
-      [stakingPositionOut.utxo],
+      [stakingPositionUtxo],
       serialiseStakingRedeemer({
         AdjustStakedAmount: { adjustAmount: amount },
       }),
     )
     .collectFrom(
-      [stakingManagerOut.utxo],
+      [stakingManagerUtxo],
       serialiseStakingRedeemer('UpdateTotalStake'),
     )
     .pay.ToContract(
-      stakingManagerOut.utxo.address,
+      stakingManagerUtxo.address,
       {
         kind: 'inline',
         value: serialiseStakingDatum({
-          ...stakingManagerOut.datum,
-          totalStake: stakingManagerOut.datum.totalStake + amount,
+          ...stakingManagerDatum,
+          totalStake: stakingManagerDatum.totalStake + amount,
         }),
       },
-      addAssets(stakingManagerOut.utxo.assets, mkLovelacesOf(-adaReward)),
+      addAssets(stakingManagerUtxo.assets, mkLovelacesOf(-adaReward)),
     )
     .pay.ToContract(
-      stakingPositionOut.utxo.address,
+      stakingPositionUtxo.address,
       {
         kind: 'inline',
         value: serialiseStakingDatum({
-          ...stakingPositionOut.datum,
+          ...stakingPositionDatum,
           lockedAmount: newLockedAmount,
-          positionSnapshot: stakingManagerOut.datum.managerSnapshot,
+          positionSnapshot: stakingManagerDatum.managerSnapshot,
         }),
       },
       addAssets(
-        stakingPositionOut.utxo.assets,
+        stakingPositionUtxo.assets,
         mkAssetsOf(
           {
             currencySymbol: params.stakingParams.indyToken[0].unCurrencySymbol,
@@ -209,26 +226,36 @@ export async function adjustStakingPosition(
         ),
       ),
     )
-    .addSignerKey(toHex(stakingPositionOut.datum.owner));
+    .addSignerKey(toHex(stakingPositionDatum.owner));
 }
 
 export async function closeStakingPosition(
-  stakingPositionRef: OutRef,
+  stakingPosition: UTxOOrOutRef,
   params: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
-  stakingManagerRef?: OutRef,
+  stakingManager: UTxOOrOutRef,
 ): Promise<TxBuilder> {
   const network = lucid.config().network!;
   const currentTime = slotToUnixTime(network, currentSlot) - ONE_SECOND;
 
-  const stakingPositionOut = await findStakingPositionByOutRef(
-    stakingPositionRef,
+  const stakingPositionUtxo = await resolveUtxo(
+    stakingPosition,
     lucid,
+    'Expected a single staking position UTXO',
   );
-  const stakingManagerOut = stakingManagerRef
-    ? await findStakingManagerByOutRef(stakingManagerRef, lucid)
-    : await findStakingManager(params, lucid);
+  const stakingPositionDatum = parseStakingPositionOrThrow(
+    getInlineDatumOrThrow(stakingPositionUtxo),
+  );
+
+  const stakingManagerUtxo = await resolveUtxo(
+    stakingManager,
+    lucid,
+    'Expected a single staking manager UTXO',
+  );
+  const stakingManagerDatum = parseStakingManagerDatum(
+    getInlineDatumOrThrow(stakingManagerUtxo),
+  );
 
   const stakingRefScriptUtxo = matchSingle(
     await lucid.utxosByOutRef([
@@ -252,10 +279,9 @@ export async function closeStakingPosition(
     params.stakingParams.indyToken[0].unCurrencySymbol +
     fromText(params.stakingParams.indyToken[1].unTokenName);
 
-  const existingIndyAmount = stakingPositionOut.utxo.assets[indyToken] ?? 0n;
-  const currentSnapshotAda =
-    stakingManagerOut.datum.managerSnapshot.snapshotAda;
-  const oldSnapshotAda = stakingPositionOut.datum.positionSnapshot.snapshotAda;
+  const existingIndyAmount = stakingPositionUtxo.assets[indyToken] ?? 0n;
+  const currentSnapshotAda = stakingManagerDatum.managerSnapshot.snapshotAda;
+  const oldSnapshotAda = stakingPositionDatum.positionSnapshot.snapshotAda;
   const adaReward =
     ((currentSnapshotAda - oldSnapshotAda) * existingIndyAmount) /
     (1000000n * 1000000n);
@@ -264,21 +290,21 @@ export async function closeStakingPosition(
     .newTx()
     .validFrom(currentTime)
     .readFrom([stakingRefScriptUtxo, stakingTokenPolicyRefScriptUtxo])
-    .collectFrom([stakingPositionOut.utxo], serialiseStakingRedeemer('Unstake'))
+    .collectFrom([stakingPositionUtxo], serialiseStakingRedeemer('Unstake'))
     .collectFrom(
-      [stakingManagerOut.utxo],
+      [stakingManagerUtxo],
       serialiseStakingRedeemer('UpdateTotalStake'),
     )
     .pay.ToContract(
-      stakingManagerOut.utxo.address,
+      stakingManagerUtxo.address,
       {
         kind: 'inline',
         value: serialiseStakingDatum({
-          ...stakingManagerOut.datum,
-          totalStake: stakingManagerOut.datum.totalStake - existingIndyAmount,
+          ...stakingManagerDatum,
+          totalStake: stakingManagerDatum.totalStake - existingIndyAmount,
         }),
       },
-      addAssets(stakingManagerOut.utxo.assets, mkLovelacesOf(-adaReward)),
+      addAssets(stakingManagerUtxo.assets, mkLovelacesOf(-adaReward)),
     )
     .mintAssets(
       {
@@ -286,21 +312,26 @@ export async function closeStakingPosition(
       },
       Data.void(),
     )
-    .addSignerKey(toHex(stakingPositionOut.datum.owner));
+    .addSignerKey(toHex(stakingPositionDatum.owner));
 }
 
 const MIN_UTXO_AMOUNT = 2_000_000n;
 
 export async function distributeAda(
-  stakingManagerRef: OutRef,
+  stakingManager: UTxOOrOutRef,
   collectorRefs: OutRef[],
   params: SystemParams,
   lucid: LucidEvolution,
 ): Promise<TxBuilder> {
-  const [stakingManagerUtxo] = await lucid.utxosByOutRef([stakingManagerRef]);
+  const stakingManagerUtxo = await resolveUtxo(
+    stakingManager,
+    lucid,
+    'Expected a single staking manager UTXO',
+  );
   const stakingManagerDatum = parseStakingManagerDatum(
     getInlineDatumOrThrow(stakingManagerUtxo),
   );
+
   const collectorUtxos = (await lucid.utxosByOutRef(collectorRefs))
     .filter((utxo) => utxo.datum && utxo.datum === Data.void())
     .filter((utxo) => utxo.assets.lovelace > MIN_UTXO_AMOUNT);

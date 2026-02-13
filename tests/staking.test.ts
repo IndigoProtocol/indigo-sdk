@@ -44,10 +44,11 @@ test<MyContext>('Staking - Create Position', async ({
 }: MyContext) => {
   lucid.selectWallet.fromSeed(users.admin.seedPhrase);
   const [systemParams, _] = await init(lucid, [iusdInitialAssetCfg]);
+  const stakingManager = await findStakingManager(systemParams, lucid);
 
   await runAndAwaitTx(
     lucid,
-    openStakingPosition(1_000_000n, systemParams, lucid),
+    openStakingPosition(1_000_000n, systemParams, lucid, stakingManager.utxo),
   );
 });
 
@@ -61,7 +62,12 @@ test<MyContext>('Staking - Adjust Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    openStakingPosition(1_000_000n, systemParams, lucid),
+    openStakingPosition(
+      1_000_000n,
+      systemParams,
+      lucid,
+      (await findStakingManager(systemParams, lucid)).utxo,
+    ),
   );
 
   const [pkh, __] = await addrDetails(lucid);
@@ -80,6 +86,7 @@ test<MyContext>('Staking - Adjust Position', async ({
       systemParams,
       lucid,
       emulator.slot,
+      (await findStakingManager(systemParams, lucid)).utxo,
     ),
   );
 });
@@ -94,7 +101,12 @@ test<MyContext>('Staking - Close Position', async ({
 
   await runAndAwaitTx(
     lucid,
-    openStakingPosition(1_000_000n, systemParams, lucid),
+    openStakingPosition(
+      1_000_000n,
+      systemParams,
+      lucid,
+      (await findStakingManager(systemParams, lucid)).utxo,
+    ),
   );
 
   const [pkh, __] = await addrDetails(lucid);
@@ -112,6 +124,7 @@ test<MyContext>('Staking - Close Position', async ({
       systemParams,
       lucid,
       emulator.slot,
+      (await findStakingManager(systemParams, lucid)).utxo,
     ),
   );
 });
@@ -126,7 +139,12 @@ test<MyContext>('Staking - Distribute ADA to Stakers', async ({
 
   await runAndAwaitTx(
     lucid,
-    openStakingPosition(1_000_000n, systemParams, lucid),
+    openStakingPosition(
+      1_000_000n,
+      systemParams,
+      lucid,
+      (await findStakingManager(systemParams, lucid)).utxo,
+    ),
   );
 
   const collectorOref = await findRandomCollector(
@@ -165,7 +183,7 @@ test<MyContext>('Staking - Distribute ADA to Stakers', async ({
   const [____, userValChange] = await getValueChangeAtAddressAfterAction(
     lucid,
     users.admin.address,
-    () =>
+    async () =>
       runAndAwaitTx(
         lucid,
         closeStakingPosition(
@@ -173,6 +191,7 @@ test<MyContext>('Staking - Distribute ADA to Stakers', async ({
           systemParams,
           lucid,
           emulator.slot,
+          (await findStakingManager(systemParams, lucid)).utxo,
         ),
       ),
   );

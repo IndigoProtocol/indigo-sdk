@@ -8,7 +8,6 @@ import {
   UTxO,
   credentialToAddress,
   fromHex,
-  OutRef,
   toHex,
 } from '@lucid-evolution/lucid';
 import { ActionReturnDatum } from './types';
@@ -17,6 +16,7 @@ import {
   addrDetails,
   getInlineDatumOrThrow,
   scriptRef,
+  UTxOOrOutRef,
 } from '../../utils/lucid-utils';
 import { mkStabilityPoolValidatorFromSP } from './scripts';
 import {
@@ -236,7 +236,7 @@ export async function processSpRequest(
   newSnapshotUtxo: UTxO | undefined,
   params: SystemParams,
   lucid: LucidEvolution,
-  collectorOref: OutRef,
+  collector: UTxOOrOutRef,
 ): Promise<TxBuilder> {
   const redeemer: StabilityPoolRedeemer = {
     ProcessRequest: {
@@ -463,13 +463,7 @@ export async function processSpRequest(
     );
 
     if (rewardLovelacesFee > 0n) {
-      await collectorFeeTx(
-        rewardLovelacesFee,
-        lucid,
-        params,
-        tx,
-        collectorOref,
-      );
+      await collectorFeeTx(rewardLovelacesFee, lucid, params, tx, collector);
     }
     tx.readFrom([govUtxo, iAssetUtxo, ...refInputs]);
     tx.pay.ToContract(
@@ -603,7 +597,7 @@ export async function processSpRequest(
       params.scriptReferences.authTokenPolicies.accountTokenRef,
       lucid,
     );
-    await collectorFeeTx(rewardLovelacesFee, lucid, params, tx, collectorOref);
+    await collectorFeeTx(rewardLovelacesFee, lucid, params, tx, collector);
     tx.readFrom([govUtxo, iAssetUtxo, accountTokenRef, ...refInputs]);
     tx.mintAssets(
       {

@@ -11,6 +11,8 @@ import {
   addrDetails,
   createScriptAddress,
   getInlineDatumOrThrow,
+  resolveUtxo,
+  UTxOOrOutRef,
 } from '../../utils/lucid-utils';
 import { unzip, zip } from 'fp-ts/lib/Array';
 import {
@@ -69,7 +71,7 @@ export async function openLrp(
 }
 
 export async function cancelLrp(
-  lrpOutRef: OutRef,
+  lrp: UTxOOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
 ): Promise<TxBuilder> {
@@ -80,10 +82,7 @@ export async function cancelLrp(
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
   );
 
-  const lrpUtxo = matchSingle(
-    await lucid.utxosByOutRef([lrpOutRef]),
-    (_) => new Error('Expected a single LRP UTXO.'),
-  );
+  const lrpUtxo = await resolveUtxo(lrp, lucid, 'Expected a single LRP UTXO.');
 
   const lrpDatum = parseLrpDatumOrThrow(getInlineDatumOrThrow(lrpUtxo));
 
@@ -97,8 +96,8 @@ export async function cancelLrp(
 export async function redeemLrp(
   /** The tuple represents the LRP outref and the amount of iAssets to redeem against it. */
   redemptionLrpsData: [OutRef, bigint][],
-  priceOracleOutRef: OutRef,
-  iassetOutRef: OutRef,
+  priceOracle: UTxOOrOutRef,
+  iasset: UTxOOrOutRef,
   lucid: LucidEvolution,
   sysParams: SystemParams,
 ): Promise<TxBuilder> {
@@ -111,14 +110,16 @@ export async function redeemLrp(
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
   );
 
-  const priceOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([priceOracleOutRef]),
-    (_) => new Error('Expected a single price oracle UTXO'),
+  const priceOracleUtxo = await resolveUtxo(
+    priceOracle,
+    lucid,
+    'Expected a single price oracle UTXO',
   );
 
-  const iassetUtxo = matchSingle(
-    await lucid.utxosByOutRef([iassetOutRef]),
-    (_) => new Error('Expected a single IAsset UTXO'),
+  const iassetUtxo = await resolveUtxo(
+    iasset,
+    lucid,
+    'Expected a single IAsset UTXO',
   );
 
   const iassetDatum = parseIAssetDatumOrThrow(
@@ -167,7 +168,7 @@ export async function redeemLrp(
  */
 export async function adjustLrp(
   lucid: LucidEvolution,
-  lrpOutRef: OutRef,
+  lrp: UTxOOrOutRef,
   /**
    * A positive amount increases the lovelaces in the LRP,
    * and a negative amount takes lovelaces from the LRP.
@@ -183,10 +184,7 @@ export async function adjustLrp(
     (_) => new Error('Expected a single LRP Ref Script UTXO'),
   );
 
-  const lrpUtxo = matchSingle(
-    await lucid.utxosByOutRef([lrpOutRef]),
-    (_) => new Error('Expected a single LRP UTXO.'),
-  );
+  const lrpUtxo = await resolveUtxo(lrp, lucid, 'Expected a single LRP UTXO.');
 
   const lrpDatum = parseLrpDatumOrThrow(getInlineDatumOrThrow(lrpUtxo));
 
@@ -245,8 +243,8 @@ export async function adjustLrp(
  */
 export async function claimLrp(
   lucid: LucidEvolution,
-  lrpOutRef: OutRef,
+  lrp: UTxOOrOutRef,
   sysParams: SystemParams,
 ): Promise<TxBuilder> {
-  return adjustLrp(lucid, lrpOutRef, 0n, undefined, sysParams);
+  return adjustLrp(lucid, lrp, 0n, undefined, sysParams);
 }

@@ -1,15 +1,10 @@
-import {
-  Data,
-  LucidEvolution,
-  OutRef,
-  TxBuilder,
-  UTxO,
-} from '@lucid-evolution/lucid';
+import { Data, LucidEvolution, TxBuilder, UTxO } from '@lucid-evolution/lucid';
 import {
   fromSystemParamsScriptRef,
   SystemParams,
 } from '../../types/system-params';
 import { matchSingle } from '../../utils/utils';
+import { resolveUtxo, UTxOOrOutRef } from '../../utils/lucid-utils';
 import { serialiseCollectorRedeemer } from './types';
 
 export async function collectorFeeTx(
@@ -17,11 +12,12 @@ export async function collectorFeeTx(
   lucid: LucidEvolution,
   params: SystemParams,
   tx: TxBuilder,
-  collectorOref: OutRef,
+  collector: UTxOOrOutRef,
 ): Promise<void> {
-  const collectorUtxo: UTxO = matchSingle(
-    await lucid.utxosByOutRef([collectorOref]),
-    (_) => new Error('Expected a single collector UTXO'),
+  const collectorUtxo: UTxO = await resolveUtxo(
+    collector,
+    lucid,
+    'Expected a single collector UTXO',
   );
 
   const collectorRefScriptUtxo = matchSingle(
