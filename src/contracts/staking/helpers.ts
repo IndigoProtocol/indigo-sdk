@@ -11,7 +11,7 @@ import {
 import {
   createScriptAddress,
   resolveUtxo,
-  UTxOOrOutRef,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import { mkStakingValidatorFromSP } from './scripts';
 import { OCD_DECIMAL_UNIT } from '../../types/on-chain-decimal';
@@ -37,7 +37,7 @@ export function updateStakingLockedAmount(
 }
 
 export async function findStakingManagerByOutRef(
-  stakingManager: UTxOOrOutRef,
+  stakingManager: UtxoOrOutRef,
   lucid: LucidEvolution,
 ): Promise<StakingManagerOutput> {
   const utxo = await resolveUtxo(
@@ -84,7 +84,7 @@ export function findStakingManager(
 }
 
 export async function findStakingPositionByOutRef(
-  stakingPosition: UTxOOrOutRef,
+  stakingPosition: UtxoOrOutRef,
   lucid: LucidEvolution,
 ): Promise<StakingPositionOutput> {
   const utxo = await resolveUtxo(

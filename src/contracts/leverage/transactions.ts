@@ -11,7 +11,7 @@ import {
   createScriptAddress,
   getInlineDatumOrThrow,
   resolveUtxo,
-  UTxOOrOutRef,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import { parsePriceOracleDatum } from '../price-oracle/types';
 import { ocdMul } from '../../types/on-chain-decimal';
@@ -44,11 +44,11 @@ import {
 export async function leverageCdpWithLrp(
   leverage: number,
   baseCollateral: bigint,
-  priceOracle: UTxOOrOutRef,
-  iasset: UTxOOrOutRef,
-  cdpCreator: UTxOOrOutRef,
-  interestOracle: UTxOOrOutRef,
-  collector: UTxOOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  cdpCreator: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   allLrps: [UTxO, LRPDatum][],

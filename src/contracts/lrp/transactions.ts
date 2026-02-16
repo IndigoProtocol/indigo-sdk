@@ -12,7 +12,7 @@ import {
   createScriptAddress,
   getInlineDatumOrThrow,
   resolveUtxo,
-  UTxOOrOutRef,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import { unzip, zip } from 'fp-ts/lib/Array';
 import {
@@ -71,7 +71,7 @@ export async function openLrp(
 }
 
 export async function cancelLrp(
-  lrp: UTxOOrOutRef,
+  lrp: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
 ): Promise<TxBuilder> {
@@ -96,8 +96,8 @@ export async function cancelLrp(
 export async function redeemLrp(
   /** The tuple represents the LRP outref and the amount of iAssets to redeem against it. */
   redemptionLrpsData: [OutRef, bigint][],
-  priceOracle: UTxOOrOutRef,
-  iasset: UTxOOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
   lucid: LucidEvolution,
   sysParams: SystemParams,
 ): Promise<TxBuilder> {
@@ -168,7 +168,7 @@ export async function redeemLrp(
  */
 export async function adjustLrp(
   lucid: LucidEvolution,
-  lrp: UTxOOrOutRef,
+  lrp: UtxoOrOutRef,
   /**
    * A positive amount increases the lovelaces in the LRP,
    * and a negative amount takes lovelaces from the LRP.
@@ -243,7 +243,7 @@ export async function adjustLrp(
  */
 export async function claimLrp(
   lucid: LucidEvolution,
-  lrp: UTxOOrOutRef,
+  lrp: UtxoOrOutRef,
   sysParams: SystemParams,
 ): Promise<TxBuilder> {
   return adjustLrp(lucid, lrp, 0n, undefined, sysParams);

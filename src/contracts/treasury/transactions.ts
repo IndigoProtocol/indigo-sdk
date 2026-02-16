@@ -15,7 +15,7 @@ import { serialiseTreasuryRedeemer } from './types';
 import {
   createScriptAddress,
   resolveUtxo,
-  UTxOOrOutRef,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 
 export async function treasuryFeeTx(
@@ -23,7 +23,7 @@ export async function treasuryFeeTx(
   lucid: LucidEvolution,
   sysParams: SystemParams,
   tx: TxBuilder,
-  treasury: UTxOOrOutRef,
+  treasury: UtxoOrOutRef,
 ): Promise<void> {
   if (fee <= 0n) return;
 

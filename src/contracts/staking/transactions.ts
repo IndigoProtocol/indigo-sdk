@@ -17,7 +17,7 @@ import {
   addrDetails,
   getInlineDatumOrThrow,
   resolveUtxo,
-  UTxOOrOutRef,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import {
   distributeReward,
@@ -41,7 +41,7 @@ export async function openStakingPosition(
   amount: bigint,
   params: SystemParams,
   lucid: LucidEvolution,
-  stakingManager: UTxOOrOutRef,
+  stakingManager: UtxoOrOutRef,
 ): Promise<TxBuilder> {
   const [pkh, _] = await addrDetails(lucid);
 
@@ -129,12 +129,12 @@ export async function openStakingPosition(
 }
 
 export async function adjustStakingPosition(
-  stakingPosition: UTxOOrOutRef,
+  stakingPosition: UtxoOrOutRef,
   amount: bigint,
   params: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
-  stakingManager: UTxOOrOutRef,
+  stakingManager: UtxoOrOutRef,
 ): Promise<TxBuilder> {
   const network = lucid.config().network!;
   const currentTime = slotToUnixTime(network, currentSlot) - 120 * ONE_SECOND;
@@ -230,11 +230,11 @@ export async function adjustStakingPosition(
 }
 
 export async function closeStakingPosition(
-  stakingPosition: UTxOOrOutRef,
+  stakingPosition: UtxoOrOutRef,
   params: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
-  stakingManager: UTxOOrOutRef,
+  stakingManager: UtxoOrOutRef,
 ): Promise<TxBuilder> {
   const network = lucid.config().network!;
   const currentTime = slotToUnixTime(network, currentSlot) - ONE_SECOND;
@@ -318,7 +318,7 @@ export async function closeStakingPosition(
 const MIN_UTXO_AMOUNT = 2_000_000n;
 
 export async function distributeAda(
-  stakingManager: UTxOOrOutRef,
+  stakingManager: UtxoOrOutRef,
   collectorRefs: OutRef[],
   params: SystemParams,
   lucid: LucidEvolution,

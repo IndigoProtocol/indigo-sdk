@@ -6,7 +6,7 @@ import {
   UTxO,
   validatorToAddress,
 } from '@lucid-evolution/lucid';
-import { UTxOOrOutRef } from '../../utils/lucid-utils';
+import { UtxoOrOutRef } from '../../utils/lucid-utils';
 import { AssetClass } from '../../types/generic';
 import {
   InterestOracleParams,
@@ -29,7 +29,7 @@ export async function startInterestOracle(
   lucid: LucidEvolution,
   interestTokenName?: string,
   withScriptRef: boolean = false,
-  refUtxo?: UTxOOrOutRef,
+  refUtxo?: UtxoOrOutRef,
 ): Promise<[TxBuilder, AssetClass]> {
   const network = lucid.config().network!;
 

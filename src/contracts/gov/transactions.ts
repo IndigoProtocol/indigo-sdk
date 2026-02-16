@@ -22,7 +22,7 @@ import {
   createScriptAddress,
   getInlineDatumOrThrow,
   resolveUtxo,
-  UTxOOrOutRef,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import {
   parsePollManagerOrThrow,
@@ -102,7 +102,7 @@ export async function createProposal(
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
-  gov: UTxOOrOutRef,
+  gov: UtxoOrOutRef,
   /**
    * This has to be passed only in case of createAsset proposal
    */
@@ -255,7 +255,7 @@ export async function createShardsChunks(
    * This gets automatically capped to total shards count.
    */
   chunkSize: bigint,
-  pollManager: UTxOOrOutRef,
+  pollManager: UtxoOrOutRef,
   sysParams: SystemParams,
   currentSlot: number,
   lucid: LucidEvolution,
@@ -403,8 +403,8 @@ function voteHelper(
 
 export async function vote(
   voteOption: VoteOption,
-  pollShard: UTxOOrOutRef,
-  stakingPosition: UTxOOrOutRef,
+  pollShard: UtxoOrOutRef,
+  stakingPosition: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -515,7 +515,7 @@ export async function vote(
 }
 
 export async function mergeShards(
-  pollManager: UTxOOrOutRef,
+  pollManager: UtxoOrOutRef,
   shardsOutRefs: OutRef[],
   sysParams: SystemParams,
   lucid: LucidEvolution,
@@ -635,8 +635,8 @@ export async function mergeShards(
 }
 
 export async function endProposal(
-  pollManager: UTxOOrOutRef,
-  gov: UTxOOrOutRef,
+  pollManager: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -781,11 +781,11 @@ export async function endProposal(
 }
 
 export async function executeProposal(
-  execute: UTxOOrOutRef,
-  gov: UTxOOrOutRef,
-  treasuryWithdrawal: UTxOOrOutRef | null,
+  execute: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
+  treasuryWithdrawal: UtxoOrOutRef | null,
   allIAssetOrefs: OutRef[] | null,
-  modifyIAsset: UTxOOrOutRef | null,
+  modifyIAsset: UtxoOrOutRef | null,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,

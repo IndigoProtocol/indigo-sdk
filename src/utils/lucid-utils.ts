@@ -15,13 +15,14 @@ import {
   UTxO,
 } from '@lucid-evolution/lucid';
 import { ScriptReference } from '../types/system-params';
+import { matchSingle } from './utils';
 
 /**
  * Union type accepting either a full UTxO or just an OutRef.
  * When a full UTxO is provided, no network fetch is needed.
  * When only an OutRef is provided, the UTxO will be fetched via utxosByOutRef.
  */
-export type UTxOOrOutRef = UTxO | OutRef;
+export type UtxoOrOutRef = UTxO | OutRef;
 
 /**
  * Resolves a UTxOOrOutRef to a full UTxO.
@@ -34,7 +35,7 @@ export type UTxOOrOutRef = UTxO | OutRef;
  * @returns The resolved UTxO
  */
 export async function resolveUtxo(
-  input: UTxOOrOutRef,
+  input: UtxoOrOutRef,
   lucid: LucidEvolution,
   errorMsg: string = 'Expected a single UTXO',
 ): Promise<UTxO> {
@@ -42,11 +43,10 @@ export async function resolveUtxo(
   if ('address' in input) {
     return input;
   }
-  const utxos = await lucid.utxosByOutRef([input]);
-  if (utxos.length !== 1) {
-    throw new Error(errorMsg);
-  }
-  return utxos[0];
+  return matchSingle(
+    await lucid.utxosByOutRef([input]),
+    (_) => new Error(errorMsg),
+  );
 }
 
 /**

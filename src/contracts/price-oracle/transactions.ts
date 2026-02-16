@@ -20,7 +20,7 @@ import { oneShotMintTx } from '../one-shot/transactions';
 import { mkAssetsOf, mkLovelacesOf } from '../../utils/value-helpers';
 import { OnChainDecimal } from '../../types/on-chain-decimal';
 import { ONE_SECOND } from '../../utils/time-helpers';
-import { resolveUtxo, UTxOOrOutRef } from '../../utils/lucid-utils';
+import { resolveUtxo, UtxoOrOutRef } from '../../utils/lucid-utils';
 
 export async function startPriceOracleTx(
   lucid: LucidEvolution,
@@ -70,7 +70,7 @@ export async function startPriceOracleTx(
 
 export async function feedPriceOracleTx(
   lucid: LucidEvolution,
-  oracle: UTxOOrOutRef,
+  oracle: UtxoOrOutRef,
   newPrice: OnChainDecimal,
   oracleParams: PriceOracleParams,
   currentSlot: number,

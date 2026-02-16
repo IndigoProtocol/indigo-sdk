@@ -16,7 +16,7 @@ import {
   addrDetails,
   getInlineDatumOrThrow,
   scriptRef,
-  UTxOOrOutRef,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import { mkStabilityPoolValidatorFromSP } from './scripts';
 import {
@@ -236,7 +236,7 @@ export async function processSpRequest(
   newSnapshotUtxo: UTxO | undefined,
   params: SystemParams,
   lucid: LucidEvolution,
-  collector: UTxOOrOutRef,
+  collector: UtxoOrOutRef,
 ): Promise<TxBuilder> {
   const redeemer: StabilityPoolRedeemer = {
     ProcessRequest: {

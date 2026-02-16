@@ -4,7 +4,7 @@ import {
   SystemParams,
 } from '../../types/system-params';
 import { matchSingle } from '../../utils/utils';
-import { resolveUtxo, UTxOOrOutRef } from '../../utils/lucid-utils';
+import { resolveUtxo, UtxoOrOutRef } from '../../utils/lucid-utils';
 import { serialiseCollectorRedeemer } from './types';
 
 export async function collectorFeeTx(
@@ -12,7 +12,7 @@ export async function collectorFeeTx(
   lucid: LucidEvolution,
   params: SystemParams,
   tx: TxBuilder,
-  collector: UTxOOrOutRef,
+  collector: UtxoOrOutRef,
 ): Promise<void> {
   const collectorUtxo: UTxO = await resolveUtxo(
     collector,
