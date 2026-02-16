@@ -1,7 +1,6 @@
 import {
   LucidEvolution,
   TxBuilder,
-  OutRef,
   UTxO,
   addAssets,
   slotToUnixTime,
@@ -11,6 +10,8 @@ import {
   addrDetails,
   createScriptAddress,
   getInlineDatumOrThrow,
+  resolveUtxo,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import { parsePriceOracleDatum } from '../price-oracle/types';
 import { ocdMul } from '../../types/on-chain-decimal';
@@ -43,11 +44,11 @@ import {
 export async function leverageCdpWithLrp(
   leverage: number,
   baseCollateral: bigint,
-  priceOracleOutRef: OutRef,
-  iassetOutRef: OutRef,
-  cdpCreatorOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
+  priceOracle: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  cdpCreator: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   allLrps: [UTxO, LRPDatum][],
@@ -90,30 +91,34 @@ export async function leverageCdpWithLrp(
     (_) => new Error('Expected a single iasset token policy Ref Script UTXO'),
   );
 
-  const cdpCreatorUtxo = matchSingle(
-    await lucid.utxosByOutRef([cdpCreatorOref]),
-    (_) => new Error('Expected a single CDP creator UTXO'),
+  const cdpCreatorUtxo = await resolveUtxo(
+    cdpCreator,
+    lucid,
+    'Expected a single CDP creator UTXO',
   );
 
-  const interestOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([interestOracleOref]),
-    (_) => new Error('Expected a single interest oracle UTXO'),
+  const interestOracleUtxo = await resolveUtxo(
+    interestOracle,
+    lucid,
+    'Expected a single interest oracle UTXO',
   );
   const interestOracleDatum = parseInterestOracleDatum(
     getInlineDatumOrThrow(interestOracleUtxo),
   );
 
-  const priceOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([priceOracleOutRef]),
-    (_) => new Error('Expected a single price oracle UTXO'),
+  const priceOracleUtxo = await resolveUtxo(
+    priceOracle,
+    lucid,
+    'Expected a single price oracle UTXO',
   );
   const priceOracleDatum = parsePriceOracleDatum(
     getInlineDatumOrThrow(priceOracleUtxo),
   );
 
-  const iassetUtxo = matchSingle(
-    await lucid.utxosByOutRef([iassetOutRef]),
-    (_) => new Error('Expected a single IAsset UTXO'),
+  const iassetUtxo = await resolveUtxo(
+    iasset,
+    lucid,
+    'Expected a single IAsset UTXO',
   );
   const iassetDatum = parseIAssetDatumOrThrow(
     getInlineDatumOrThrow(iassetUtxo),
@@ -267,7 +272,7 @@ export async function leverageCdpWithLrp(
   );
 
   if (debtMintingFee > 0) {
-    await collectorFeeTx(debtMintingFee, lucid, sysParams, tx, collectorOref);
+    await collectorFeeTx(debtMintingFee, lucid, sysParams, tx, collector);
   }
 
   return tx;

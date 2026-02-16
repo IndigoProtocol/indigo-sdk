@@ -17,6 +17,8 @@ import {
   addrDetails,
   createScriptAddress,
   getInlineDatumOrThrow,
+  resolveUtxo,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import { matchSingle } from '../../utils/utils';
 import {
@@ -61,11 +63,11 @@ export async function openCdp(
   collateralAmount: bigint,
   mintedAmount: bigint,
   sysParams: SystemParams,
-  cdpCreatorOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
+  cdpCreator: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
   lucid: LucidEvolution,
   currentSlot: number,
 ): Promise<TxBuilder> {
@@ -99,33 +101,37 @@ export async function openCdp(
     (_) => new Error('Expected a single iasset token policy Ref Script UTXO'),
   );
 
-  const iassetUtxo = matchSingle(
-    await lucid.utxosByOutRef([iassetOref]),
-    (_) => new Error('Expected a single iasset UTXO'),
+  const iassetUtxo = await resolveUtxo(
+    iasset,
+    lucid,
+    'Expected a single iasset UTXO',
   );
   const iassetDatum = parseIAssetDatumOrThrow(
     getInlineDatumOrThrow(iassetUtxo),
   );
 
-  const priceOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([priceOracleOref]),
-    (_) => new Error('Expected a single price oracle UTXO'),
+  const priceOracleUtxo = await resolveUtxo(
+    priceOracle,
+    lucid,
+    'Expected a single price oracle UTXO',
   );
   const priceOracleDatum = parsePriceOracleDatum(
     getInlineDatumOrThrow(priceOracleUtxo),
   );
 
-  const interestOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([interestOracleOref]),
-    (_) => new Error('Expected a single interest oracle UTXO'),
+  const interestOracleUtxo = await resolveUtxo(
+    interestOracle,
+    lucid,
+    'Expected a single interest oracle UTXO',
   );
   const interestOracleDatum = parseInterestOracleDatum(
     getInlineDatumOrThrow(interestOracleUtxo),
   );
 
-  const cdpCreatorUtxo = matchSingle(
-    await lucid.utxosByOutRef([cdpCreatorOref]),
-    (_) => new Error('Expected a single CDP creator UTXO'),
+  const cdpCreatorUtxo = await resolveUtxo(
+    cdpCreator,
+    lucid,
+    'Expected a single CDP creator UTXO',
   );
 
   match(iassetDatum.price)
@@ -212,7 +218,7 @@ export async function openCdp(
   );
 
   if (debtMintingFee > 0) {
-    await collectorFeeTx(debtMintingFee, lucid, sysParams, tx, collectorOref);
+    await collectorFeeTx(debtMintingFee, lucid, sysParams, tx, collector);
   }
 
   return tx;
@@ -221,13 +227,13 @@ export async function openCdp(
 async function adjustCdp(
   collateralAmount: bigint,
   mintAmount: bigint,
-  cdpOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
-  govOref: OutRef,
-  treasuryOref: OutRef,
+  cdp: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
+  treasury: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -242,37 +248,34 @@ async function adjustCdp(
     (_) => new Error('Expected a single cdp Ref Script UTXO'),
   );
 
-  const cdpUtxo = matchSingle(
-    await lucid.utxosByOutRef([cdpOref]),
-    (_) => new Error('Expected a single cdp UTXO'),
-  );
+  const cdpUtxo = await resolveUtxo(cdp, lucid, 'Expected a single cdp UTXO');
   const cdpDatum = parseCdpDatumOrThrow(getInlineDatumOrThrow(cdpUtxo));
 
-  const iassetUtxo = matchSingle(
-    await lucid.utxosByOutRef([iassetOref]),
-    (_) => new Error('Expected a single iasset UTXO'),
+  const iassetUtxo = await resolveUtxo(
+    iasset,
+    lucid,
+    'Expected a single iasset UTXO',
   );
   const iassetDatum = parseIAssetDatumOrThrow(
     getInlineDatumOrThrow(iassetUtxo),
   );
 
-  const govUtxo = matchSingle(
-    await lucid.utxosByOutRef([govOref]),
-    (_) => new Error('Expected a single gov UTXO'),
-  );
+  const govUtxo = await resolveUtxo(gov, lucid, 'Expected a single gov UTXO');
   const govDatum = parseGovDatumOrThrow(getInlineDatumOrThrow(govUtxo));
 
-  const priceOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([priceOracleOref]),
-    (_) => new Error('Expected a single price oracle UTXO'),
+  const priceOracleUtxo = await resolveUtxo(
+    priceOracle,
+    lucid,
+    'Expected a single price oracle UTXO',
   );
   const priceOracleDatum = parsePriceOracleDatum(
     getInlineDatumOrThrow(priceOracleUtxo),
   );
 
-  const interestOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([interestOracleOref]),
-    (_) => new Error('Expected a single interest oracle UTXO'),
+  const interestOracleUtxo = await resolveUtxo(
+    interestOracle,
+    lucid,
+    'Expected a single interest oracle UTXO',
   );
   const interestOracleDatum = parseInterestOracleDatum(
     getInlineDatumOrThrow(interestOracleUtxo),
@@ -388,13 +391,7 @@ async function adjustCdp(
   const interestTreasuryAdaAmt = interestAdaAmt - interestCollectorAdaAmt;
 
   if (interestTreasuryAdaAmt > 0) {
-    await treasuryFeeTx(
-      interestTreasuryAdaAmt,
-      lucid,
-      sysParams,
-      tx,
-      treasuryOref,
-    );
+    await treasuryFeeTx(interestTreasuryAdaAmt, lucid, sysParams, tx, treasury);
   }
 
   let collectorFee = interestCollectorAdaAmt;
@@ -416,7 +413,7 @@ async function adjustCdp(
   }
 
   if (collectorFee > 0n) {
-    await collectorFeeTx(collectorFee, lucid, sysParams, tx, collectorOref);
+    await collectorFeeTx(collectorFee, lucid, sysParams, tx, collector);
   }
 
   return tx;
@@ -424,13 +421,13 @@ async function adjustCdp(
 
 export async function depositCdp(
   amount: bigint,
-  cdpOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
-  govOref: OutRef,
-  treasuryOref: OutRef,
+  cdp: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
+  treasury: UtxoOrOutRef,
   params: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -438,13 +435,13 @@ export async function depositCdp(
   return adjustCdp(
     amount,
     0n,
-    cdpOref,
-    iassetOref,
-    priceOracleOref,
-    interestOracleOref,
-    collectorOref,
-    govOref,
-    treasuryOref,
+    cdp,
+    iasset,
+    priceOracle,
+    interestOracle,
+    collector,
+    gov,
+    treasury,
     params,
     lucid,
     currentSlot,
@@ -453,13 +450,13 @@ export async function depositCdp(
 
 export async function withdrawCdp(
   amount: bigint,
-  cdpOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
-  govOref: OutRef,
-  treasuryOref: OutRef,
+  cdp: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
+  treasury: UtxoOrOutRef,
   params: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -467,13 +464,13 @@ export async function withdrawCdp(
   return adjustCdp(
     -amount,
     0n,
-    cdpOref,
-    iassetOref,
-    priceOracleOref,
-    interestOracleOref,
-    collectorOref,
-    govOref,
-    treasuryOref,
+    cdp,
+    iasset,
+    priceOracle,
+    interestOracle,
+    collector,
+    gov,
+    treasury,
     params,
     lucid,
     currentSlot,
@@ -482,13 +479,13 @@ export async function withdrawCdp(
 
 export async function mintCdp(
   amount: bigint,
-  cdpOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
-  govOref: OutRef,
-  treasuryOref: OutRef,
+  cdp: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
+  treasury: UtxoOrOutRef,
   params: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -496,13 +493,13 @@ export async function mintCdp(
   return adjustCdp(
     0n,
     amount,
-    cdpOref,
-    iassetOref,
-    priceOracleOref,
-    interestOracleOref,
-    collectorOref,
-    govOref,
-    treasuryOref,
+    cdp,
+    iasset,
+    priceOracle,
+    interestOracle,
+    collector,
+    gov,
+    treasury,
     params,
     lucid,
     currentSlot,
@@ -511,13 +508,13 @@ export async function mintCdp(
 
 export async function burnCdp(
   amount: bigint,
-  cdpOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
-  govOref: OutRef,
-  treasuryOref: OutRef,
+  cdp: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
+  treasury: UtxoOrOutRef,
   params: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -525,13 +522,13 @@ export async function burnCdp(
   return adjustCdp(
     0n,
     -amount,
-    cdpOref,
-    iassetOref,
-    priceOracleOref,
-    interestOracleOref,
-    collectorOref,
-    govOref,
-    treasuryOref,
+    cdp,
+    iasset,
+    priceOracle,
+    interestOracle,
+    collector,
+    gov,
+    treasury,
     params,
     lucid,
     currentSlot,
@@ -539,13 +536,13 @@ export async function burnCdp(
 }
 
 export async function closeCdp(
-  cdpOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
-  govOref: OutRef,
-  treasuryOref: OutRef,
+  cdp: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
+  treasury: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -578,37 +575,34 @@ export async function closeCdp(
     (_) => new Error('Expected a single iasset token policy Ref Script UTXO'),
   );
 
-  const cdpUtxo = matchSingle(
-    await lucid.utxosByOutRef([cdpOref]),
-    (_) => new Error('Expected a single cdp UTXO'),
-  );
+  const cdpUtxo = await resolveUtxo(cdp, lucid, 'Expected a single cdp UTXO');
   const cdpDatum = parseCdpDatumOrThrow(getInlineDatumOrThrow(cdpUtxo));
 
-  const iassetUtxo = matchSingle(
-    await lucid.utxosByOutRef([iassetOref]),
-    (_) => new Error('Expected a single iasset UTXO'),
+  const iassetUtxo = await resolveUtxo(
+    iasset,
+    lucid,
+    'Expected a single iasset UTXO',
   );
   const iassetDatum = parseIAssetDatumOrThrow(
     getInlineDatumOrThrow(iassetUtxo),
   );
 
-  const govUtxo = matchSingle(
-    await lucid.utxosByOutRef([govOref]),
-    (_) => new Error('Expected a single gov UTXO'),
-  );
+  const govUtxo = await resolveUtxo(gov, lucid, 'Expected a single gov UTXO');
   const govDatum = parseGovDatumOrThrow(getInlineDatumOrThrow(govUtxo));
 
-  const priceOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([priceOracleOref]),
-    (_) => new Error('Expected a single price oracle UTXO'),
+  const priceOracleUtxo = await resolveUtxo(
+    priceOracle,
+    lucid,
+    'Expected a single price oracle UTXO',
   );
   const priceOracleDatum = parsePriceOracleDatum(
     getInlineDatumOrThrow(priceOracleUtxo),
   );
 
-  const interestOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([interestOracleOref]),
-    (_) => new Error('Expected a single interest oracle UTXO'),
+  const interestOracleUtxo = await resolveUtxo(
+    interestOracle,
+    lucid,
+    'Expected a single interest oracle UTXO',
   );
   const interestOracleDatum = parseInterestOracleDatum(
     getInlineDatumOrThrow(interestOracleUtxo),
@@ -683,13 +677,7 @@ export async function closeCdp(
   const interestTreasuryAdaAmt = interestAdaAmt - interestCollectorAdaAmt;
 
   if (interestTreasuryAdaAmt > 0) {
-    await treasuryFeeTx(
-      interestTreasuryAdaAmt,
-      lucid,
-      sysParams,
-      tx,
-      treasuryOref,
-    );
+    await treasuryFeeTx(interestTreasuryAdaAmt, lucid, sysParams, tx, treasury);
   }
 
   const collectorFee =
@@ -700,7 +688,7 @@ export async function closeCdp(
     );
 
   if (collectorFee > 0n) {
-    await collectorFeeTx(collectorFee, lucid, sysParams, tx, collectorOref);
+    await collectorFeeTx(collectorFee, lucid, sysParams, tx, collector);
   }
 
   return tx;
@@ -712,12 +700,12 @@ export async function redeemCdp(
    * The logic will automatically cap the amount to the max.
    */
   attemptedRedemptionIAssetAmt: bigint,
-  cdpOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
-  collectorOref: OutRef,
-  treasuryOref: OutRef,
+  cdp: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
+  treasury: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -741,31 +729,31 @@ export async function redeemCdp(
     (_) => new Error('Expected a single iasset token policy Ref Script UTXO'),
   );
 
-  const cdpUtxo = matchSingle(
-    await lucid.utxosByOutRef([cdpOref]),
-    (_) => new Error('Expected a single cdp UTXO'),
-  );
+  const cdpUtxo = await resolveUtxo(cdp, lucid, 'Expected a single cdp UTXO');
   const cdpDatum = parseCdpDatumOrThrow(getInlineDatumOrThrow(cdpUtxo));
 
-  const iassetUtxo = matchSingle(
-    await lucid.utxosByOutRef([iassetOref]),
-    (_) => new Error('Expected a single iasset UTXO'),
+  const iassetUtxo = await resolveUtxo(
+    iasset,
+    lucid,
+    'Expected a single iasset UTXO',
   );
   const iassetDatum = parseIAssetDatumOrThrow(
     getInlineDatumOrThrow(iassetUtxo),
   );
 
-  const priceOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([priceOracleOref]),
-    (_) => new Error('Expected a single price oracle UTXO'),
+  const priceOracleUtxo = await resolveUtxo(
+    priceOracle,
+    lucid,
+    'Expected a single price oracle UTXO',
   );
   const priceOracleDatum = parsePriceOracleDatum(
     getInlineDatumOrThrow(priceOracleUtxo),
   );
 
-  const interestOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([interestOracleOref]),
-    (_) => new Error('Expected a single interest oracle UTXO'),
+  const interestOracleUtxo = await resolveUtxo(
+    interestOracle,
+    lucid,
+    'Expected a single interest oracle UTXO',
   );
   const interestOracleDatum = parseInterestOracleDatum(
     getInlineDatumOrThrow(interestOracleUtxo),
@@ -902,25 +890,19 @@ export async function redeemCdp(
     lucid,
     sysParams,
     tx,
-    collectorOref,
+    collector,
   );
 
-  await treasuryFeeTx(
-    interestTreasuryAdaAmt,
-    lucid,
-    sysParams,
-    tx,
-    treasuryOref,
-  );
+  await treasuryFeeTx(interestTreasuryAdaAmt, lucid, sysParams, tx, treasury);
 
   return tx;
 }
 
 export async function freezeCdp(
-  cdpOref: OutRef,
-  iassetOref: OutRef,
-  priceOracleOref: OutRef,
-  interestOracleOref: OutRef,
+  cdp: UtxoOrOutRef,
+  iasset: UtxoOrOutRef,
+  priceOracle: UtxoOrOutRef,
+  interestOracle: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -934,31 +916,31 @@ export async function freezeCdp(
     ]),
     (_) => new Error('Expected a single cdp Ref Script UTXO'),
   );
-  const cdpUtxo = matchSingle(
-    await lucid.utxosByOutRef([cdpOref]),
-    (_) => new Error('Expected a single cdp UTXO'),
-  );
+  const cdpUtxo = await resolveUtxo(cdp, lucid, 'Expected a single cdp UTXO');
   const cdpDatum = parseCdpDatumOrThrow(getInlineDatumOrThrow(cdpUtxo));
 
-  const iassetUtxo = matchSingle(
-    await lucid.utxosByOutRef([iassetOref]),
-    (_) => new Error('Expected a single iasset UTXO'),
+  const iassetUtxo = await resolveUtxo(
+    iasset,
+    lucid,
+    'Expected a single iasset UTXO',
   );
   const iassetDatum = parseIAssetDatumOrThrow(
     getInlineDatumOrThrow(iassetUtxo),
   );
 
-  const priceOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([priceOracleOref]),
-    (_) => new Error('Expected a single price oracle UTXO'),
+  const priceOracleUtxo = await resolveUtxo(
+    priceOracle,
+    lucid,
+    'Expected a single price oracle UTXO',
   );
   const priceOracleDatum = parsePriceOracleDatum(
     getInlineDatumOrThrow(priceOracleUtxo),
   );
 
-  const interestOracleUtxo = matchSingle(
-    await lucid.utxosByOutRef([interestOracleOref]),
-    (_) => new Error('Expected a single interest oracle UTXO'),
+  const interestOracleUtxo = await resolveUtxo(
+    interestOracle,
+    lucid,
+    'Expected a single interest oracle UTXO',
   );
   const interestOracleDatum = parseInterestOracleDatum(
     getInlineDatumOrThrow(interestOracleUtxo),
@@ -1061,10 +1043,10 @@ export async function freezeCdp(
 }
 
 export async function liquidateCdp(
-  cdpOref: OutRef,
-  stabilityPoolOref: OutRef,
-  collectorOref: OutRef,
-  treasuryOref: OutRef,
+  cdp: UtxoOrOutRef,
+  stabilityPool: UtxoOrOutRef,
+  collector: UtxoOrOutRef,
+  treasury: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
 ): Promise<TxBuilder> {
@@ -1099,15 +1081,13 @@ export async function liquidateCdp(
     (_) => new Error('Expected a single cdp auth token policy Ref Script UTXO'),
   );
 
-  const cdpUtxo = matchSingle(
-    await lucid.utxosByOutRef([cdpOref]),
-    (_) => new Error('Expected a single cdp UTXO'),
-  );
+  const cdpUtxo = await resolveUtxo(cdp, lucid, 'Expected a single cdp UTXO');
   const cdpDatum = parseCdpDatumOrThrow(getInlineDatumOrThrow(cdpUtxo));
 
-  const spUtxo = matchSingle(
-    await lucid.utxosByOutRef([stabilityPoolOref]),
-    (_) => new Error('Expected a single stability pool UTXO'),
+  const spUtxo = await resolveUtxo(
+    stabilityPool,
+    lucid,
+    'Expected a single stability pool UTXO',
   );
   const spDatum = parseStabilityPoolDatum(getInlineDatumOrThrow(spUtxo));
 
@@ -1198,15 +1178,9 @@ export async function liquidateCdp(
     );
   }
 
-  await collectorFeeTx(
-    lovelacesForCollector,
-    lucid,
-    sysParams,
-    tx,
-    collectorOref,
-  );
+  await collectorFeeTx(lovelacesForCollector, lucid, sysParams, tx, collector);
 
-  await treasuryFeeTx(lovelacesForTreasury, lucid, sysParams, tx, treasuryOref);
+  await treasuryFeeTx(lovelacesForTreasury, lucid, sysParams, tx, treasury);
 
   return tx;
 }

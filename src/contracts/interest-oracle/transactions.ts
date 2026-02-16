@@ -1,12 +1,12 @@
 import {
   fromText,
   LucidEvolution,
-  OutRef,
   toUnit,
   TxBuilder,
   UTxO,
   validatorToAddress,
 } from '@lucid-evolution/lucid';
+import { UtxoOrOutRef } from '../../utils/lucid-utils';
 import { AssetClass } from '../../types/generic';
 import {
   InterestOracleParams,
@@ -29,19 +29,19 @@ export async function startInterestOracle(
   lucid: LucidEvolution,
   interestTokenName?: string,
   withScriptRef: boolean = false,
-  refOutRef?: OutRef,
+  refUtxo?: UtxoOrOutRef,
 ): Promise<[TxBuilder, AssetClass]> {
   const network = lucid.config().network!;
 
   const tokenName = interestTokenName ?? 'INTEREST_ORACLE';
-  if (!refOutRef) {
-    refOutRef = (await lucid.wallet().getUtxos())[0];
+  if (!refUtxo) {
+    refUtxo = (await lucid.wallet().getUtxos())[0];
   }
 
   const [tx, policyId] = await oneShotMintTx(lucid, {
     referenceOutRef: {
-      txHash: refOutRef.txHash,
-      outputIdx: BigInt(refOutRef.outputIndex),
+      txHash: refUtxo.txHash,
+      outputIdx: BigInt(refUtxo.outputIndex),
     },
     mintAmounts: [
       {

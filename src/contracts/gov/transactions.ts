@@ -1,4 +1,3 @@
-// import { OutRef } from '@lucid-evolution/lucid';
 import {
   addAssets,
   Assets,
@@ -22,6 +21,8 @@ import { matchSingle } from '../../utils/utils';
 import {
   createScriptAddress,
   getInlineDatumOrThrow,
+  resolveUtxo,
+  UtxoOrOutRef,
 } from '../../utils/lucid-utils';
 import {
   parsePollManagerOrThrow,
@@ -101,7 +102,7 @@ export async function createProposal(
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
-  govOref: OutRef,
+  gov: UtxoOrOutRef,
   /**
    * This has to be passed only in case of createAsset proposal
    */
@@ -130,10 +131,7 @@ export async function createProposal(
     (_) =>
       new Error('Expected a single poll auth token policy ref Script UTXO'),
   );
-  const govUtxo = matchSingle(
-    await lucid.utxosByOutRef([govOref]),
-    (_) => new Error('Expected a single Gov UTXO'),
-  );
+  const govUtxo = await resolveUtxo(gov, lucid, 'Expected a single Gov UTXO');
 
   const govDatum = parseGovDatumOrThrow(getInlineDatumOrThrow(govUtxo));
 
@@ -257,7 +255,7 @@ export async function createShardsChunks(
    * This gets automatically capped to total shards count.
    */
   chunkSize: bigint,
-  pollManagerOref: OutRef,
+  pollManager: UtxoOrOutRef,
   sysParams: SystemParams,
   currentSlot: number,
   lucid: LucidEvolution,
@@ -267,16 +265,19 @@ export async function createShardsChunks(
 
   const ownAddr = await lucid.wallet().address();
 
-  const pollManagerUtxo = matchSingle(
-    await lucid.utxosByOutRef([pollManagerOref]),
-    (_) => new Error('Expected a single Poll manager UTXO'),
+  const pollManagerUtxo = await resolveUtxo(
+    pollManager,
+    lucid,
+    'Expected a single Poll manager UTXO',
   );
 
-  const pollManager = parsePollManagerOrThrow(
+  const pollManagerDatum = parsePollManagerOrThrow(
     getInlineDatumOrThrow(pollManagerUtxo),
   );
 
-  if (pollManager.createdShardsCount >= pollManager.totalShardsCount) {
+  if (
+    pollManagerDatum.createdShardsCount >= pollManagerDatum.totalShardsCount
+  ) {
     throw new Error('All shards already created.');
   }
 
@@ -302,7 +303,9 @@ export async function createShardsChunks(
   const shardsCount = BigInt(
     Math.min(
       Number(chunkSize),
-      Number(pollManager.totalShardsCount - pollManager.createdShardsCount),
+      Number(
+        pollManagerDatum.totalShardsCount - pollManagerDatum.createdShardsCount,
+      ),
     ),
   );
 
@@ -328,8 +331,9 @@ export async function createShardsChunks(
         value: serialisePollDatum({
           PollManager: {
             content: {
-              ...pollManager,
-              createdShardsCount: pollManager.createdShardsCount + shardsCount,
+              ...pollManagerDatum,
+              createdShardsCount:
+                pollManagerDatum.createdShardsCount + shardsCount,
             },
           },
         }),
@@ -346,9 +350,9 @@ export async function createShardsChunks(
         value: serialisePollDatum({
           PollShard: {
             content: {
-              pollId: pollManager.pollId,
+              pollId: pollManagerDatum.pollId,
               status: { yesVotes: 0n, noVotes: 0n },
-              votingEndTime: pollManager.votingEndTime,
+              votingEndTime: pollManagerDatum.votingEndTime,
               managerAddress: addressFromBech32(pollManagerUtxo.address),
             },
           },
@@ -399,8 +403,8 @@ function voteHelper(
 
 export async function vote(
   voteOption: VoteOption,
-  pollShardOref: OutRef,
-  stakingPositionOref: OutRef,
+  pollShard: UtxoOrOutRef,
+  stakingPosition: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -425,17 +429,19 @@ export async function vote(
     (_) => new Error('Expected a single staking ref Script UTXO'),
   );
 
-  const pollShardUtxo = matchSingle(
-    await lucid.utxosByOutRef([pollShardOref]),
-    (_) => new Error('Expected a single Poll shard UTXO'),
+  const pollShardUtxo = await resolveUtxo(
+    pollShard,
+    lucid,
+    'Expected a single Poll shard UTXO',
   );
   const pollShardDatum = parsePollShardOrThrow(
     getInlineDatumOrThrow(pollShardUtxo),
   );
 
-  const stakingPosUtxo = matchSingle(
-    await lucid.utxosByOutRef([stakingPositionOref]),
-    (_) => new Error('Expected a single staking position UTXO'),
+  const stakingPosUtxo = await resolveUtxo(
+    stakingPosition,
+    lucid,
+    'Expected a single staking position UTXO',
   );
   const stakingPosDatum = parseStakingPositionOrThrow(
     getInlineDatumOrThrow(stakingPosUtxo),
@@ -509,7 +515,7 @@ export async function vote(
 }
 
 export async function mergeShards(
-  pollManagerOref: OutRef,
+  pollManager: UtxoOrOutRef,
   shardsOutRefs: OutRef[],
   sysParams: SystemParams,
   lucid: LucidEvolution,
@@ -547,9 +553,10 @@ export async function mergeShards(
       new Error('Expected a single poll auth token policy ref Script UTXO'),
   );
 
-  const pollManagerUtxo = matchSingle(
-    await lucid.utxosByOutRef([pollManagerOref]),
-    (_) => new Error('Expected a single Poll manager UTXO'),
+  const pollManagerUtxo = await resolveUtxo(
+    pollManager,
+    lucid,
+    'Expected a single Poll manager UTXO',
   );
 
   const pollManagerDatum = parsePollManagerOrThrow(
@@ -628,8 +635,8 @@ export async function mergeShards(
 }
 
 export async function endProposal(
-  pollManagerOref: OutRef,
-  govOref: OutRef,
+  pollManager: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -674,18 +681,16 @@ export async function endProposal(
       new Error('Expected a single upgrade auth token policy ref Script UTXO'),
   );
 
-  const pollManagerUtxo = matchSingle(
-    await lucid.utxosByOutRef([pollManagerOref]),
-    (_) => new Error('Expected a single Poll manager UTXO'),
+  const pollManagerUtxo = await resolveUtxo(
+    pollManager,
+    lucid,
+    'Expected a single Poll manager UTXO',
   );
-  const pollManager = parsePollManagerOrThrow(
+  const pollManagerDatum = parsePollManagerOrThrow(
     getInlineDatumOrThrow(pollManagerUtxo),
   );
 
-  const govUtxo = matchSingle(
-    await lucid.utxosByOutRef([govOref]),
-    (_) => new Error('Expected a single Gov UTXO'),
-  );
+  const govUtxo = await resolveUtxo(gov, lucid, 'Expected a single Gov UTXO');
   const govDatum = parseGovDatumOrThrow(getInlineDatumOrThrow(govUtxo));
 
   const pollNft = fromSystemParamsAsset(sysParams.govParams.pollToken);
@@ -693,14 +698,14 @@ export async function endProposal(
     sysParams.pollManagerParams.indyAsset,
   );
 
-  const proposalExpired = currentTime > pollManager.expirationTime;
+  const proposalExpired = currentTime > pollManagerDatum.expirationTime;
   const proposalPassed =
     !proposalExpired &&
     pollPassQuorum(
       sysParams.pollManagerParams.initialIndyDistribution,
-      pollManager.status,
+      pollManagerDatum.status,
       currentTime,
-      pollManager.minimumQuorum,
+      pollManagerDatum.minimumQuorum,
       govDatum.treasuryIndyWithdrawnAmt,
     );
 
@@ -750,12 +755,12 @@ export async function endProposal(
         {
           kind: 'inline',
           value: serialiseExecuteDatum({
-            id: pollManager.pollId,
-            content: pollManager.content,
+            id: pollManagerDatum.pollId,
+            content: pollManagerDatum.content,
             passedTime: currentTime,
-            votingEndTime: pollManager.votingEndTime,
-            protocolVersion: pollManager.protocolVersion,
-            treasuryWithdrawal: pollManager.treasuryWithdrawal,
+            votingEndTime: pollManagerDatum.votingEndTime,
+            protocolVersion: pollManagerDatum.protocolVersion,
+            treasuryWithdrawal: pollManagerDatum.treasuryWithdrawal,
           }),
         },
         upgradeTokenVal,
@@ -776,11 +781,11 @@ export async function endProposal(
 }
 
 export async function executeProposal(
-  executeOref: OutRef,
-  govOref: OutRef,
-  treasuryWithdrawalOref: OutRef | null,
+  execute: UtxoOrOutRef,
+  gov: UtxoOrOutRef,
+  treasuryWithdrawal: UtxoOrOutRef | null,
   allIAssetOrefs: OutRef[] | null,
-  modifyIAssetOref: OutRef | null,
+  modifyIAsset: UtxoOrOutRef | null,
   sysParams: SystemParams,
   lucid: LucidEvolution,
   currentSlot: number,
@@ -790,10 +795,7 @@ export async function executeProposal(
 
   const ownAddr = await lucid.wallet().address();
 
-  const govUtxo = matchSingle(
-    await lucid.utxosByOutRef([govOref]),
-    (_) => new Error('Expected a single gov UTXO'),
-  );
+  const govUtxo = await resolveUtxo(gov, lucid, 'Expected a single gov UTXO');
 
   const govDatum = parseGovDatumOrThrow(getInlineDatumOrThrow(govUtxo));
 
@@ -822,9 +824,10 @@ export async function executeProposal(
       new Error('Expected a single upgrade auth token policy ref Script UTXO'),
   );
 
-  const executeUtxo = matchSingle(
-    await lucid.utxosByOutRef([executeOref]),
-    (_) => new Error('Expected a single execute UTXO'),
+  const executeUtxo = await resolveUtxo(
+    execute,
+    lucid,
+    'Expected a single execute UTXO',
   );
 
   const executeDatum = parseExecuteDatumOrThrow(
@@ -849,13 +852,13 @@ export async function executeProposal(
     O.fromNullable(executeDatum.treasuryWithdrawal),
     O.match(
       () => {
-        if (treasuryWithdrawalOref) {
+        if (treasuryWithdrawal) {
           throw new Error('Cannot provide withdrawal oref when no withdrawal.');
         }
         return Promise.resolve();
       },
       async (withdrawal) => {
-        if (!treasuryWithdrawalOref) {
+        if (!treasuryWithdrawal) {
           throw new Error('Have to provide withdrawal oref when withdrawal.');
         }
 
@@ -868,9 +871,10 @@ export async function executeProposal(
           (_) => new Error('Expected a single Treasury Ref Script UTXO'),
         );
 
-        const treasuryWithdrawalUtxo = matchSingle(
-          await lucid.utxosByOutRef([treasuryWithdrawalOref]),
-          (_) => new Error('Expected a single withdrawal UTXO'),
+        const treasuryWithdrawalUtxo = await resolveUtxo(
+          treasuryWithdrawal,
+          lucid,
+          'Expected a single withdrawal UTXO',
         );
 
         const withdrawalVal = createValueFromWithdrawal(withdrawal);
@@ -1062,13 +1066,14 @@ export async function executeProposal(
         (_) => new Error('Expected a single CDP Ref Script UTXO'),
       );
 
-      if (!modifyIAssetOref) {
+      if (!modifyIAsset) {
         throw new Error('Have to provide iasset oref when modify asset.');
       }
 
-      const iassetUtxo = matchSingle(
-        await lucid.utxosByOutRef([modifyIAssetOref]),
-        (_) => new Error('Expected a single iasset UTXO'),
+      const iassetUtxo = await resolveUtxo(
+        modifyIAsset,
+        lucid,
+        'Expected a single iasset UTXO',
       );
 
       const iassetDatum = parseIAssetDatumOrThrow(

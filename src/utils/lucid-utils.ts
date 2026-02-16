@@ -15,6 +15,39 @@ import {
   UTxO,
 } from '@lucid-evolution/lucid';
 import { ScriptReference } from '../types/system-params';
+import { matchSingle } from './utils';
+
+/**
+ * Union type accepting either a full UTxO or just an OutRef.
+ * When a full UTxO is provided, no network fetch is needed.
+ * When only an OutRef is provided, the UTxO will be fetched via utxosByOutRef.
+ */
+export type UtxoOrOutRef = UTxO | OutRef;
+
+/**
+ * Resolves a UTxOOrOutRef to a full UTxO.
+ * If the input is already a UTxO (has 'address' property), returns it directly.
+ * If the input is an OutRef, fetches the UTxO from the network.
+ *
+ * @param input - Either a full UTxO or an OutRef
+ * @param lucid - The LucidEvolution instance for network queries
+ * @param errorMsg - Custom error message if the UTxO cannot be found
+ * @returns The resolved UTxO
+ */
+export async function resolveUtxo(
+  input: UtxoOrOutRef,
+  lucid: LucidEvolution,
+  errorMsg: string = 'Expected a single UTXO',
+): Promise<UTxO> {
+  // UTxO has 'address' property, OutRef only has 'txHash' and 'outputIndex'
+  if ('address' in input) {
+    return input;
+  }
+  return matchSingle(
+    await lucid.utxosByOutRef([input]),
+    (_) => new Error(errorMsg),
+  );
+}
 
 /**
  * Returns the inline datum.
