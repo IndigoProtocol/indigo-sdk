@@ -14,7 +14,7 @@ type VestingSchedule = {
   schedule: Schedule[];
 };
 
-const teamVestingSchedule: Schedule[] = [
+export const teamVestingSchedule: Schedule[] = [
   {
     vestedAtTime: 1669067100000n,
     unlockAmt: 328_125n * OCD_DECIMAL_UNIT,
@@ -113,92 +113,42 @@ const teamVestingSchedule: Schedule[] = [
   },
 ];
 
-const spDistributionSchedule: VestingSchedule = {
-  maxUnlockable: 14_000_000n * OCD_DECIMAL_UNIT,
+export const spDistributionSchedule: VestingSchedule = {
+  maxUnlockable: 2_013_760n * OCD_DECIMAL_UNIT,
   schedule: [
     {
       vestedAtTime: 1669931100000n,
       unlockAmt: 28_768n * OCD_DECIMAL_UNIT,
     },
-    {
-      vestedAtTime: 1701467100000n,
-      unlockAmt: 33_562n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1727387100000n,
-      unlockAmt: 33_561n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1733003100000n,
-      unlockAmt: 38_356n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1764539100000n,
-      unlockAmt: 43_150n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1796075100000n,
-      unlockAmt: 47_945n * OCD_DECIMAL_UNIT,
-    },
   ],
 };
 
-const liqDistributionSchedule: VestingSchedule = {
-  maxUnlockable: 5_250_000n * OCD_DECIMAL_UNIT,
+export const liqDistributionSchedule: VestingSchedule = {
+  maxUnlockable: 316_470n * OCD_DECIMAL_UNIT,
   schedule: [
     {
       vestedAtTime: 1671659100000n,
       unlockAmt: 4_795n * OCD_DECIMAL_UNIT,
     },
+  ],
+};
+
+export const spLpDistributionSchedule: VestingSchedule = {
+  maxUnlockable: 17_016_441n * OCD_DECIMAL_UNIT,
+  schedule: [
     {
-      vestedAtTime: 1703195100000n,
-      unlockAmt: 9_590n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1728683100000n,
-      unlockAmt: 9_589n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1734731100000n,
-      unlockAmt: 14_383n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1766267100000n,
-      unlockAmt: 19_178n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1797803100000n,
-      unlockAmt: 23_972n * OCD_DECIMAL_UNIT,
+      vestedAtTime: 1700171100000n,
+      unlockAmt: 33_563n * OCD_DECIMAL_UNIT,
     },
   ],
 };
 
-const govDistributionSchedule: VestingSchedule = {
-  maxUnlockable: 1_750_000n * OCD_DECIMAL_UNIT,
+export const govDistributionSchedule: VestingSchedule = {
+  maxUnlockable: 1_381_248n * OCD_DECIMAL_UNIT,
   schedule: [
     {
       vestedAtTime: 1670363100000n,
       unlockAmt: 2_398n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1701899100000n,
-      unlockAmt: 3_596n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1733435100000n,
-      unlockAmt: 4_795n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1752443100000n,
-      unlockAmt: 4_794n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1764971100000n,
-      unlockAmt: 5_993n * OCD_DECIMAL_UNIT,
-    },
-    {
-      vestedAtTime: 1796507100000n,
-      unlockAmt: 7_191n * OCD_DECIMAL_UNIT,
     },
   ],
 };
@@ -213,7 +163,7 @@ export function calculateTotalVestedTeam(currentTime: bigint): bigint {
   })(teamVestingSchedule);
 }
 
-function calculateVestedPerEpoch(
+export function calculateVestedPerEpoch(
   schedule: VestingSchedule,
   currentTime: bigint,
 ): bigint {
@@ -262,6 +212,7 @@ export function calculateTotalVestedRewards(currentTime: bigint): bigint {
   return (
     calculateVestedPerEpoch(spDistributionSchedule, currentTime) +
     calculateVestedPerEpoch(govDistributionSchedule, currentTime) +
-    calculateVestedPerEpoch(liqDistributionSchedule, currentTime)
+    calculateVestedPerEpoch(liqDistributionSchedule, currentTime) +
+    calculateVestedPerEpoch(spLpDistributionSchedule, currentTime)
   );
 }

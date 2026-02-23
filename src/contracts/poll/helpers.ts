@@ -36,7 +36,7 @@ function q(
         },
       ).getOnChainInt;
 
-    return { getOnChainInt: BigInt(q) };
+    return { getOnChainInt: BigInt(q) / 1_000n };
   }
 }
 
