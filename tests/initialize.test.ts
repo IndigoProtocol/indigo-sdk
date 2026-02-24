@@ -3,7 +3,7 @@ import { LucidContext } from './test-helpers';
 import { EmulatorAccount, Lucid } from '@lucid-evolution/lucid';
 import { Emulator } from '@lucid-evolution/lucid';
 import { generateEmulatorAccount } from '@lucid-evolution/lucid';
-import { init } from './endpoints/initialize';
+import { init } from '../src/contracts/initialize/transactions';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 
 type MyContext = LucidContext<{

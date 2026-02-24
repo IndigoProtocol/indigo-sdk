@@ -1,32 +1,5 @@
-export type InitialAsset = {
-  name: string;
-  priceOracle: {
-    tokenName: string;
-    startPrice: bigint;
-    params: {
-      biasTime: bigint;
-      expirationTime: bigint;
-    };
-  };
-  interestOracle: {
-    tokenName: string;
-    initialInterestRate: bigint;
-    params: {
-      biasTime: bigint;
-    };
-  };
-  redemptionRatioPercentage: bigint;
-  maintenanceRatioPercentage: bigint;
-  liquidationRatioPercentage: bigint;
-  debtMintingFeePercentage: bigint;
-  liquidationProcessingFeePercentage: bigint;
-  stabilityPoolWithdrawalFeePercentage: bigint;
-  redemptionReimbursementPercentage: bigint;
-  redemptionProcessingFeePercentage: bigint;
-  interestCollectorPortionPercentage: bigint;
-  firstAsset: boolean;
-  nextAsset?: string;
-};
+export type { InitialAsset } from '../../src/contracts/initialize/types';
+import type { InitialAsset } from '../../src/contracts/initialize/types';
 
 export const iusdInitialAssetCfg: InitialAsset = {
   name: 'iUSD',

@@ -16,7 +16,7 @@ import {
   mkAssetsOf,
   mkLovelacesOf,
 } from '../src/utils/value-helpers';
-import { init } from './endpoints/initialize';
+import { init } from '../src/contracts/initialize/transactions';
 import { findGov } from './queries/governance-queries';
 import {
   addrDetails,

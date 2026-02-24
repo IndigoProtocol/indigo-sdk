@@ -30,7 +30,7 @@ import {
   mkLovelacesOf,
 } from '../src/utils/value-helpers';
 import { strictEqual } from 'assert';
-import { init } from './endpoints/initialize';
+import { init } from '../src/contracts/initialize/transactions';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 import { findAllNecessaryOrefs } from './queries/cdp-queries';
 

@@ -16,7 +16,7 @@ import {
   lovelacesAmt,
   mkLovelacesOf,
 } from '../src/utils/value-helpers';
-import { AssetInfo, init } from './endpoints/initialize';
+import { AssetInfo, init } from '../src/contracts/initialize/transactions';
 import {
   addrDetails,
   burnCdp,

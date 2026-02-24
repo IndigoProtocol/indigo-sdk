@@ -29,7 +29,7 @@ import {
   lovelacesAmt,
   mkLovelacesOf,
 } from '../src/utils/value-helpers';
-import { init } from './endpoints/initialize';
+import { init } from '../src/contracts/initialize/transactions';
 import { iusdInitialAssetCfg } from './mock/assets-mock';
 import { findAllLrps } from './queries/lrp-queries';
 import { ocdFloor, OnChainDecimal } from '../src/types/on-chain-decimal';
