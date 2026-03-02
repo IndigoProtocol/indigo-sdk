@@ -11,6 +11,7 @@ import {
   paymentCredentialOf,
   ScriptHash,
   scriptHashToCredential,
+  SLOT_CONFIG_NETWORK,
   stakeCredentialOf,
   UTxO,
 } from '@lucid-evolution/lucid';
@@ -106,4 +107,12 @@ export async function scriptRef(
 
 export function balance(utxos: UTxO[]): Assets {
   return utxos.reduce((acc, utxo) => addAssets(acc, utxo.assets), {});
+}
+
+export function updateSlotConfigNetwork(
+  slotConfigNetwork: typeof SLOT_CONFIG_NETWORK,
+) {
+  for (const [key, value] of Object.entries(slotConfigNetwork)) {
+    SLOT_CONFIG_NETWORK[key as keyof typeof SLOT_CONFIG_NETWORK] = value;
+  }
 }

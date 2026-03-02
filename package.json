@@ -43,7 +43,6 @@
     "@3rd-eye-labs/cardano-offchain-common": "^1.1.8",
     "@evolution-sdk/evolution": "^0.2.5",
     "@harmoniclabs/crypto": "^0.3.0",
-    "@lucid-evolution/lucid": "^0.4.29",
     "decimal.js": "^10.6.0",
     "dotenv": "^16.5.0",
     "fp-ts": "^2.16.10",
@@ -63,6 +62,10 @@
     "tsup": "^8.3.6",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.0",
-    "vitest": "^4.0.14"
+    "vitest": "^4.0.14",
+    "@lucid-evolution/lucid": "^0.4.29"
+  },
+  "peerDependencies": {
+    "@lucid-evolution/lucid": ">=0.4.29"
   }
 }
