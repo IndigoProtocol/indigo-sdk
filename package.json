@@ -1,6 +1,6 @@
 {
   "name": "@indigo-labs/indigo-sdk",
-  "version": "0.2.36",
+  "version": "0.2.37",
   "description": "Indigo SDK for interacting with Indigo endpoints via lucid-evolution",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -64,8 +64,5 @@
     "typescript-eslint": "^8.39.0",
     "vitest": "^4.0.14",
     "@lucid-evolution/lucid": "^0.4.29"
-  },
-  "peerDependencies": {
-    "@lucid-evolution/lucid": ">=0.4.29"
   }
 }
