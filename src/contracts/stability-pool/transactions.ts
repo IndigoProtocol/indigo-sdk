@@ -491,9 +491,7 @@ export async function processSpRequest(
           stabilityPoolUtxo.assets[
             params.stabilityPoolParams.assetSymbol.unCurrencySymbol +
               fromText(asset)
-          ] +
-          balanceChange +
-          withdrawalFee,
+          ] ?? 0n + balanceChange + withdrawalFee,
       },
     );
     tx.pay.ToContract(
