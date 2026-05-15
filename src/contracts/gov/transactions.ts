@@ -241,7 +241,11 @@ export async function createProposal(
         ),
       )
       .validFrom(Number(currentTime) - ONE_SECOND)
-      .validTo(Number(currentTime + sysParams.govParams.gBiasTime) - ONE_SECOND)
+      .validTo(
+        Number(currentTime) +
+          Number(sysParams.govParams.gBiasTime) -
+          ONE_SECOND,
+      )
       .addSigner(ownAddr),
     newPollId,
   ];
@@ -315,7 +319,9 @@ export async function createShardsChunks(
     .newTx()
     .validFrom(Number(currentTime) - ONE_SECOND)
     .validTo(
-      Number(currentTime + sysParams.pollManagerParams.pBiasTime) - ONE_SECOND,
+      Number(currentTime) +
+        Number(sysParams.pollManagerParams.pBiasTime) -
+        ONE_SECOND,
     )
     .mintAssets(mkAssetsOf(pollNft, shardsCount), Data.void())
     // Ref scripts
@@ -587,7 +593,9 @@ export async function mergeShards(
     .newTx()
     .validFrom(Number(currentTime) - ONE_SECOND)
     .validTo(
-      Number(currentTime + sysParams.pollManagerParams.pBiasTime) - ONE_SECOND,
+      Number(currentTime) +
+        Number(sysParams.pollManagerParams.pBiasTime) -
+        ONE_SECOND,
     )
     .readFrom([
       pollShardRefScriptUtxo,
@@ -718,7 +726,9 @@ export async function endProposal(
     .newTx()
     .validFrom(Number(currentTime) - ONE_SECOND)
     .validTo(
-      Number(currentTime + sysParams.pollManagerParams.pBiasTime) - ONE_SECOND,
+      Number(currentTime) +
+        Number(sysParams.pollManagerParams.pBiasTime) -
+        ONE_SECOND,
     )
     .readFrom([
       pollManagerRefScriptUtxo,
@@ -1226,7 +1236,9 @@ export async function executeProposal(
 
   tx.readFrom([upgradeTokenPolicyRefScriptUtxo, executeRefScriptUtxo])
     .validFrom(Number(currentTime) - ONE_SECOND)
-    .validTo(Number(currentTime + sysParams.govParams.gBiasTime) - ONE_SECOND)
+    .validTo(
+      Number(currentTime) + Number(sysParams.govParams.gBiasTime) - ONE_SECOND,
+    )
     .collectFrom([executeUtxo], Data.void())
     .mintAssets(
       mkAssetsOf(fromSystemParamsAsset(sysParams.govParams.upgradeToken), -1n),
