@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    # Don't propose a version until it has been public for a week — layered on
+    # top of pnpm's minimumReleaseAge (24h) to avoid pulling in freshly
+    # hijacked releases. First-party packages are exempt.
+    cooldown:
+      default-days: 7
+      exclude:
+        - '@indigo-labs/*'
+        - '@indigoprotocol/*'
+    groups:
+      minor-and-patch:
+        update-types:
+          - 'minor'
+          - 'patch'
+    open-pull-requests-limit: 5
+
+  # Keeps the SHA-pinned actions in .github/workflows up to date
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'

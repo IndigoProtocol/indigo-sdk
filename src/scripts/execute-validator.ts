@@ -45,7 +45,7 @@ export const mkExecuteValidatorFromSP = (
           versionRegistryValHash: params.versionRegistryValHash,
           treasuryValHash: params.treasuryValHash,
           indyAsset: fromSystemParamsAsset(params.indyAsset),
-        } as ExecuteParams),
+        }),
       ]),
     ),
   };

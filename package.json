@@ -5,8 +5,20 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=24.4.1"
+  },
+  "packageManager": "pnpm@10.34.5",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean --tsconfig tsconfig.build.json",
+    "prepublishOnly": "pnpm run build",
     "lint": "npx eslint .",
     "lint:fix": "npx eslint --fix .",
     "repack": "pnpm run build  && pnpm pack",
@@ -40,24 +52,24 @@
   "license": "MIT",
   "dependencies": {
     "@lucid-evolution/experimental": "^0.0.9",
-    "@lucid-evolution/lucid": "^0.4.29",
-    "dotenv": "^16.5.0",
-    "fp-ts": "^2.16.10",
-    "ts-pattern": "^5.8.0"
+    "@lucid-evolution/lucid": "^0.4.34",
+    "dotenv": "^16.6.1",
+    "fp-ts": "^2.16.11",
+    "ts-pattern": "^5.9.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.21.4",
-    "@babel/preset-env": "^7.21.4",
-    "@babel/preset-typescript": "^7.21.4",
-    "@eslint/js": "^9.32.0",
-    "@types/node": "^24.3.0",
-    "eslint": "^9.32.0",
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "@babel/preset-typescript": "^7.29.7",
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^24.13.3",
+    "eslint": "^9.39.5",
     "husky": "^9.1.7",
-    "lint-staged": "^16.1.5",
-    "prettier": "^3.6.2",
-    "tsup": "^8.3.6",
-    "typescript": "^5.9.2",
-    "typescript-eslint": "^8.39.0",
-    "vitest": "3.2.4"
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.6",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.66.0",
+    "vitest": "3.2.7"
   }
 }

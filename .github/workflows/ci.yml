@@ -6,39 +6,45 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Every resolved URL in the lockfile must point at the official npm
+      # registry over https — catches lockfile tampering / registry redirects.
+      - name: Lockfile registry check
+        run: |
+          if grep -E 'https?://' pnpm-lock.yaml | grep -vE 'https://registry\.npmjs\.org/'; then
+            echo "::error::pnpm-lock.yaml contains non-npmjs or non-https URLs"
+            exit 1
+          fi
+          echo "All lockfile URLs point at registry.npmjs.org"
+
+      # pnpm version is read from the "packageManager" field in package.json
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: latest
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Blocking: high/critical advisories in production dependencies fail CI.
+      # Override path for unfixable advisories: auditConfig in
+      # pnpm-workspace.yaml (see docs/supply-chain-security.md).
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
 
       - name: Check formatting
         run: pnpm run format:check

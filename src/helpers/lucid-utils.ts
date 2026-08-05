@@ -7,7 +7,6 @@ import {
   Datum,
   LucidEvolution,
   Network,
-  OutRef,
   paymentCredentialOf,
   ScriptHash,
   scriptHashToCredential,
@@ -31,7 +30,7 @@ export function getInlineDatumOrThrow(utxo: UTxO): Datum {
       JSON.stringify({
         txHash: utxo.txHash,
         outputIndex: utxo.outputIndex,
-      } as OutRef),
+      }),
   );
 }
 

@@ -1,0 +1,22 @@
+# --- Supply-chain hardening (INDY-11) ---
+# NOTE: pnpm 10 blocks all dependency install/build scripts by default and no
+# package is allowlisted here on purpose — build and tests pass without them.
+# Do not add an allowBuilds entry without reviewing what the script does.
+
+# Refuse dependency versions published less than 24h ago (incl. transitives),
+# so a hijacked package release is caught/yanked before we can resolve it.
+minimumReleaseAge: 1440
+# First-party packages: hotfixes must be installable immediately.
+minimumReleaseAgeExclude:
+  - '@indigo-labs/*'
+  - '@indigoprotocol/*'
+
+# Fail `pnpm run` if node_modules is out of sync with the lockfile.
+verifyDepsBeforeRun: error
+
+registry: 'https://registry.npmjs.org/'
+strictSsl: true
+engineStrict: true
+
+# New dependencies are saved with exact versions (no ^/~).
+savePrefix: ''
