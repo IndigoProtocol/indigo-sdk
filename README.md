@@ -1,6 +1,16 @@
-# Indigo SDK
+> [!IMPORTANT]
+> **This repository is archived and no longer maintained. The NPM package is still actively maintained from a private repository.**
+>
+> Development has moved to a private repository. This code is outdated, and doesn't follow latest Indigo Protocol release.
+>
+> NPM package [`@indigo-labs/indigo-sdk`](https://www.npmjs.com/package/@indigo-labs/indigo-sdk)
+> continues to be actively developed and published.
+>
+> Issues and pull requests are closed. For questions, reach out via
+> [Discord](https://discord.com/invite/gVqDRNg7VH).
+>
 
-** Not ready for production yet **
+# Indigo SDK
 
 `indigo-sdk` is a TypeScript SDK designed to interact with Indigo endpoints for managing CDPs (Collateralized Debt Positions), Staking Positions, and Stability Pool Accounts by integrating the [lucid-evolution](https://github.com/Anastasia-Labs/lucid-evolution) library.
 
